@@ -1,20 +1,30 @@
-# 🗽 Planificador NYC
+# 🗽 Planificador NYC — Familia
 
-Aplicación web para planificar un viaje a Nueva York con ayuda de IA. El
-frontend (React + Vite) recoge tus preferencias y una función serverless llama
-a la **API de Anthropic (Claude)** usando una clave que vive solo en el
-servidor — nunca se expone en el navegador.
+Aplicación web para planificar un viaje familiar a Nueva York (24–31 ago 2026).
+Frontend en **React + Vite + Tailwind v4**; las sugerencias las genera una
+función serverless que llama a la **API de Anthropic (Claude)** con una clave
+que vive solo en el servidor — nunca se expone en el navegador.
+
+## Funcionalidades
+
+- **Itinerario** editable día por día (horas, temas, agregar/quitar actividades).
+- **Ideas**: catálogo de lugares filtrable por categoría, con un clic para
+  añadirlos a cualquier día.
+- **Asistente IA**: pide sugerencias según el clima, el ánimo o el día; la IA
+  conoce el itinerario actual y a la familia.
+- **Presupuesto** con estimado/real y conversión a MXN.
+- **Maleta**: checklist de empaque con progreso.
 
 ## Estructura
 
 ```
 planificador-nyc/
 ├── api/
-│   └── suggest.js       # Serverless: llama a la API de Anthropic con tu key
+│   └── suggest.js       # Serverless: llama a la API de Anthropic con la key
 ├── src/
-│   ├── App.jsx          # La app (la IA apunta a /api/suggest)
+│   ├── App.jsx          # La app; el asistente IA apunta a /api/suggest
 │   ├── main.jsx
-│   └── index.css
+│   └── index.css        # @import "tailwindcss";
 ├── index.html
 ├── vite.config.js
 ├── package.json
@@ -36,38 +46,28 @@ planificador-nyc/
    # edita .env.local y pega tu clave real (sk-ant-...)
    ```
 
-3. Desarrollo local.
+3. Desarrollo local. Para que `/api/suggest` funcione necesitas el runtime de
+   funciones serverless; la forma más sencilla es la CLI de Vercel, que sirve a
+   la vez el frontend de Vite y las funciones de `api/`:
 
-   - Para que `/api/suggest` funcione necesitas el runtime de funciones
-     serverless. La forma más sencilla es usar la CLI de Vercel, que sirve
-     a la vez el frontend de Vite y las funciones de `api/`:
+   ```bash
+   npm i -g vercel
+   vercel dev
+   ```
 
-     ```bash
-     npm i -g vercel
-     vercel dev
-     ```
+   Si solo quieres ver la interfaz sin la IA: `npm run dev`.
 
-   - Si solo quieres ver la interfaz sin la IA, puedes usar:
-
-     ```bash
-     npm run dev
-     ```
-
-## Despliegue
-
-El proyecto está pensado para **Vercel**:
+## Despliegue (Vercel)
 
 1. Sube el repo a GitHub e impórtalo en Vercel.
-2. En el panel del proyecto, añade la variable de entorno
-   `ANTHROPIC_API_KEY` con tu clave.
+2. Añade la variable de entorno `ANTHROPIC_API_KEY` con tu clave.
 3. Vercel detecta Vite automáticamente y publica las funciones de `api/`.
 
-## Cómo funciona
+## Cómo funciona el asistente IA
 
-- `src/App.jsx` envía un `POST` a `/api/suggest` con los datos del viaje
-  (días, temporada, presupuesto, ritmo, intereses, notas).
-- `api/suggest.js` construye un prompt en español y llama al modelo
-  `claude-opus-4-8` con razonamiento adaptativo, devolviendo el itinerario
-  como JSON.
+- `src/App.jsx` envía un `POST` a `/api/suggest` con `{ input, context }`
+  (la petición del usuario y un resumen del itinerario actual).
+- `api/suggest.js` construye el prompt y llama al modelo de Claude, devolviendo
+  `{ suggestions: [{ name, emoji, cat, tip }] }`.
 - La clave `ANTHROPIC_API_KEY` solo se lee en el servidor; el cliente nunca
   la ve.
