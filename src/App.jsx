@@ -1,5 +1,22 @@
-import { useState } from "react";
-import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+  useDroppable,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin, GripVertical, RotateCcw } from "lucide-react";
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Llegada + Times Square", acts: [
@@ -101,21 +118,162 @@ const PACK_SEED = [
 const uid = () => Math.random().toString(36).slice(2, 9);
 const catOf = (k) => CATS.find((c) => c.key === k) || CATS[0];
 
+// Lee de localStorage con respaldo si no existe o falla el parseo.
+const load = (key, fallback) => {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+// Tarjeta de actividad arrastrable (con asa de agarre para no estorbar al editar).
+function SortableActivity({ act, dayId, onTime, onRemove }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: act.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="group bg-slate-900/60 rounded-lg p-2 border border-slate-700/50">
+      <div className="flex items-start gap-1.5">
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label="Arrastrar"
+          className="touch-none cursor-grab active:cursor-grabbing text-slate-500 hover:text-amber-400 mt-0.5 shrink-0"
+        >
+          <GripVertical size={15} />
+        </button>
+        <span className="text-base leading-none mt-0.5">{act.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm text-slate-100 leading-tight">{act.name}</div>
+          <div className="flex items-center gap-1 mt-1">
+            <Clock size={11} className="text-slate-500" />
+            <input
+              type="time"
+              value={act.time}
+              onChange={(e) => onTime(dayId, act.id, e.target.value)}
+              className="bg-slate-800/70 text-xs text-slate-300 rounded px-1 py-0.5 outline-none border border-transparent focus:border-slate-600"
+            />
+          </div>
+        </div>
+        <button onClick={() => onRemove(dayId, act.id)} className="text-slate-600 hover:text-rose-400 transition-colors shrink-0">
+          <X size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Columna de un día: zona donde se sueltan/ordenan las tarjetas.
+function DayColumn({ day, editTheme, setEditTheme, setTheme, onTime, onRemove, newCustom, setNewCustom, addCustom }) {
+  const { setNodeRef, isOver } = useDroppable({ id: day.id });
+  return (
+    <div className="bg-slate-800 rounded-xl border border-slate-700 flex flex-col">
+      <div className="p-3 border-b border-slate-700">
+        <div className="text-amber-400 font-bold text-sm">{day.full}</div>
+        {editTheme === day.id ? (
+          <input autoFocus value={day.theme} onChange={(e) => setTheme(day.id, e.target.value)}
+            onBlur={() => setEditTheme(null)} onKeyDown={(e) => e.key === "Enter" && setEditTheme(null)}
+            className="mt-1 w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100" />
+        ) : (
+          <button onClick={() => setEditTheme(day.id)} className="flex items-center gap-1 text-slate-300 text-sm mt-0.5 hover:text-amber-300 group">
+            {day.theme} <Edit3 size={11} className="opacity-0 group-hover:opacity-100" />
+          </button>
+        )}
+      </div>
+      <div ref={setNodeRef} className={`p-2 flex-1 space-y-1.5 min-h-[60px] rounded-lg transition-colors ${isOver ? "bg-amber-500/5" : ""}`}>
+        <SortableContext items={day.acts.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+          {day.acts.map((a) => (
+            <SortableActivity key={a.id} act={a} dayId={day.id} onTime={onTime} onRemove={onRemove} />
+          ))}
+        </SortableContext>
+        {day.acts.length === 0 && <p className="text-xs text-slate-600 text-center py-3">Arrastra algo aquí</p>}
+      </div>
+      <div className="p-2 border-t border-slate-700/50 flex gap-1">
+        <input value={newCustom[day.id] || ""} onChange={(e) => setNewCustom((p) => ({ ...p, [day.id]: e.target.value }))}
+          onKeyDown={(e) => e.key === "Enter" && addCustom(day.id)} placeholder="+ Agregar algo..."
+          className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 outline-none focus:border-amber-500/50" />
+        <button onClick={() => addCustom(day.id)} className="bg-amber-500 text-slate-900 rounded px-2 hover:bg-amber-400">
+          <Plus size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab, setTab] = useState("itinerario");
-  const [days, setDays] = useState(DAYS_SEED);
-  const [budget, setBudget] = useState(BUDGET_SEED);
-  const [rate, setRate] = useState(18.5);
-  const [packing, setPacking] = useState(PACK_SEED);
+  const [days, setDays] = useState(() => load("nyc_days", DAYS_SEED));
+  const [budget, setBudget] = useState(() => load("nyc_budget", BUDGET_SEED));
+  const [rate, setRate] = useState(() => load("nyc_rate", 18.5));
+  const [packing, setPacking] = useState(() => load("nyc_packing", PACK_SEED));
   const [filter, setFilter] = useState("todos");
   const [pickerFor, setPickerFor] = useState(null);
   const [newCustom, setNewCustom] = useState({});
   const [editTheme, setEditTheme] = useState(null);
+  const [activeId, setActiveId] = useState(null);
 
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [aiError, setAiError] = useState("");
+
+  // Guardado automático en el navegador (sobrevive a recargas).
+  useEffect(() => { localStorage.setItem("nyc_days", JSON.stringify(days)); }, [days]);
+  useEffect(() => { localStorage.setItem("nyc_budget", JSON.stringify(budget)); }, [budget]);
+  useEffect(() => { localStorage.setItem("nyc_rate", JSON.stringify(rate)); }, [rate]);
+  useEffect(() => { localStorage.setItem("nyc_packing", JSON.stringify(packing)); }, [packing]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+  );
+
+  const dayOf = (itemId) => {
+    if (days.some((d) => d.id === itemId)) return itemId;
+    return days.find((d) => d.acts.some((a) => a.id === itemId))?.id;
+  };
+  const activeAct = activeId ? days.flatMap((d) => d.acts).find((a) => a.id === activeId) : null;
+
+  const handleDragStart = ({ active }) => setActiveId(active.id);
+
+  const handleDragOver = ({ active, over }) => {
+    if (!over) return;
+    const fromDay = dayOf(active.id);
+    const toDay = dayOf(over.id);
+    if (!fromDay || !toDay || fromDay === toDay) return;
+    setDays((prev) => {
+      const src = prev.find((d) => d.id === fromDay);
+      const dst = prev.find((d) => d.id === toDay);
+      const item = src.acts.find((a) => a.id === active.id);
+      if (!item) return prev;
+      const newSrc = src.acts.filter((a) => a.id !== active.id);
+      const overIsDay = prev.some((d) => d.id === over.id);
+      const overIndex = overIsDay ? dst.acts.length : dst.acts.findIndex((a) => a.id === over.id);
+      const idx = overIndex < 0 ? dst.acts.length : overIndex;
+      const newDst = [...dst.acts.slice(0, idx), item, ...dst.acts.slice(idx)];
+      return prev.map((d) => d.id === fromDay ? { ...d, acts: newSrc } : d.id === toDay ? { ...d, acts: newDst } : d);
+    });
+  };
+
+  const handleDragEnd = ({ active, over }) => {
+    setActiveId(null);
+    if (!over) return;
+    const fromDay = dayOf(active.id);
+    const toDay = dayOf(over.id);
+    if (!fromDay || !toDay || fromDay !== toDay) return; // cruces ya resueltos en dragOver
+    setDays((prev) => prev.map((d) => {
+      if (d.id !== fromDay) return d;
+      const oldIndex = d.acts.findIndex((a) => a.id === active.id);
+      const newIndex = d.acts.findIndex((a) => a.id === over.id);
+      if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return d;
+      return { ...d, acts: arrayMove(d.acts, oldIndex, newIndex) };
+    }));
+  };
 
   const addActivity = (dayId, act) => {
     setDays((prev) => prev.map((d) => d.id === dayId ? { ...d, acts: [...d.acts, { ...act, id: uid(), time: act.time || "" }] } : d));
@@ -132,6 +290,11 @@ export default function App() {
     if (!txt) return;
     addActivity(dayId, { name: txt, emoji: "📍", cat: "joyas" });
     setNewCustom((p) => ({ ...p, [dayId]: "" }));
+  };
+  const resetItinerary = () => {
+    if (confirm("¿Restablecer el itinerario a la versión original? Se perderán tus cambios de orden y horarios.")) {
+      setDays(DAYS_SEED);
+    }
   };
 
   const askAI = async () => {
@@ -207,52 +370,30 @@ export default function App() {
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         {tab === "itinerario" && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {days.map((d) => (
-              <div key={d.id} className="bg-slate-800 rounded-xl border border-slate-700 flex flex-col">
-                <div className="p-3 border-b border-slate-700">
-                  <div className="text-amber-400 font-bold text-sm">{d.full}</div>
-                  {editTheme === d.id ? (
-                    <input autoFocus value={d.theme} onChange={(e) => setTheme(d.id, e.target.value)}
-                      onBlur={() => setEditTheme(null)} onKeyDown={(e) => e.key === "Enter" && setEditTheme(null)}
-                      className="mt-1 w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100" />
-                  ) : (
-                    <button onClick={() => setEditTheme(d.id)} className="flex items-center gap-1 text-slate-300 text-sm mt-0.5 hover:text-amber-300 group">
-                      {d.theme} <Edit3 size={11} className="opacity-0 group-hover:opacity-100" />
-                    </button>
-                  )}
-                </div>
-                <div className="p-2 flex-1 space-y-1.5">
-                  {d.acts.map((a) => (
-                    <div key={a.id} className="group bg-slate-900/60 rounded-lg p-2 border border-slate-700/50">
-                      <div className="flex items-start gap-2">
-                        <span className="text-base leading-none mt-0.5">{a.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-slate-100 leading-tight">{a.name}</div>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Clock size={11} className="text-slate-500" />
-                            <input value={a.time} onChange={(e) => setActTime(d.id, a.id, e.target.value)} placeholder="hora"
-                              className="bg-transparent text-xs text-slate-400 w-14 outline-none border-b border-transparent focus:border-slate-600" />
-                          </div>
-                        </div>
-                        <button onClick={() => removeActivity(d.id, a.id)} className="text-slate-600 hover:text-rose-400 transition-colors">
-                          <X size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {d.acts.length === 0 && <p className="text-xs text-slate-600 text-center py-3">Sin actividades aún</p>}
-                </div>
-                <div className="p-2 border-t border-slate-700/50 flex gap-1">
-                  <input value={newCustom[d.id] || ""} onChange={(e) => setNewCustom((p) => ({ ...p, [d.id]: e.target.value }))}
-                    onKeyDown={(e) => e.key === "Enter" && addCustom(d.id)} placeholder="+ Agregar algo..."
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 outline-none focus:border-amber-500/50" />
-                  <button onClick={() => addCustom(d.id)} className="bg-amber-500 text-slate-900 rounded px-2 hover:bg-amber-400">
-                    <Plus size={14} />
-                  </button>
-                </div>
+          <div>
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <p className="text-xs text-slate-500">Mantén pulsado el asa <span className="inline-flex align-middle"><GripVertical size={13} /></span> y arrastra para mover o reordenar entre días. Toca la hora para editarla. Se guarda solo.</p>
+              <button onClick={resetItinerary} className="flex items-center gap-1 text-xs text-slate-400 hover:text-rose-400 shrink-0">
+                <RotateCcw size={13} /> Reiniciar
+              </button>
+            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {days.map((d) => (
+                  <DayColumn key={d.id} day={d} editTheme={editTheme} setEditTheme={setEditTheme} setTheme={setTheme}
+                    onTime={setActTime} onRemove={removeActivity} newCustom={newCustom} setNewCustom={setNewCustom} addCustom={addCustom} />
+                ))}
               </div>
-            ))}
+              <DragOverlay>
+                {activeAct ? (
+                  <div className="bg-slate-800 rounded-lg p-2 border border-amber-500/50 shadow-xl flex items-center gap-2">
+                    <GripVertical size={15} className="text-amber-400" />
+                    <span className="text-base">{activeAct.emoji}</span>
+                    <span className="text-sm text-slate-100">{activeAct.name}</span>
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           </div>
         )}
 
