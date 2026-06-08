@@ -22,7 +22,7 @@ const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
     { id: "v1", name: "Vuelo VB 686 · Monterrey → JFK (sale 6:10 PM)", emoji: "✈️", cat: "noche", time: "18:10" },
     { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20" },
-    { id: "v3", name: "Check-in al hotel (de madrugada)", emoji: "🏨", cat: "noche", time: "01:30" },
+    { id: "v3", name: "Check-in en el depa · 113 Eldridge St 4B (Lower East Side)", emoji: "🏨", cat: "noche", time: "01:30" },
   ]},
   { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Vistas de Midtown", acts: [
     { id: "a3", name: "Top of the Rock", emoji: "🏙️", cat: "cultura", time: "10:00" },
