@@ -130,6 +130,150 @@ const load = (key, fallback) => {
   }
 };
 
+// Dirección del alojamiento: punto de partida de cada ruta del día.
+const HOTEL_ADDR = "113 Eldridge St, New York, NY 10002";
+
+// Niveles de experiencia culinaria.
+const TIERS = {
+  callejera: { label: "Callejera", emoji: "🌮", cls: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
+  estandar: { label: "Estándar", emoji: "🍽️", cls: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
+  fancy: { label: "Fancy", emoji: "✨", cls: "bg-violet-500/15 text-violet-300 border-violet-500/30" },
+};
+
+// Opciones de comida por día, curadas según la zona (3 niveles cada una).
+const MEALS = {
+  d1: {
+    desayuno: [
+      { tier: "callejera", name: "Carrito de café + bagel", note: "Rápido, en cualquier esquina de Midtown" },
+      { tier: "estandar", name: "Ess-a-Bagel", note: "Bagels enormes, clásico NY" },
+      { tier: "fancy", name: "Sarabeth's Central Park South", note: "Brunch elegante, reserva" },
+    ],
+    comida: [
+      { tier: "callejera", name: "The Halal Guys (53rd & 6th)", note: "Plato de pollo legendario" },
+      { tier: "estandar", name: "Los Tacos No.1 (Times Sq)", note: "Tacos rápidos buenísimos" },
+      { tier: "fancy", name: "The Modern", note: "Alta cocina junto al MoMA, reserva" },
+    ],
+  },
+  d2: {
+    desayuno: [
+      { tier: "callejera", name: "Carrito de café camino al museo", note: "Pretzel o bagel" },
+      { tier: "estandar", name: "Pret A Manger / Tom's UES", note: "Desayuno sencillo" },
+      { tier: "fancy", name: "Sant Ambroeus (UES)", note: "Café italiano elegante" },
+    ],
+    comida: [
+      { tier: "callejera", name: "Carrito halal cerca del MoMA", note: "Rápido entre museos" },
+      { tier: "estandar", name: "Cafetería del Met", note: "Comer sin salir del museo" },
+      { tier: "fancy", name: "Café Boulud (UES)", note: "Francés de lujo, reserva" },
+    ],
+  },
+  d3: {
+    desayuno: [
+      { tier: "callejera", name: "Carrito de café + donut", note: "Antes del ferry a la Estatua" },
+      { tier: "estandar", name: "Leo's Bagels (FiDi)", note: "Bagels cerca de Wall St" },
+      { tier: "fancy", name: "Le District (Brookfield Place)", note: "Mercado francés con vista" },
+    ],
+    comida: [
+      { tier: "callejera", name: "Carritos en Stone Street", note: "Callejón histórico" },
+      { tier: "estandar", name: "Fraunces Tavern", note: "Pub histórico de 1762" },
+      { tier: "fancy", name: "Manhatta (piso 40)", note: "Vista increíble, reserva" },
+    ],
+  },
+  d4: {
+    desayuno: [
+      { tier: "callejera", name: "Carrito de café en Chelsea", note: "Antes de la High Line" },
+      { tier: "estandar", name: "Chelsea Market (varios)", note: "Mil opciones bajo un techo" },
+      { tier: "fancy", name: "Cookshop", note: "Brunch granja-a-mesa, reserva" },
+    ],
+    comida: [
+      { tier: "callejera", name: "Los Tacos No.1 (Chelsea Market)", note: "Tacos top" },
+      { tier: "estandar", name: "Chelsea Market food hall", note: "Lobster, ramen, tacos…" },
+      { tier: "fancy", name: "Buddakan", note: "Asiático espectacular, reserva" },
+    ],
+  },
+  d5: {
+    desayuno: [
+      { tier: "callejera", name: "Café en DUMBO con vista", note: "Junto al puente" },
+      { tier: "estandar", name: "Brooklyn Bagel", note: "Antes de cruzar" },
+      { tier: "fancy", name: "Celestine (DUMBO)", note: "Brunch con skyline, reserva" },
+    ],
+    comida: [
+      { tier: "callejera", name: "Smorgasburg", note: "Decenas de puestos (sábado)" },
+      { tier: "estandar", name: "Juliana's Pizza", note: "Pizza de horno de carbón" },
+      { tier: "fancy", name: "The River Café", note: "Bajo el puente, reserva" },
+    ],
+  },
+  d6: {
+    desayuno: [
+      { tier: "callejera", name: "Dim sum en Chinatown", note: "A pasos del depa, barato" },
+      { tier: "estandar", name: "Russ & Daughters Cafe", note: "Bagel con salmón, ícono del LES" },
+      { tier: "fancy", name: "Jack's Wife Freda (SoHo)", note: "Brunch de moda, reserva" },
+    ],
+    comida: [
+      { tier: "callejera", name: "Joe's Pizza o Katz's", note: "Rebanada o pastrami legendario" },
+      { tier: "estandar", name: "Lombardi's (Nolita)", note: "La pizzería más antigua de EUA" },
+      { tier: "fancy", name: "Balthazar (SoHo)", note: "Brasserie francesa icónica, reserva" },
+    ],
+  },
+};
+
+// Construye una URL de Google Maps (transporte público) desde el hotel
+// recorriendo las paradas reales del día, en su orden actual.
+function dayRouteUrl(day) {
+  const skip = /vuelo|llegada|check.?in|traslado|aeropuerto|monterrey|\bjfk\b|maletas/i;
+  const stops = day.acts.filter((a) => !skip.test(a.name)).map((a) => a.name.replace(/\(.*?\)/g, "").trim());
+  if (stops.length === 0) return null;
+  const q = (s) => encodeURIComponent(`${s}, New York, NY`);
+  const dest = stops[stops.length - 1];
+  const mids = stops.slice(0, -1);
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(HOTEL_ADDR)}&destination=${q(dest)}&travelmode=transit`;
+  if (mids.length) url += `&waypoints=${mids.map(q).join("%7C")}`;
+  return url;
+}
+
+// Una comida (desayuno/comida) con sus 3 opciones por nivel.
+function MealRow({ label, emoji, options }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold text-slate-400 mb-1">{emoji} {label}</div>
+      <div className="space-y-1">
+        {options.map((o, i) => {
+          const t = TIERS[o.tier];
+          return (
+            <div key={i} className="flex items-start gap-1.5">
+              <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border ${t.cls}`}>{t.emoji} {t.label}</span>
+              <div className="min-w-0 leading-tight">
+                <span className="text-xs text-slate-200">{o.name}</span>
+                {o.note && <span className="text-[11px] text-slate-500"> · {o.note}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Sección plegable de comidas del día.
+function MealsSection({ dayId }) {
+  const meals = MEALS[dayId];
+  const [open, setOpen] = useState(false);
+  if (!meals) return null;
+  return (
+    <div className="border-t border-slate-700/50">
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-300 hover:text-amber-300">
+        <span>🍴 Comidas del día</span>
+        <span className="text-slate-500">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-3">
+          <MealRow label="Desayuno" emoji="🥐" options={meals.desayuno} />
+          <MealRow label="Comida" emoji="🍽️" options={meals.comida} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Tarjeta de actividad arrastrable (con asa de agarre para no estorbar al editar).
 function SortableActivity({ act, dayId, onTime, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: act.id });
@@ -173,6 +317,7 @@ function SortableActivity({ act, dayId, onTime, onRemove }) {
 // Columna de un día: zona donde se sueltan/ordenan las tarjetas.
 function DayColumn({ day, editTheme, setEditTheme, setTheme, onTime, onRemove, newCustom, setNewCustom, addCustom }) {
   const { setNodeRef, isOver } = useDroppable({ id: day.id });
+  const routeUrl = dayRouteUrl(day);
   return (
     <div className="bg-slate-800 rounded-xl border border-slate-700 flex flex-col">
       <div className="p-3 border-b border-slate-700">
@@ -195,6 +340,13 @@ function DayColumn({ day, editTheme, setEditTheme, setTheme, onTime, onRemove, n
         </SortableContext>
         {day.acts.length === 0 && <p className="text-xs text-slate-600 text-center py-3">Arrastra algo aquí</p>}
       </div>
+      {routeUrl && (
+        <a href={routeUrl} target="_blank" rel="noopener noreferrer"
+          className="mx-2 mb-1 flex items-center justify-center gap-1.5 bg-slate-900/60 hover:bg-slate-700 border border-slate-700 rounded-lg py-1.5 text-xs text-sky-300 font-medium transition-colors">
+          <MapPin size={13} /> Ver ruta y tiempos
+        </a>
+      )}
+      <MealsSection dayId={day.id} />
       <div className="p-2 border-t border-slate-700/50 flex gap-1">
         <input value={newCustom[day.id] || ""} onChange={(e) => setNewCustom((p) => ({ ...p, [day.id]: e.target.value }))}
           onKeyDown={(e) => e.key === "Enter" && addCustom(day.id)} placeholder="+ Agregar algo..."
