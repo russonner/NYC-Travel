@@ -153,6 +153,11 @@ const MEALS = {
       { tier: "estandar", name: "Los Tacos No.1 (Times Sq)", note: "Tacos rápidos buenísimos" },
       { tier: "fancy", name: "The Modern", note: "Alta cocina junto al MoMA, reserva" },
     ],
+    cena: [
+      { tier: "callejera", name: "99 Cent Fresh Pizza (Midtown)", note: "Rebanada al instante" },
+      { tier: "estandar", name: "Junior's (Times Sq)", note: "Diner clásico + cheesecake" },
+      { tier: "fancy", name: "Keens Steakhouse", note: "Steakhouse histórico, reserva" },
+    ],
   },
   d2: {
     desayuno: [
@@ -164,6 +169,11 @@ const MEALS = {
       { tier: "callejera", name: "Carrito halal cerca del MoMA", note: "Rápido entre museos" },
       { tier: "estandar", name: "Cafetería del Met", note: "Comer sin salir del museo" },
       { tier: "fancy", name: "Café Boulud (UES)", note: "Francés de lujo, reserva" },
+    ],
+    cena: [
+      { tier: "callejera", name: "Shake Shack (UES)", note: "Burgers ícono de NY" },
+      { tier: "estandar", name: "The Smith (Lincoln Center)", note: "Bistró americano animado" },
+      { tier: "fancy", name: "Daniel (UES)", note: "Alta cocina francesa, reserva formal" },
     ],
   },
   d3: {
@@ -177,6 +187,11 @@ const MEALS = {
       { tier: "estandar", name: "Fraunces Tavern", note: "Pub histórico de 1762" },
       { tier: "fancy", name: "Manhatta (piso 40)", note: "Vista increíble, reserva" },
     ],
+    cena: [
+      { tier: "callejera", name: "Vanessa's Dumplings (Chinatown)", note: "Dumplings baratísimos" },
+      { tier: "estandar", name: "The Dead Rabbit (FiDi)", note: "Pub irlandés premiado" },
+      { tier: "fancy", name: "Crown Shy (FiDi)", note: "Moderno con estrella, reserva" },
+    ],
   },
   d4: {
     desayuno: [
@@ -188,6 +203,11 @@ const MEALS = {
       { tier: "callejera", name: "Los Tacos No.1 (Chelsea Market)", note: "Tacos top" },
       { tier: "estandar", name: "Chelsea Market food hall", note: "Lobster, ramen, tacos…" },
       { tier: "fancy", name: "Buddakan", note: "Asiático espectacular, reserva" },
+    ],
+    cena: [
+      { tier: "callejera", name: "Gansevoort Market (Meatpacking)", note: "Food hall variado" },
+      { tier: "estandar", name: "Bubby's (Meatpacking)", note: "Americano clásico" },
+      { tier: "fancy", name: "The Standard Grill", note: "Escena Meatpacking, reserva" },
     ],
   },
   d5: {
@@ -201,6 +221,11 @@ const MEALS = {
       { tier: "estandar", name: "Juliana's Pizza", note: "Pizza de horno de carbón" },
       { tier: "fancy", name: "The River Café", note: "Bajo el puente, reserva" },
     ],
+    cena: [
+      { tier: "callejera", name: "L'industrie Pizza (Williamsburg)", note: "Rebanada top de Brooklyn" },
+      { tier: "estandar", name: "Olea (Fort Greene)", note: "Mediterráneo rico y animado" },
+      { tier: "fancy", name: "Lilia (Williamsburg)", note: "Pasta de culto, reserva difícil" },
+    ],
   },
   d6: {
     desayuno: [
@@ -212,6 +237,11 @@ const MEALS = {
       { tier: "callejera", name: "Joe's Pizza o Katz's", note: "Rebanada o pastrami legendario" },
       { tier: "estandar", name: "Lombardi's (Nolita)", note: "La pizzería más antigua de EUA" },
       { tier: "fancy", name: "Balthazar (SoHo)", note: "Brasserie francesa icónica, reserva" },
+    ],
+    cena: [
+      { tier: "callejera", name: "Xi'an Famous Foods (Chinatown)", note: "Noodles picosos baratos" },
+      { tier: "estandar", name: "Rubirosa (Nolita)", note: "Pizza vodka famosa" },
+      { tier: "fancy", name: "Carbone (Greenwich Village)", note: "Italoamericano icónico, reserva difícil" },
     ],
   },
 };
@@ -230,7 +260,12 @@ function dayRouteUrl(day) {
   return url;
 }
 
-// Una comida (desayuno/comida) con sus 3 opciones por nivel.
+// Enlace a Google Maps para ubicar/reservar un restaurante por nombre.
+function mealSearchUrl(name) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, New York, NY`)}`;
+}
+
+// Una comida (desayuno/comida/cena) con sus 3 opciones por nivel.
 function MealRow({ label, emoji, options }) {
   return (
     <div>
@@ -242,7 +277,8 @@ function MealRow({ label, emoji, options }) {
             <div key={i} className="flex items-start gap-1.5">
               <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border ${t.cls}`}>{t.emoji} {t.label}</span>
               <div className="min-w-0 leading-tight">
-                <span className="text-xs text-slate-200">{o.name}</span>
+                <a href={mealSearchUrl(o.name)} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-slate-200 hover:text-amber-300 underline decoration-dotted decoration-slate-600 underline-offset-2">{o.name}</a>
                 {o.note && <span className="text-[11px] text-slate-500"> · {o.note}</span>}
               </div>
             </div>
@@ -268,6 +304,7 @@ function MealsSection({ dayId }) {
         <div className="px-3 pb-3 space-y-3">
           <MealRow label="Desayuno" emoji="🥐" options={meals.desayuno} />
           <MealRow label="Comida" emoji="🍽️" options={meals.comida} />
+          {meals.cena && <MealRow label="Cena" emoji="🌙" options={meals.cena} />}
         </div>
       )}
     </div>
