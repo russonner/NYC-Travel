@@ -19,9 +19,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin, GripVertical, RotateCcw } from "lucide-react";
 
 const DAYS_SEED = [
-  { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Llegada + Times Square", acts: [
-    { id: "a1", name: "Llegada y check-in al hotel", emoji: "✈️", cat: "noche", time: "" },
-    { id: "a2", name: "Times Square de noche", emoji: "🌃", cat: "noche", time: "20:00" },
+  { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
+    { id: "v1", name: "Vuelo VB 686 · Monterrey → JFK (sale 6:10 PM)", emoji: "✈️", cat: "noche", time: "18:10" },
+    { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20" },
+    { id: "v3", name: "Check-in al hotel (de madrugada)", emoji: "🏨", cat: "noche", time: "01:30" },
   ]},
   { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Vistas de Midtown", acts: [
     { id: "a3", name: "Top of the Rock", emoji: "🏙️", cat: "cultura", time: "10:00" },
@@ -48,15 +49,16 @@ const DAYS_SEED = [
     { id: "a16", name: "DUMBO (foto del puente)", emoji: "📸", cat: "joyas", time: "12:00" },
     { id: "a17", name: "Smorgasburg (mercado de comida)", emoji: "🍕", cat: "comida", time: "14:00" },
   ]},
-  { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "SoHo & Broadway", acts: [
+  { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día completo + salida a JFK", acts: [
     { id: "a18", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "11:00" },
     { id: "a19", name: "Little Island", emoji: "🌳", cat: "aire", time: "15:00" },
-    { id: "a20", name: "Show de Broadway", emoji: "🎭", cat: "noche", time: "19:00" },
+    { id: "a20", name: "Show de Broadway (mejor matiné, el vuelo es 1:30 AM)", emoji: "🎭", cat: "noche", time: "14:00" },
+    { id: "a22", name: "Cena temprana + últimas compras", emoji: "🍝", cat: "comida", time: "18:30" },
+    { id: "v4", name: "Recoger maletas del hotel + traslado a JFK", emoji: "🚕", cat: "noche", time: "22:00" },
   ]},
-  { id: "d7", label: "Lun 31", full: "Lunes 31 Ago", theme: "Último día + salida", acts: [
-    { id: "a21", name: "Brunch + bagels (Ess-a-Bagel)", emoji: "🥯", cat: "comida", time: "09:00" },
-    { id: "a22", name: "Última caminata / compras de último minuto", emoji: "🛍️", cat: "ninas", time: "11:00" },
-    { id: "a23", name: "Salida al aeropuerto", emoji: "✈️", cat: "noche", time: "" },
+  { id: "d7", label: "Lun 31", full: "Lunes 31 Ago", theme: "Vuelo de regreso (madrugada)", acts: [
+    { id: "v5", name: "Vuelo VB 687 · JFK → Monterrey (sale 1:30 AM)", emoji: "✈️", cat: "noche", time: "01:30" },
+    { id: "v6", name: "Llegada a Monterrey 4:15 AM", emoji: "🛬", cat: "noche", time: "04:15" },
   ]},
 ];
 
