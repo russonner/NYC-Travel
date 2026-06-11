@@ -269,7 +269,10 @@ function traducirError(m){
   if(m.includes("invalid login")) return "Correo o contraseña incorrectos.";
   if(m.includes("email not confirmed")) return "Tu correo aún no está confirmado. Pide al administrador que desactive la confirmación de correo o confírmalo desde tu bandeja.";
   if(m.includes("already registered")||m.includes("already been registered")) return "Ese correo ya tiene cuenta. Usa “Entrar”.";
-  if(m.includes("password")) return "La contraseña no cumple el mínimo (6 caracteres).";
+  if(m.includes("weak")||m.includes("pwned")||m.includes("leaked")||m.includes("compromis")||m.includes("known to be")||m.includes("breach")) return "Esa contraseña fue rechazada por seguridad (aparece en filtraciones conocidas o es muy común). Usa una contraseña NUEVA y distinta —no la de Radar.";
+  if(m.includes("at least 6")||m.includes("should be at least")||m.includes("minimum")||m.includes("too short")) return "La contraseña debe tener al menos 6 caracteres.";
+  if(m.includes("signups not allowed")||m.includes("signup is disabled")||m.includes("not allowed")) return "El registro de cuentas está deshabilitado. Pídele al administrador que lo active.";
+  if(m.includes("password")) return "No se aceptó la contraseña: "+m+". Prueba con una contraseña distinta.";
   return m;
 }
 
