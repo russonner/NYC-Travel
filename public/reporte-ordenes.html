@@ -99,6 +99,7 @@
   tr.mine td.no{box-shadow:inset 3px 0 0 var(--accent)}
   .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
   .rowdel:hover{background:#fee2e2;border-radius:6px}
+  body.rolmember .rowdel{display:none}  /* miembros no eliminan órdenes */
   .empty{padding:40px;text-align:center;color:var(--muted)}
 
   .modal-bg{position:fixed;inset:0;background:rgba(15,20,30,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
@@ -263,7 +264,7 @@ function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
 let orders = [];
 let comentarios = {};          // { orden_id: [ {id,autor,texto,created_at,user_id} ] }
 let openCommentsId = null;
-let me = {nombre:"", email:"", id:null};
+let me = {nombre:"", email:"", id:null, rol:"miembro"};
 let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false;
 
 //// ====================== AUTH ======================
@@ -332,6 +333,7 @@ async function enterApp(session){
   }
   if(params.get("mias")==="1") onlyMine = true;
   setupMeName();
+  aplicarRol();
   if(appReady) return;          // evita recargar/duplicar suscripción si el evento se repite
   appReady=true;
   initFiltersOnce();
@@ -361,9 +363,16 @@ function refreshMe(){
 
 async function ensureProfile(user){
   const nombre = user.user_metadata?.nombre || "";
-  const {data} = await sb.from("seguimiento_perfiles").select("nombre").eq("id",user.id).maybeSingle();
-  if(!data){ await sb.from("seguimiento_perfiles").insert({id:user.id, nombre}); me.nombre=nombre; }
-  else { me.nombre = data.nombre || nombre; }
+  const {data} = await sb.from("seguimiento_perfiles").select("nombre, rol").eq("id",user.id).maybeSingle();
+  if(!data){ await sb.from("seguimiento_perfiles").insert({id:user.id, nombre}); me.nombre=nombre; me.rol="miembro"; }
+  else { me.nombre = data.nombre || nombre; me.rol = data.rol || "miembro"; }
+}
+
+// Oculta controles de administrador para los miembros
+function aplicarRol(){
+  const admin = me.rol === "admin";
+  document.body.classList.toggle("rolmember", !admin);
+  ["#btnAdd","#btnImport","#btnSyncNow"].forEach(s=>{ const el=$(s); if(el) el.style.display = admin ? "" : "none"; });
 }
 
 $("#btnLogout").onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
