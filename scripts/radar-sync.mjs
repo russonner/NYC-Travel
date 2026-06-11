@@ -48,6 +48,34 @@ try {
   ]);
   console.log("   URL tras login:", page.url());
 
+  // Paso intermedio: selección de sucursal (taller)
+  if (page.url().toLowerCase().includes("workshopbranch")) {
+    console.log("→ Página de selección de sucursal detectada");
+    const cands = await page.evaluate(() => {
+      const els = Array.from(document.querySelectorAll("a, button, [onclick], .card, li, .list-group-item, tr, option"));
+      return els
+        .map((e) => ({
+          tag: e.tagName,
+          text: (e.innerText || e.textContent || "").replace(/\s+/g, " ").trim().slice(0, 70),
+          href: e.getAttribute ? e.getAttribute("href") : null,
+        }))
+        .filter((x) => x.text);
+    });
+    console.log("   Opciones encontradas:", JSON.stringify(cands).slice(0, 1800));
+
+    const branchName = process.env.RADAR_BRANCH || "UNIVERSIDAD";
+    let clicked = false;
+    const target = page.locator(`text=/${branchName}/i`).first();
+    if (await target.count()) {
+      await Promise.all([page.waitForLoadState("networkidle"), target.click().catch(() => {})]);
+      clicked = true;
+    }
+    console.log(`   Sucursal "${branchName}" seleccionada:`, clicked, "→ URL:", page.url());
+    if (!clicked) {
+      console.error("✗ No encontré la sucursal por nombre. Revisa las opciones de arriba.");
+    }
+  }
+
   console.log("→ Abriendo /Orders…");
   await page.goto(BASE + "/Orders", { waitUntil: "networkidle" });
   await page.waitForSelector("#mftable", { timeout: 45000 });
