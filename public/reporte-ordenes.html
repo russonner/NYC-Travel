@@ -76,6 +76,25 @@
   td.accion-cell{background:var(--row-action);min-width:280px}
   select.resp,select.proc,select.est{border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff;max-width:170px}
   select.resp.none{color:#b91c1c;border-color:#fecaca;background:#fff5f5}
+  /* responsables múltiples */
+  .resps{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:150px}
+  .resps.none{outline:1px dashed #fecaca;border-radius:8px;padding:3px}
+  .rchip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);color:var(--accent);border:1px solid #c7dbff;border-radius:999px;padding:2px 6px 2px 8px;font-size:11.5px;font-weight:600;white-space:nowrap}
+  .rchip .rx{cursor:pointer;color:#1e40af;font-weight:700;font-size:13px;line-height:1;opacity:.6}
+  .rchip .rx:hover{opacity:1;color:#b91c1c}
+  select.addresp{border:1px dashed var(--line);border-radius:8px;padding:3px 5px;font-size:11.5px;background:#fff;color:var(--muted)}
+  /* comentarios */
+  .combtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 9px;font-size:12px;cursor:pointer;white-space:nowrap}
+  .combtn:hover{background:#f1f5f9}
+  .combtn.has{background:var(--accent-soft);border-color:#c7dbff;color:var(--accent);font-weight:600}
+  .comitem{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:#fbfcfe}
+  .comitem .meta{font-size:11.5px;color:var(--muted);margin-bottom:3px;display:flex;justify-content:space-between;gap:10px}
+  .comitem .meta b{color:var(--ink)}
+  .comitem .txt{font-size:13px;white-space:pre-wrap}
+  .comdel{cursor:pointer;color:#b91c1c;opacity:.5;font-size:12px}
+  .comdel:hover{opacity:1}
+  #comList{max-height:46vh;overflow:auto}
+  textarea.cominput{width:100%;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:13px}
   tr.done{opacity:.55} tr.done td.accion-cell{background:#f3f4f6}
   tr.mine td.no{box-shadow:inset 3px 0 0 var(--accent)}
   .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
@@ -166,8 +185,8 @@
           <th class="sortable" data-k="ordenante">Ordenante</th>
           <th class="sortable" data-k="proceso">Proceso Actual</th>
           <th>Refacc.</th><th class="sortable" data-k="dias">Días</th>
-          <th>Acción a Tomar</th><th class="sortable" data-k="responsable">Responsable</th>
-          <th>Tarea</th><th></th>
+          <th>Acción a Tomar</th><th>Responsable(s)</th>
+          <th>Tarea</th><th>💬</th><th></th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -208,6 +227,19 @@
   <div class="foot"><button id="btnExportClose">Cerrar</button></div>
 </div></div>
 
+<!-- Comments modal -->
+<div class="modal-bg" id="comModal"><div class="modal">
+  <h2 id="comTitle">Comentarios</h2>
+  <div class="body">
+    <div id="comList"></div>
+    <div style="margin-top:12px">
+      <textarea class="cominput" id="comInput" placeholder="Escribe un comentario para esta orden…"></textarea>
+      <div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="primary" id="comAdd">Agregar comentario</button></div>
+    </div>
+  </div>
+  <div class="foot"><button id="comClose">Cerrar</button></div>
+</div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
@@ -216,6 +248,7 @@ const SUPABASE_URL = "https://rrxakcjuykyoxzdfgthg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_GEx_IHCzA-EKuJy1iyAv2A_K5oTl0j3";
 const INVITE_CODE  = "AUTOPLUS2026";          // código para registrarse (cámbialo si quieres)
 const TABLE = "seguimiento_ordenes";
+const COM_TABLE = "seguimiento_comentarios";
 const RESPONSABLES = ["Gloria","Adrian","Alejandro Martinez","Javier","Devany","Jesus Alejandro"];
 const PROCESOS = ["Diagnóstico","Valuación","En proceso","Listo para proceso","Espera de refacciones","En reparación","Listo para entrega","Unidad entregada"];
 const EST = {pendiente:{l:"Pendiente",bg:"#fef9c3",fg:"#854d0e"},proceso:{l:"En proceso",bg:"#dbeafe",fg:"#1e40af"},hecho:{l:"Hecho",bg:"#dcfce7",fg:"#166534"}};
@@ -227,7 +260,9 @@ function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
 
 //// ——— Estado ———
 let orders = [];
-let me = {nombre:"", email:""};
+let comentarios = {};          // { orden_id: [ {id,autor,texto,created_at,user_id} ] }
+let openCommentsId = null;
+let me = {nombre:"", email:"", id:null};
 let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false;
 
 //// ====================== AUTH ======================
@@ -326,15 +361,27 @@ $("#btnLogout").onclick=async()=>{ await sb.auth.signOut(); location.reload(); }
 
 //// ====================== DATOS ======================
 async function loadOrders(){
-  const {data, error} = await sb.from(TABLE).select("*").order("dias",{ascending:false});
-  if(error){ console.error(error); $("#meta").textContent="Error al cargar: "+error.message; return; }
-  orders = data||[]; render();
+  const [ordRes] = await Promise.all([
+    sb.from(TABLE).select("*").order("dias",{ascending:false}),
+    loadComments()
+  ]);
+  if(ordRes.error){ console.error(ordRes.error); $("#meta").textContent="Error al cargar: "+ordRes.error.message; return; }
+  orders = ordRes.data||[]; render();
+}
+
+async function loadComments(){
+  const {data} = await sb.from(COM_TABLE).select("*").order("created_at",{ascending:true});
+  comentarios = {};
+  (data||[]).forEach(c=>{ (comentarios[c.orden_id]=comentarios[c.orden_id]||[]).push(c); });
 }
 
 function subscribeRealtime(){
   sb.channel("ordenes-rt")
     .on("postgres_changes",{event:"*",schema:"public",table:TABLE}, ()=>{
       if(editing){ pendingReload=true; } else { loadOrders(); }
+    })
+    .on("postgres_changes",{event:"*",schema:"public",table:COM_TABLE}, async ()=>{
+      await loadComments(); render(); if(openCommentsId) renderCommentsModal();
     })
     .subscribe(status=>{ $("#syncdot").classList.toggle("live", status==="SUBSCRIBED"); });
 }
@@ -358,11 +405,12 @@ function initFiltersOnce(){
 function render(){
   const q=$("#q").value.trim().toLowerCase(), fp=$("#fProc").value, fr=$("#fResp").value, fe=$("#fEst").value;
   let rows=orders.filter(o=>{
-    if(onlyMine){ if((o.responsable||"")!==me.nombre || o.estatus==="hecho") return false; }
+    const resp=o.responsables||[];
+    if(onlyMine){ if(!resp.includes(me.nombre) || o.estatus==="hecho") return false; }
     if(fp && o.proceso!==fp) return false;
-    if(fr==="__none__"){ if(o.responsable) return false; } else if(fr && o.responsable!==fr) return false;
+    if(fr==="__none__"){ if(resp.length) return false; } else if(fr && !resp.includes(fr)) return false;
     if(fe && (o.estatus||"pendiente")!==fe) return false;
-    if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,o.responsable].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+    if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
   rows.sort((a,b)=>{ let va=a[sortKey],vb=b[sortKey];
@@ -372,18 +420,20 @@ function render(){
 
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
-    const respOpts=['<option value="">— Selec. —</option>'].concat(RESPONSABLES.map(r=>`<option ${r===o.responsable?"selected":""}>${esc(r)}</option>`)).join("");
+    const resp=o.responsables||[];
     const procOpts=PROCESOS.map(p=>`<option ${p===o.proceso?"selected":""}>${esc(p)}</option>`).join("");
     const estOpts=Object.keys(EST).map(k=>`<option value="${k}" ${k===est?"selected":""}>${EST[k].l}</option>`).join("");
-    const mine=(o.responsable||"")===me.nombre;
+    const mine=resp.includes(me.nombre);
+    const nCom=(comentarios[o.id]||[]).length;
     return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''}">
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><select class="proc" data-f="proceso">${procOpts}</select>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
       <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" placeholder="Clic para escribir…">${esc(o.accion)}</textarea></td>
-      <td><select class="resp ${o.responsable?"":"none"}" data-f="responsable">${respOpts}</select></td>
+      <td>${respChips(resp)}</td>
       <td><select class="est" data-f="estatus" style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
+      <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
       <td><button class="rowdel" title="Eliminar">✕</button></td></tr>`;
   }).join("");
   $("#empty").style.display=rows.length?"none":"block";
@@ -394,13 +444,21 @@ function render(){
   $("#tbody").querySelectorAll(".accion").forEach(autosize);
 }
 
+// chips de responsables (editable) para una orden
+function respChips(resp){
+  const chips=resp.map(r=>`<span class="rchip">${esc(r)}<a class="rx" data-rm="${esc(r)}" title="Quitar">×</a></span>`).join("");
+  const avail=RESPONSABLES.filter(r=>!resp.includes(r));
+  const add=`<select class="addresp"><option value="">+ asignar…</option>${avail.map(r=>`<option>${esc(r)}</option>`).join("")}</select>`;
+  return `<div class="resps ${resp.length?"":"none"}">${chips}${add}</div>`;
+}
+
 function renderStats(){
-  const sinResp=orders.filter(x=>!x.responsable).length;
+  const sinResp=orders.filter(x=>!(x.responsables||[]).length).length;
   const atras=orders.filter(x=>+x.dias>=45).length;
   const pend=orders.filter(x=>(x.estatus||"pendiente")!=="hecho").length;
   const entrega=orders.filter(x=>x.proceso==="Listo para entrega").length;
-  const mias=orders.filter(x=>(x.responsable||"")===me.nombre && x.estatus!=="hecho").length;
-  const porResp={}; orders.forEach(x=>{ if(x.estatus!=="hecho" && x.responsable) porResp[x.responsable]=(porResp[x.responsable]||0)+1; });
+  const mias=orders.filter(x=>(x.responsables||[]).includes(me.nombre) && x.estatus!=="hecho").length;
+  const porResp={}; orders.forEach(x=>{ if(x.estatus!=="hecho") (x.responsables||[]).forEach(r=>{ porResp[r]=(porResp[r]||0)+1; }); });
   const respHtml=Object.entries(porResp).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`<span class="badge">${esc(r)}: ${n}</span>`).join(" ")||'<span class="hint">—</span>';
   $("#stats").innerHTML=`
     <div class="card mine" id="cardMine"><div class="n">${mias}</div><div class="l">★ Mis pendientes (${esc(me.nombre||"—")})</div></div>
@@ -419,13 +477,67 @@ $("#tbody").addEventListener("focusin",()=>editing=true);
 $("#tbody").addEventListener("focusout",()=>{ editing=false; if(pendingReload){pendingReload=false; loadOrders();} });
 $("#tbody").addEventListener("input", e=>{ const f=e.target.dataset.f; if(!f) return;
   const id=+e.target.closest("tr").dataset.id; editField(id,f,e.target.value); if(f==="accion") autosize(e.target); });
-$("#tbody").addEventListener("change", e=>{ const f=e.target.dataset.f; if(!f) return;
+$("#tbody").addEventListener("change", e=>{
+  if(e.target.classList.contains("addresp")){          // agregar responsable
+    const name=e.target.value; if(!name) return;
+    const id=+e.target.closest("tr").dataset.id; const o=orders.find(x=>x.id===id);
+    setResponsables(id,[...(o.responsables||[]), name]); return;
+  }
+  const f=e.target.dataset.f; if(!f) return;
   const id=+e.target.closest("tr").dataset.id; editField(id,f,e.target.value);
-  if(f==="estatus"||f==="responsable"||f==="proceso") render(); });
-$("#tbody").addEventListener("click", async e=>{ if(!e.target.classList.contains("rowdel")) return;
-  const id=+e.target.closest("tr").dataset.id; const o=orders.find(x=>x.id===id);
-  if(confirm(`¿Eliminar la orden ${o.no} (${o.modelo})?`)){ const {error}=await sb.from(TABLE).delete().eq("id",id);
-    if(error) alert("No se pudo eliminar: "+error.message); else { orders=orders.filter(x=>x.id!==id); render(); } } });
+  if(f==="estatus"||f==="proceso") render(); });
+$("#tbody").addEventListener("click", async e=>{
+  const tr=e.target.closest("tr"); if(!tr) return; const id=+tr.dataset.id;
+  if(e.target.classList.contains("rx")){                // quitar responsable
+    const name=e.target.dataset.rm; const o=orders.find(x=>x.id===id);
+    setResponsables(id,(o.responsables||[]).filter(r=>r!==name)); return;
+  }
+  if(e.target.classList.contains("combtn")){ openComments(id); return; }
+  if(e.target.classList.contains("rowdel")){
+    const o=orders.find(x=>x.id===id);
+    if(confirm(`¿Eliminar la orden ${o.no} (${o.modelo})?`)){ const {error}=await sb.from(TABLE).delete().eq("id",id);
+      if(error) alert("No se pudo eliminar: "+error.message); else { orders=orders.filter(x=>x.id!==id); render(); } }
+  }
+});
+
+async function setResponsables(id, arr){
+  const o=orders.find(x=>x.id===id); if(o) o.responsables=arr;   // optimista
+  render();
+  const {error}=await sb.from(TABLE).update({responsables:arr}).eq("id",id);
+  if(error){ alert("No se pudo guardar el responsable: "+error.message); loadOrders(); }
+}
+
+//// ——— Comentarios ———
+const comModal=$("#comModal");
+function openComments(id){ openCommentsId=id; renderCommentsModal(); comModal.classList.add("open"); $("#comInput").focus(); }
+function renderCommentsModal(){
+  const o=orders.find(x=>x.id===openCommentsId); if(!o) return;
+  $("#comTitle").textContent=`Comentarios — Orden ${o.no} (${o.modelo||""})`;
+  const list=comentarios[openCommentsId]||[];
+  $("#comList").innerHTML = list.length ? list.map(c=>{
+    const fecha=new Date(c.created_at).toLocaleString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+    const puedeBorrar = c.user_id && c.user_id===me.id;
+    return `<div class="comitem"><div class="meta"><b>${esc(c.autor||"—")}</b><span>${esc(fecha)}${puedeBorrar?` · <a class="comdel" data-del="${c.id}">borrar</a>`:""}</span></div><div class="txt">${esc(c.texto)}</div></div>`;
+  }).join("") : '<div class="hint">Sin comentarios todavía. Escribe el primero abajo.</div>';
+}
+$("#comList").addEventListener("click", async e=>{
+  if(!e.target.classList.contains("comdel")) return;
+  const cid=+e.target.dataset.del;
+  if(confirm("¿Borrar este comentario?")){ const {error}=await sb.from(COM_TABLE).delete().eq("id",cid);
+    if(error) alert(error.message); else { await loadComments(); renderCommentsModal(); render(); } }
+});
+$("#comAdd").onclick=async()=>{
+  const texto=$("#comInput").value.trim(); if(!texto||openCommentsId==null) return;
+  if(!me.nombre){ alert("Primero elige tu nombre en 'Soy:' (arriba a la derecha)."); return; }
+  $("#comAdd").disabled=true;
+  const {error}=await sb.from(COM_TABLE).insert({orden_id:openCommentsId, user_id:me.id, autor:me.nombre||me.email, texto});
+  $("#comAdd").disabled=false;
+  if(error){ alert("No se pudo agregar: "+error.message); return; }
+  $("#comInput").value="";
+  await loadComments(); renderCommentsModal(); render();
+};
+$("#comClose").onclick=()=>{ comModal.classList.remove("open"); openCommentsId=null; };
+comModal.addEventListener("click", e=>{ if(e.target===comModal){ comModal.classList.remove("open"); openCommentsId=null; } });
 
 ["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input",render));
 document.querySelectorAll("thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
@@ -434,7 +546,7 @@ $("#btnMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("
 $("#btnPrint").onclick=()=>window.print();
 
 $("#btnAdd").onclick=async()=>{ const no=prompt("No. de orden:"); if(!no) return;
-  const {data,error}=await sb.from(TABLE).insert({no:String(no).trim(),proceso:"Diagnóstico",responsable:me.nombre}).select().single();
+  const {data,error}=await sb.from(TABLE).insert({no:String(no).trim(),proceso:"Diagnóstico",responsables:me.nombre?[me.nombre]:[]}).select().single();
   if(error){ alert(error.message.includes("duplicate")?"Ya existe una orden con ese número.":error.message); return; }
   orders.unshift(data); render(); };
 
@@ -526,10 +638,11 @@ exportModal.addEventListener("click",e=>{ if(e.target===exportModal) exportModal
 function download(name,text,type){ const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement("a"); a.href=u;a.download=name;a.click();URL.revokeObjectURL(u); }
 $("#expJSON").onclick=()=>download("reporte-ordenes.json",JSON.stringify(orders,null,2),"application/json");
 $("#expCopy").onclick=async()=>{ await navigator.clipboard.writeText(JSON.stringify(orders,null,2)); alert("JSON copiado."); };
-$("#expCSV").onclick=()=>{ const cols=["no","modelo","color","ordenante","proceso","subproceso","ubicacion","refacc","dias","fecha_ingreso","fecha_promesa","accion","responsable","estatus"];
-  const head=["No.","Modelo","Color","Ordenante","Proceso Actual","Subproceso","Ubicación","Refacc.","Días","Fecha ingreso","Fecha promesa","Acción a Tomar","Responsable","Tarea"];
+$("#expCSV").onclick=()=>{ const cols=["no","modelo","color","ordenante","proceso","subproceso","ubicacion","refacc","dias","fecha_ingreso","fecha_promesa","accion","responsables","estatus"];
+  const head=["No.","Modelo","Color","Ordenante","Proceso Actual","Subproceso","Ubicación","Refacc.","Días","Fecha ingreso","Fecha promesa","Acción a Tomar","Responsable(s)","Tarea"];
   const q=s=>`"${String(s==null?"":s).replace(/"/g,'""')}"`;
-  const csv=[head.map(q).join(",")].concat(orders.map(o=>cols.map(c=>q(o[c])).join(","))).join("\r\n");
+  const cell=(o,c)=> c==="responsables" ? (o.responsables||[]).join(" / ") : o[c];
+  const csv=[head.map(q).join(",")].concat(orders.map(o=>cols.map(c=>q(cell(o,c))).join(","))).join("\r\n");
   download("reporte-ordenes.csv","﻿"+csv,"text/csv"); };
 
 window.addEventListener("resize",()=>document.querySelectorAll(".accion").forEach(autosize));
