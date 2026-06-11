@@ -31,4 +31,4 @@ export default async function handler(req, res) {
   }
 }
 
-// deploy: activar GH_DISPATCH_TOKEN
+// deploy: token classic 1781222254289
