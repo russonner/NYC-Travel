@@ -1,0 +1,38 @@
+name: Radar Sync
+
+# Sincroniza las órdenes de Radar Control Total con el tablero.
+# - Automático cada 30 minutos
+# - Manual desde la pestaña Actions (Run workflow)
+# - Por API (el botón del tablero) vía repository_dispatch
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [radar-sync]
+
+concurrency:
+  group: radar-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar Playwright
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm install playwright@1.47.2
+          npx playwright install --with-deps chromium
+      - name: Sincronizar desde Radar
+        run: node scripts/radar-sync.mjs
+        env:
+          RADAR_USER: ${{ secrets.RADAR_USER }}
+          RADAR_PASS: ${{ secrets.RADAR_PASS }}
+          RADAR_INGEST_TOKEN: ${{ secrets.RADAR_INGEST_TOKEN }}
+          SUPABASE_FN_URL: "https://rrxakcjuykyoxzdfgthg.supabase.co/functions/v1/radar-ingest"
+          SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeGFrY2p1eWt5b3h6ZGZndGhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMjA4NjUsImV4cCI6MjA5MzY5Njg2NX0.K5TPot2ATsFqL3jkYPODbXwr8i9OQmjgD5lNi-l5CyI"
