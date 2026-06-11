@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reporte de Órdenes — Seguimiento de Tareas y Responsables</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --ink:#1f2430; --muted:#6b7280; --line:#e3e6ea;
+    --head:#2b3242; --accent:#2563eb; --accent-soft:#eff4ff;
+    --ok:#16a34a; --warn:#d97706; --bad:#dc2626;
+    --proc-diag:#eef2ff; --proc-val:#fef9c3; --proc-rep:#e0f2fe; --proc-ref:#fae8ff;
+    --proc-listo:#dcfce7; --proc-entreg:#f1f5f9;
+    --row-action:#fffbeb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:13px}
+  header.top{background:var(--panel);border-bottom:1px solid var(--line);padding:14px 20px}
+  header.top h1{margin:0;font-size:20px;letter-spacing:.3px}
+  header.top .sub{color:var(--muted);margin-top:4px;font-size:12.5px}
+  .wrap{padding:14px 20px 60px}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .card .n{font-size:22px;font-weight:700}
+  .card .l{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .card.bad .n{color:var(--bad)} .card.warn .n{color:var(--warn)} .card.ok .n{color:var(--ok)}
+
+  /* Toolbar */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px}
+  .toolbar input[type=search],.toolbar select{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;background:#fff;color:var(--ink)}
+  .toolbar input[type=search]{min-width:230px}
+  .spacer{flex:1}
+  button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:7px 11px;font-size:13px;cursor:pointer}
+  button:hover{background:#f8f9fb}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{filter:brightness(1.05)}
+  button.ghost{color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:6px}
+
+  /* Table */
+  .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto}
+  table{border-collapse:collapse;width:100%;min-width:1100px}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  thead th{position:sticky;top:0;background:var(--head);color:#fff;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;z-index:1;cursor:default}
+  thead th.sortable{cursor:pointer}
+  thead th.sortable:hover{background:#3a4357}
+  tbody tr:hover{background:#fafbfc}
+  td.no{font-weight:700;white-space:nowrap}
+  td.num{text-align:center;white-space:nowrap}
+  .dias{font-weight:700;border-radius:999px;padding:2px 8px;display:inline-block;min-width:34px;text-align:center}
+  .dias.lo{background:#dcfce7;color:#166534}
+  .dias.mid{background:#fef9c3;color:#854d0e}
+  .dias.hi{background:#fee2e2;color:#991b1b}
+
+  .accion{width:100%;border:1px solid transparent;border-radius:6px;padding:5px 6px;font-size:13px;font-family:inherit;resize:vertical;min-height:34px;background:transparent;color:var(--ink)}
+  .accion:hover{border-color:var(--line)} .accion:focus{outline:none;border-color:var(--accent);background:#fff}
+  td.accion-cell{background:var(--row-action);min-width:280px}
+
+  select.resp,select.proc,select.est{border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff;max-width:170px}
+  select.resp.none{color:#b91c1c;border-color:#fecaca;background:#fff5f5}
+
+  .estbadge{font-size:11px;padding:2px 7px;border-radius:999px;white-space:nowrap}
+  .proc-tag{font-size:11.5px;padding:3px 8px;border-radius:6px;white-space:nowrap;display:inline-block}
+  .p-Diagnóstico{background:var(--proc-diag)} .p-Valuación{background:var(--proc-val)}
+  .p-En\.proceso,.p-En\.reparación{background:var(--proc-rep)}
+  .p-Espera\.de\.refacciones{background:var(--proc-ref)}
+  .p-Listo\.para\.entrega,.p-Listo\.para\.proceso{background:var(--proc-listo)}
+  .p-Unidad\.entregada{background:var(--proc-entreg)}
+
+  tr.done{opacity:.55}
+  tr.done td.accion-cell{background:#f3f4f6}
+  .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
+  .rowdel:hover{background:#fee2e2;border-radius:6px}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,20,30,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .modal h2{margin:0;padding:16px 20px;border-bottom:1px solid var(--line);font-size:17px}
+  .modal .body{padding:16px 20px}
+  .modal .foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:#fff}
+  textarea.import{width:100%;min-height:200px;border:1px solid var(--line);border-radius:8px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .hint{color:var(--muted);font-size:12.5px;line-height:1.6}
+  .hint code{background:#f1f5f9;padding:1px 5px;border-radius:4px}
+  .opts{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;font-size:13px}
+  .opts label{display:flex;gap:6px;align-items:center}
+  .preview{margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .badge{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:600}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  @media print{
+    .toolbar,.rowdel,.modal-bg{display:none!important}
+    .accion,select{border:none!important;-webkit-appearance:none;appearance:none}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 id="title">REPORTE DE ÓRDENES — AUTO PLUS UNIVERSIDAD</h1>
+  <div class="sub">
+    Sistema de seguimiento de tareas y responsables ·
+    <span id="meta">Total de órdenes: 0</span> ·
+    <span id="updated">Sin importación de Radar todavía</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Buscar: No., modelo, ordenante, acción…" />
+    <select id="fProc"><option value="">Todos los procesos</option></select>
+    <select id="fResp">
+      <option value="">Todos los responsables</option>
+      <option value="__none__">⚠ Sin responsable</option>
+    </select>
+    <select id="fEst">
+      <option value="">Toda tarea</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="proceso">En proceso</option>
+      <option value="hecho">Hecho</option>
+    </select>
+    <span class="spacer"></span>
+    <button id="btnAdd">+ Orden</button>
+    <button class="primary" id="btnImport">⭳ Importar de Radar Total Connect</button>
+    <button id="btnExport">Exportar</button>
+    <button class="ghost" id="btnPrint">Imprimir</button>
+    <button class="ghost" id="btnReset" title="Restaurar datos de ejemplo">↺</button>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="sortable" data-k="no">No.</th>
+          <th>Modelo</th>
+          <th>Color</th>
+          <th class="sortable" data-k="ordenante">Ordenante</th>
+          <th class="sortable" data-k="proceso">Proceso Actual</th>
+          <th>Refacc.</th>
+          <th class="sortable" data-k="dias">Días</th>
+          <th>Acción a Tomar</th>
+          <th class="sortable" data-k="responsable">Responsable</th>
+          <th>Tarea</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none">No hay órdenes que coincidan con el filtro.</div>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="modal-bg" id="importModal">
+  <div class="modal">
+    <h2>Importar órdenes de Radar Total Connect</h2>
+    <div class="body">
+      <p class="hint">
+        Pega aquí la información de las órdenes exportada o copiada de <b>Radar Total Connect</b>.
+        Se aceptan <b>tabla copiada</b> (separada por tabuladores), <b>CSV</b> (<code>,</code> o <code>;</code>) o <b>JSON</b>.<br>
+        Columnas reconocidas (en cualquier orden, con o sin encabezado en este orden):
+        <code>No.</code>, <code>Modelo</code>, <code>Color</code>, <code>Ordenante</code>,
+        <code>Proceso Actual</code>, <code>Refacc.</code>, <code>Días</code>.
+      </p>
+      <p class="hint" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px">
+        🔒 Las columnas <b>Acción a Tomar</b>, <b>Responsable</b> y <b>estado de la tarea</b> son tu seguimiento manual:
+        al importar se <b>conservan</b> para las órdenes que ya existen (se emparejan por <b>No.</b>). Radar solo actualiza
+        modelo, color, ordenante, proceso, refacciones y días.
+      </p>
+      <textarea class="import" id="importText" placeholder="Pega aquí los datos de Radar Total Connect…"></textarea>
+      <div class="opts">
+        <label><input type="checkbox" id="optHeader" checked> La primera fila es encabezado</label>
+        <label><input type="checkbox" id="optMarkMissing"> Marcar como “Hecho” las órdenes que ya no aparecen</label>
+      </div>
+      <div class="preview" id="importPreview"></div>
+    </div>
+    <div class="foot">
+      <button id="btnImportCancel">Cancelar</button>
+      <button class="primary" id="btnImportRun">Importar y combinar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export modal -->
+<div class="modal-bg" id="exportModal">
+  <div class="modal">
+    <h2>Exportar</h2>
+    <div class="body">
+      <p class="hint">Descarga el reporte completo (incluye tu seguimiento de tareas y responsables).</p>
+      <div class="opts">
+        <button id="expJSON">Descargar JSON</button>
+        <button id="expCSV">Descargar CSV</button>
+        <button id="expCopy">Copiar JSON al portapapeles</button>
+      </div>
+      <p class="hint">El archivo JSON puede volver a importarse aquí para restaurar todo, incluido lo que asignaste a cada persona.</p>
+    </div>
+    <div class="foot"><button id="btnExportClose">Cerrar</button></div>
+  </div>
+</div>
+
+<script>
+//// ——— Configuración ———
+const STORAGE_KEY = "reporteOrdenes_v1";
+const RESPONSABLES = ["Gloria","Adrian","Alejandro Martinez","Javier","Devany","Jesus Alejandro"];
+const PROCESOS = ["Diagnóstico","Valuación","En proceso","Listo para proceso","Espera de refacciones","En reparación","Listo para entrega","Unidad entregada"];
+const EST = {pendiente:{l:"Pendiente",bg:"#fef9c3",fg:"#854d0e"},proceso:{l:"En proceso",bg:"#dbeafe",fg:"#1e40af"},hecho:{l:"Hecho",bg:"#dcfce7",fg:"#166534"}};
+const RADAR_FIELDS = ["modelo","color","ordenante","proceso","refacc","dias"]; // lo que actualiza Radar
+const LOCAL_FIELDS = ["accion","responsable","estatus","notas"];               // tu seguimiento
+
+//// ——— Datos de ejemplo (reconstruidos de los screenshots; se reemplazan al importar de Radar) ———
+const SEED = [
+ ["146","TRAX","GRIS OBSCURO","MARTIN CASTILLO TREVIÑO","Unidad entregada","0/0",140,"Cobrar en Chubb, preparar expediente para facturación","Gloria"],
+ ["240","DOLPHIN","AMARILLO","SEGUROS SURA","Unidad entregada","1/1",110,"Cobrar en Sura, hablar con Netzel","Adrian"],
+ ["256","MG5","BLANCO","SEGUROS SURA","Unidad entregada","1/1",103,"Depurar, sacar de sistema","Alejandro Martinez"],
+ ["283","AION","BLANCO","SEGUROS SURA","En reparación","0/8",95,"Piezas llegan el lunes 15, presionar proveedor","Javier"],
+ ["297","MG5","BLANCO","SEGUROS SURA","Listo para entrega","9/9",91,"Pendiente deducible, presionar entrega","Devany"],
+ ["300","ODYSSEY","CAFÉ","AXA SEGUROS","Listo para entrega","1/1",90,"Cobrar en agencia","Adrian"],
+ ["303","CLASE CLA","NEGRO","ALEJANDRO MARTINEZ","Listo para entrega","7/7",89,"Que pague y depurar","Alejandro Martinez"],
+ ["346","MG5","BLANCO","SEGUROS SURA","Listo para entrega","3/3",70,"Presionar entrega — Devany","Devany"],
+ ["374","AION","NEGRO","AXA SEGUROS","En reparación","18/18",60,"Cerrar en sistema","Devany"],
+ ["375","YARIS","NEGRO","AXA SEGUROS","En reparación","0/0",60,"Terminar reparación y priorizar, pruebas de manejo y entregar martes 16 de junio. PRIORIDAD IMPORTANTE","Jesus Alejandro"],
+ ["407","RIO","AZUL","AXA SEGUROS","En reparación","18/19",55,"Terminar siniestro","Jesus Alejandro"],
+ ["413","COLORADO","BLANCO","AXA SEGUROS","En reparación","0/0",49,"Terminar siniestro y fecha de pieza","Jesus Alejandro"],
+ ["424","SORENTO","GRIS","SEGUROS BANORTE","Listo para entrega","4/4",47,"Lista, presionar entrega","Devany"],
+ ["427","MAZDA 3","BLANCO","SEGUROS BANORTE","En reparación","4/4",44,"Armado, entregar martes 16","Devany"],
+ ["440","CX-5","GRIS","AXA SEGUROS","En reparación","1/1",42,"Seguir armando al aceptar la pérdida","Devany"],
+ ["455","RIO","PLATA","AXA SEGUROS","En reparación","4/4",41,"Presionar entrega","Devany"],
+ ["456","ONIX","AZUL","AXA SEGUROS","En reparación","18/19",40,"Checar cofre","Javier"],
+ ["467","MG5","BLANCO","SEGUROS BANORTE","En reparación","4/4",38,"Entregar miércoles 18 de junio","Devany"],
+ ["468","VERSA","NEGRO","SEGUROS BANORTE","En reparación","4/4",38,"Entregado, cerrar","Devany"],
+ ["473","MG5","BLANCO","AXA SEGUROS","Valuación","0/0",30,"Seguir PT y cerrar","Gloria"],
+ ["476","SORENTO","BLANCO","ROLANDO ANTA","Unidad entregada","0/0",28,"Cobrar","Adrian"],
+ ["477","RIO","AZUL","AXA SEGUROS","Unidad entregada","0/0",28,"Cotizar motor y revisar posible reparación","Adrian"],
+ ["480","OPTIMA","GRIS PLATA","CHUBB SEGUROS MEXICO","Unidad entregada","5/5",29,"Presionar para facturación","Gloria"],
+ ["481","S10","GRIS","AXA SEGUROS","Unidad entregada","0/0",26,"Presionar lunes 16 de junio","Jesus Alejandro"],
+ ["482","FORTE","BLANCO","SEGUROS SURA","En reparación","4/4",26,"Entrega jueves 19 de junio","Jesus Alejandro"],
+ ["483","DOLPHIN","NEGRO","SEGUROS SURA","Listo para entrega","1/1",21,"Facturar",""],
+ ["484","DOLPHIN","BLANCO","SEGUROS SURA","Listo para entrega","1/1",21,"Facturar",""],
+ ["485","MG5","PLATA","JOSE ROBERTO CASARES MORENO","En reparación","0/0",20,"Cerrar y revisar cobro","Adrian"],
+ ["486","DOLPHIN","PLATA","SEGUROS BANORTE","En reparación","0/0",20,"Presionar entrega","Devany"],
+ ["487","AVANZA","BLANCO","SEGUROS BANORTE","Valuación","0/0",36,"Seguir peleando pérdida","Devany"],
+ ["490","SORENTO","GRIS","SEGUROS BANORTE","En reparación","11/12",20,"Falta pieza de Pedro Rejilla","Jesus Alejandro"],
+ ["493","ECOSPORT","GRIS","SEGUROS BANORTE","En reparación","4/4",20,"Entregar lunes 15 de junio","Jesus Alejandro"],
+ ["494","FRONTIER LE","GRIS","AXA SEGUROS","Unidad entregada","4/4",33,"Entregado, cerrar","Devany"],
+ ["495","AVEO","BLANCO","SEGUROS BANORTE","En reparación","6/6",20,"Listo para entrega, presionar entrega","Devany"],
+ ["497","Q3","BLANCO","SEGUROS SURA","Listo para entrega","6/6",18,"Entregar miércoles 17 de junio","Jesus Alejandro"],
+ ["498","MG5","GRIS","SEGUROS BANORTE","En reparación","0/0",18,"Presionar cliente para ingreso y si no, revisar depuración","Jesus Alejandro"],
+ ["499","CX-30","GRIS","AXA SEGUROS","En reparación","4/4",18,"Entregar miércoles 17 de junio","Jesus Alejandro"],
+ ["500","MG5","BLANCO","SEGUROS SURA","Valuación","0/0",18,"Seguir peleando PT para luego depurar con Alex Martinez","Devany"],
+ ["501","FIESTA","DORADO","SEGUROS SURA","En proceso","0/0",18,"Facturar","Alejandro Martinez"],
+ ["502","CIVIC","GRIS","SEGUROS BANORTE","Unidad entregada","0/0",18,"Facturar","Adrian"],
+ ["503","DOLPHIN","NEGRO","SEGUROS SURA","En reparación","0/0",18,"Seguir buscando autorización",""],
+ ["505","FIGO","AZUL","AXA SEGUROS","En reparación","4/4",15,"Presionar entrega","Gloria"],
+ ["506","MG5","ROJO","AXA SEGUROS","Listo para entrega","4/4",15,"Poner entregado","Devany"],
+ ["507","RAM 1500","ROJO","AXA SEGUROS","En proceso","0/0",15,"Terminar valuación para pasar a facturación","Gloria"],
+ ["512","MG5","GRIS","SEGUROS SURA","Unidad entregada","0/0",15,"",""],
+ ["513","TIGGO 2 PRO","GRIS","SEGUROS SURA","Valuación","0/0",15,"Presionar autorización y posible daño menor a deducible, resolver para posible depuración","Gloria"],
+ ["514","FORTE","BLANCO","AXA SEGUROS","En reparación","10/10",15,"Cerrar valuación","Gloria"],
+ ["515","ALSVIN","NEGRO","AXA SEGUROS","En reparación","0/0",14,"Cotizar; el blue hace ruido","Gloria"],
+ ["516","JOURNEY","BLANCO","AXA SEGUROS","Unidad entregada","5/5",14,"Sacar","Javier"],
+ ["517","2008","AZUL","AXA SEGUROS","Valuación","0/0",14,"Falta espejo","Javier"],
+ ["519","MG5","BLANCO","SEGUROS SURA","En reparación","0/0",12,"Presionar entrega","Devany"],
+ ["520","CX-30","ROJO","SEGUROS BANORTE","Listo para entrega","0/0",12,"Convencer cliente de reparar","Devany"],
+ ["521","AION","BLANCO","SEGUROS SURA","Valuación","0/0",12,"Revisar posible depuración","Adrian"],
+ ["522","SILVERADO","ROJO","AXA SEGUROS","En reparación","0/0",12,"Presionar para pago de daños al cliente","Adrian"],
+ ["523","AVEO","BLANCO","AXA SEGUROS","En reparación","0/0",12,"Entregar viernes 12 de junio","Jesus Alejandro"],
+ ["524","MKX","PERLA","AXA SEGUROS","En reparación","4/4",12,"Ubicar puertas. Prioritario","Jesus Alejandro"],
+ ["526","MOBI","BLANCO","SEGUROS BANORTE","En reparación","0/0",9,"Suponiendo que llega mañana el motoventilador, de entrega jueves 18 de junio","Jesus Alejandro"],
+ ["527","ONIX","GRIS","SEGUROS BANORTE","En reparación","0/0",8,"Cargar valuación",""],
+ ["529","COROLLA","GRIS","AXA SEGUROS","En reparación","0/0",8,"","Gloria"],
+ ["531","S01","BLANCO","SEGUROS SURA","En reparación","0/0",8,"Entregar miércoles 17 de junio","Jesus Alejandro"],
+ ["532","VERSA","BLANCO","SEGUROS BANORTE","En reparación","1/1",8,"Entregar miércoles 12","Jesus Alejandro"],
+ ["533","MG5","PLATA","AXA SEGUROS","Valuación","0/0",8,"Buscar autorización con Sura y Netzel","Gloria"],
+ ["534","DOLPHIN","AZUL","SEGUROS SURA","En reparación","0/0",8,"Revisar si se va a reparar","Gloria"],
+ ["535","MG5","BLANCO","SEGUROS SURA","En reparación","0/0",8,"Cerrar en sistema","Devany"],
+ ["536","DOLPHIN","BLANCO","SEGUROS SURA","Listo para entrega","0/0",8,"Revisar valuación y cuando esté el monto, ver con Adrian","Devany"],
+ ["537","NP300","BLANCO","AXA SEGUROS","Listo para proceso","0/0",8,"Entregar jueves 18 de junio","Devany"],
+ ["538","MG6","BLANCO","SEGUROS SURA","Listo para entrega","7/7",8,"Cerrar en sistema","Devany"],
+ ["539","VIRTUS","BLANCO","AXA SEGUROS","En reparación","0/0",7,"Presionar entrega; revisar con Gloria para poder entregar si no trae deducible","Devany"],
+ ["540","SPARK","VERDE","AXA SEGUROS","En reparación","1/1",7,"Entregar martes 16 de junio","Jesus Alejandro"],
+ ["541","URVAN NV350","BLANCO","AXA SEGUROS","En reparación","0/0",7,"Entregar miércoles 17 de junio","Jesus Alejandro"],
+ ["542","MG5","BLANCO","SEGUROS SURA","En reparación","3/3",7,"Entregar miércoles 17 de junio","Jesus Alejandro"],
+ ["543","AION","BLANCO","SEGUROS SURA","Valuación","0/0",7,"",""],
+ ["544","JETTA","GRIS","AXA SEGUROS","Valuación","0/0",7,"Entregar martes 16 de junio",""],
+ ["545","MG5","BLANCO","SEGUROS SURA","Valuación","0/0",6,"Presionar Sura para pérdida total","Gloria"],
+ ["546","DOLPHIN","NEGRO","SEGUROS SURA","En reparación","0/0",6,"Revisar si es reparable o no, con Sura, y detener hasta posible autorización de Sura","Jesus Alejandro"],
+ ["547","CAMRY","BLANCO","LEONEL ESPINOZA BENAVIDES","En reparación","0/0",6,"Entregar jueves 11","Jesus Alejandro"],
+ ["548","JETTA","GRIS","MARIA GUADALUPE SERRANO VALDEZ","En reparación","1/1",6,"",""],
+ ["549","RIO","AZUL","AXA SEGUROS","En reparación","0/0",6,"Entregar martes 16 de junio","Jesus Alejandro"],
+ ["550","VENTO","BLANCO","AXA SEGUROS","Espera de refacciones","0/10",6,"Pasar a inicio de reparación","Jesus Alejandro"],
+ ["551","RIO","PLATA","RAMIRO SERVANTES DE LEON","En reparación","1/1",6,"Entregar","Devany"],
+ ["552","MG5","BLANCO","SEGUROS SURA","Valuación","0/0",6,"Pelear pérdida","Gloria"],
+ ["553","BEAT","NEGRO","AXA SEGUROS","Espera de refacciones","0/3",6,"Recibir refacciones","Javier"],
+ ["554","SWIFT","ROJO","AXA SEGUROS","Espera de refacciones","0/4",4,"Revisar si se autoriza fascia delantera a cambio y notificar a Javier y a Alex","Gloria"],
+ ["555","MG5","GRIS","SEGUROS SURA","Valuación","0/0",4,"Esperar autorización y revisar para poder liberar reparación","Gloria"],
+ ["556","MAZDA 3","ROJO","SEGUROS BANORTE","Valuación","0/0",1,"Mandar valuación","Gloria"],
+ ["557","MAZDA 3","GRIS","AXA SEGUROS","Valuación","0/0",1,"Enviar valuación","Gloria"],
+ ["558","AVEO","BLANCO","AXA SEGUROS","Valuación","0/0",1,"Revisar cotización para comprar","Gloria"],
+ ["559","2008","ANARANJADO","AXA SEGUROS","Diagnóstico","0/0",1,"Revisar fuga de aceite y consentimiento del cliente","Devany"],
+ ["560","FRISON T8","GRIS","AXA SEGUROS","Diagnóstico","0/0",1,"",""],
+ ["561","RIO","BLANCO","AXA SEGUROS","Diagnóstico","0/0",1,"Seguir comprando","Javier"],
+ ["562","MG5","ROJO","AXA SEGUROS","Diagnóstico","0/0",1,"Entregar jueves 18 de junio",""]
+];
+
+function seedToOrders(){
+  return SEED.map(r=>({
+    no:String(r[0]), modelo:r[1], color:r[2], ordenante:r[3], proceso:r[4],
+    refacc:r[5], dias:Number(r[6])||0, accion:r[7]||"",
+    responsable:r[8]||"", estatus:"pendiente", notas:""
+  }));
+}
+
+//// ——— Estado ———
+let state = load();
+let sortKey = "dias", sortDir = -1;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ const o = JSON.parse(raw); if(o && Array.isArray(o.orders)) return o; }
+  }catch(e){}
+  return {orders: seedToOrders(), updated:null, title:"REPORTE DE ÓRDENES — AUTO PLUS UNIVERSIDAD"};
+}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+//// ——— Utilidades ———
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
+
+//// ——— Render ———
+function render(){
+  $("#title").textContent = state.title || "REPORTE DE ÓRDENES";
+  // filtros de proceso
+  const fProc = $("#fProc");
+  if(fProc.options.length<=1){ PROCESOS.forEach(p=>fProc.add(new Option(p,p))); }
+  const fResp = $("#fResp");
+  if(fResp.options.length<=2){ RESPONSABLES.forEach(r=>fResp.add(new Option(r,r))); }
+
+  const q = $("#q").value.trim().toLowerCase();
+  const fp = $("#fProc").value, fr = $("#fResp").value, fe = $("#fEst").value;
+
+  let rows = state.orders.filter(o=>{
+    if(fp && o.proceso!==fp) return false;
+    if(fr==="__none__"){ if(o.responsable) return false; } else if(fr && o.responsable!==fr) return false;
+    if(fe && (o.estatus||"pendiente")!==fe) return false;
+    if(q){
+      const hay = [o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,o.responsable].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a,b)=>{
+    let va=a[sortKey], vb=b[sortKey];
+    if(sortKey==="dias"){ va=+va; vb=+vb; }
+    else if(sortKey==="no"){ va=+a.no||a.no; vb=+b.no||b.no; }
+    else { va=(va||"").toString().toLowerCase(); vb=(vb||"").toString().toLowerCase(); }
+    return va<vb?-1*sortDir:va>vb?1*sortDir:0;
+  });
+
+  const tb = $("#tbody");
+  tb.innerHTML = rows.map(o=>{
+    const idx = state.orders.indexOf(o);
+    const est = o.estatus||"pendiente";
+    const respOpts = ['<option value="">— Selec. —</option>']
+      .concat(RESPONSABLES.map(r=>`<option ${r===o.responsable?"selected":""}>${esc(r)}</option>`)).join("");
+    const procOpts = PROCESOS.map(p=>`<option ${p===o.proceso?"selected":""}>${esc(p)}</option>`).join("");
+    const estOpts = Object.keys(EST).map(k=>`<option value="${k}" ${k===est?"selected":""}>${EST[k].l}</option>`).join("");
+    return `<tr data-i="${idx}" class="${est==='hecho'?'done':''}">
+      <td class="no">${esc(o.no)}</td>
+      <td>${esc(o.modelo)}</td>
+      <td>${esc(o.color)}</td>
+      <td>${esc(o.ordenante)}</td>
+      <td><select class="proc" data-f="proceso">${procOpts}</select></td>
+      <td class="num">${esc(o.refacc||"")}</td>
+      <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span></td>
+      <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" placeholder="Clic para escribir…">${esc(o.accion)}</textarea></td>
+      <td><select class="resp ${o.responsable?"":"none"}" data-f="responsable">${respOpts}</select></td>
+      <td><select class="est" data-f="estatus" style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
+      <td><button class="rowdel" title="Eliminar orden">✕</button></td>
+    </tr>`;
+  }).join("");
+
+  $("#empty").style.display = rows.length? "none":"block";
+  $("#meta").textContent = `Total de órdenes: ${state.orders.length}` + (rows.length!==state.orders.length?` · Mostrando ${rows.length}`:"");
+  $("#updated").textContent = state.updated ? `Última actualización Radar: ${state.updated}` : "Sin importación de Radar todavía";
+  renderStats();
+  // auto-size textareas
+  tb.querySelectorAll(".accion").forEach(autosize);
+}
+
+function renderStats(){
+  const o = state.orders;
+  const sinResp = o.filter(x=>!x.responsable).length;
+  const atrasadas = o.filter(x=>+x.dias>=45).length;
+  const pend = o.filter(x=>(x.estatus||"pendiente")!=="hecho").length;
+  const entrega = o.filter(x=>x.proceso==="Listo para entrega").length;
+  // por responsable (solo tareas no hechas)
+  const porResp = {};
+  o.forEach(x=>{ if((x.estatus||"pendiente")!=="hecho" && x.responsable){ porResp[x.responsable]=(porResp[x.responsable]||0)+1; }});
+  const respHtml = Object.entries(porResp).sort((a,b)=>b[1]-a[1])
+    .map(([r,n])=>`<span class="badge">${esc(r)}: ${n}</span>`).join(" ") || '<span class="hint">—</span>';
+  $("#stats").innerHTML = `
+    <div class="card"><div class="n">${o.length}</div><div class="l">Órdenes activas</div></div>
+    <div class="card warn"><div class="n">${pend}</div><div class="l">Tareas pendientes</div></div>
+    <div class="card bad"><div class="n">${sinResp}</div><div class="l">Sin responsable</div></div>
+    <div class="card bad"><div class="n">${atrasadas}</div><div class="l">Atrasadas (≥45 días)</div></div>
+    <div class="card ok"><div class="n">${entrega}</div><div class="l">Listas para entrega</div></div>
+    <div class="card" style="grid-column:1/-1"><div class="l">Carga por responsable (tareas abiertas)</div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${respHtml}</div></div>`;
+}
+
+function autosize(t){ t.style.height="auto"; t.style.height=Math.max(34,t.scrollHeight)+"px"; }
+
+//// ——— Edición en línea ———
+$("#tbody").addEventListener("input", e=>{
+  const f = e.target.dataset.f; if(!f) return;
+  const tr = e.target.closest("tr"); const i = +tr.dataset.i;
+  state.orders[i][f] = e.target.value;
+  if(f==="accion") autosize(e.target);
+  save();
+});
+$("#tbody").addEventListener("change", e=>{
+  const f = e.target.dataset.f; if(!f) return;
+  const tr = e.target.closest("tr"); const i = +tr.dataset.i;
+  state.orders[i][f] = e.target.value; save();
+  if(f==="estatus"||f==="responsable"||f==="proceso") render();
+});
+$("#tbody").addEventListener("click", e=>{
+  if(e.target.classList.contains("rowdel")){
+    const tr = e.target.closest("tr"); const i = +tr.dataset.i;
+    const o = state.orders[i];
+    if(confirm(`¿Eliminar la orden ${o.no} (${o.modelo})?`)){ state.orders.splice(i,1); save(); render(); }
+  }
+});
+
+//// ——— Filtros / orden ———
+["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input", render));
+document.querySelectorAll("thead th.sortable").forEach(th=>{
+  th.addEventListener("click", ()=>{
+    const k = th.dataset.k;
+    if(sortKey===k) sortDir*=-1; else { sortKey=k; sortDir = k==="dias"? -1 : 1; }
+    render();
+  });
+});
+
+//// ——— Agregar ———
+$("#btnAdd").addEventListener("click", ()=>{
+  const no = prompt("No. de orden:"); if(!no) return;
+  state.orders.unshift({no:String(no),modelo:"",color:"",ordenante:"",proceso:"Diagnóstico",refacc:"0/0",dias:0,accion:"",responsable:"",estatus:"pendiente",notas:""});
+  save(); render();
+});
+
+//// ——— Reset ———
+$("#btnReset").addEventListener("click", ()=>{
+  if(confirm("¿Restaurar los datos de ejemplo? Se perderá lo capturado en este navegador.")){
+    state = {orders:seedToOrders(), updated:null, title:state.title}; save(); render();
+  }
+});
+
+//// ——— Imprimir ———
+$("#btnPrint").addEventListener("click", ()=>window.print());
+
+//// ——— IMPORTAR ———
+const importModal = $("#importModal");
+$("#btnImport").addEventListener("click", ()=>{ importModal.classList.add("open"); $("#importText").focus(); });
+$("#btnImportCancel").addEventListener("click", ()=>importModal.classList.remove("open"));
+importModal.addEventListener("click", e=>{ if(e.target===importModal) importModal.classList.remove("open"); });
+$("#importText").addEventListener("input", previewImport);
+$("#optHeader").addEventListener("change", previewImport);
+
+// Normaliza encabezados a campos internos
+const HEADER_MAP = {
+  "no":"no","no.":"no","orden":"no","# orden":"no","numero":"no","número":"no",
+  "modelo":"modelo","auto":"modelo","vehiculo":"modelo","vehículo":"modelo",
+  "color":"color",
+  "ordenante":"ordenante","aseguradora":"ordenante","cia":"ordenante","compañia":"ordenante","compañía":"ordenante","cliente":"ordenante",
+  "proceso actual":"proceso","proceso":"proceso","estatus":"proceso","estado":"proceso","etapa":"proceso",
+  "refacc.":"refacc","refacc":"refacc","refacciones":"refacc","piezas":"refacc",
+  "dias":"dias","días":"dias","dias en taller":"dias","antiguedad":"dias","antigüedad":"dias"
+};
+const DEFAULT_ORDER = ["no","modelo","color","ordenante","proceso","refacc","dias"];
+
+function detectDelim(line){
+  if(line.includes("\t")) return "\t";
+  const c = (line.match(/,/g)||[]).length, sc = (line.match(/;/g)||[]).length;
+  return sc>c? ";" : ",";
+}
+function splitCSV(line, d){
+  const out=[]; let cur="", q=false;
+  for(let i=0;i<line.length;i++){ const ch=line[i];
+    if(q){ if(ch==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else { if(ch==='"') q=true; else if(ch===d){ out.push(cur); cur=""; } else cur+=ch; }
+  }
+  out.push(cur); return out.map(s=>s.trim());
+}
+function parseImport(text, hasHeader){
+  text = text.trim(); if(!text) return [];
+  // JSON
+  if(text[0]==="["||text[0]==="{"){
+    try{
+      let j = JSON.parse(text); if(!Array.isArray(j)) j = j.orders||[j];
+      return j.map(normalizeObj).filter(Boolean);
+    }catch(e){ /* cae a delimitado */ }
+  }
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length) return [];
+  const d = detectDelim(lines[0]);
+  let fields = DEFAULT_ORDER, start = 0;
+  if(hasHeader){
+    const hdr = splitCSV(lines[0], d).map(h=>HEADER_MAP[h.toLowerCase().trim()]||h.toLowerCase().trim());
+    fields = hdr; start = 1;
+  }
+  const rows=[];
+  for(let i=start;i<lines.length;i++){
+    const cells = splitCSV(lines[i], d);
+    const obj={}; fields.forEach((f,k)=>{ if(DEFAULT_ORDER.includes(f)) obj[f]=cells[k]!=null?cells[k].trim():""; });
+    const n = normalizeObj(obj); if(n) rows.push(n);
+  }
+  return rows;
+}
+function normalizeObj(o){
+  // Acepta llaves crudas o ya mapeadas
+  const g = k=>{ for(const key in o){ if(HEADER_MAP[key.toLowerCase().trim()]===k || key.toLowerCase().trim()===k) return o[key]; } return o[k]; };
+  const no = (g("no")||"").toString().trim();
+  if(!no) return null;
+  return {
+    no, modelo:(g("modelo")||"").toString().trim(), color:(g("color")||"").toString().trim(),
+    ordenante:(g("ordenante")||"").toString().trim(), proceso:(g("proceso")||"").toString().trim(),
+    refacc:(g("refacc")||"").toString().trim(), dias:Number(String(g("dias")||"").replace(/[^\d.-]/g,""))||0
+  };
+}
+
+function previewImport(){
+  const rows = parseImport($("#importText").value, $("#optHeader").checked);
+  const existing = new Set(state.orders.map(o=>o.no));
+  const nuevas = rows.filter(r=>!existing.has(r.no)).length;
+  const upd = rows.length - nuevas;
+  $("#importPreview").innerHTML = rows.length
+    ? `Se detectaron <b>${rows.length}</b> órdenes · <span class="badge">${upd} actualizar</span> <span class="badge">${nuevas} nuevas</span>. Se conservará acción/responsable de las existentes.`
+    : `<span style="color:#b91c1c">No se detectaron órdenes válidas. Revisa que exista una columna de No.</span>`;
+}
+
+$("#btnImportRun").addEventListener("click", ()=>{
+  const rows = parseImport($("#importText").value, $("#optHeader").checked);
+  if(!rows.length){ alert("No se detectaron órdenes válidas para importar."); return; }
+  const byNo = {}; state.orders.forEach(o=>byNo[o.no]=o);
+  const seen = new Set();
+  let nuevas=0, upd=0;
+  rows.forEach(r=>{
+    seen.add(r.no);
+    if(byNo[r.no]){ // actualizar SOLO campos de Radar, preservar seguimiento
+      RADAR_FIELDS.forEach(f=>{ if(r[f]!==undefined && r[f]!=="") byNo[r.no][f]=r[f]; });
+      upd++;
+    }else{ // nueva orden, seguimiento vacío
+      const n = {no:r.no,modelo:r.modelo,color:r.color,ordenante:r.ordenante,proceso:r.proceso||"Diagnóstico",refacc:r.refacc||"0/0",dias:r.dias,accion:"",responsable:"",estatus:"pendiente",notas:""};
+      state.orders.push(n); byNo[r.no]=n; nuevas++;
+    }
+  });
+  let cerradas=0;
+  if($("#optMarkMissing").checked){
+    state.orders.forEach(o=>{ if(!seen.has(o.no) && o.estatus!=="hecho"){ o.estatus="hecho"; cerradas++; } });
+  }
+  state.updated = new Date().toLocaleString("es-MX");
+  save(); render();
+  importModal.classList.remove("open"); $("#importText").value=""; $("#importPreview").innerHTML="";
+  alert(`Importación completa:\n• ${upd} órdenes actualizadas\n• ${nuevas} nuevas\n${cerradas?`• ${cerradas} marcadas como hechas (ya no en Radar)\n`:""}\nSe conservó el responsable y la acción a tomar de las órdenes existentes.`);
+});
+
+//// ——— EXPORTAR ———
+const exportModal = $("#exportModal");
+$("#btnExport").addEventListener("click", ()=>exportModal.classList.add("open"));
+$("#btnExportClose").addEventListener("click", ()=>exportModal.classList.remove("open"));
+exportModal.addEventListener("click", e=>{ if(e.target===exportModal) exportModal.classList.remove("open"); });
+function download(name, text, type){
+  const b = new Blob([text],{type}); const u = URL.createObjectURL(b);
+  const a = document.createElement("a"); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u);
+}
+$("#expJSON").addEventListener("click", ()=>download("reporte-ordenes.json", JSON.stringify(state,null,2), "application/json"));
+$("#expCopy").addEventListener("click", async ()=>{ await navigator.clipboard.writeText(JSON.stringify(state,null,2)); alert("JSON copiado al portapapeles."); });
+$("#expCSV").addEventListener("click", ()=>{
+  const cols=["no","modelo","color","ordenante","proceso","refacc","dias","accion","responsable","estatus"];
+  const head=["No.","Modelo","Color","Ordenante","Proceso Actual","Refacc.","Días","Acción a Tomar","Responsable","Tarea"];
+  const q=s=>`"${String(s==null?"":s).replace(/"/g,'""')}"`;
+  const csv=[head.map(q).join(",")].concat(state.orders.map(o=>cols.map(c=>q(o[c])).join(","))).join("\r\n");
+  download("reporte-ordenes.csv", "﻿"+csv, "text/csv");
+});
+
+//// ——— init ———
+render();
+window.addEventListener("resize", ()=>document.querySelectorAll(".accion").forEach(autosize));
+</script>
+</body>
+</html>
