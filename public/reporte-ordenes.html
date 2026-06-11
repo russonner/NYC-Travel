@@ -356,9 +356,9 @@ function render(){
     const mine=(o.responsable||"")===me.nombre;
     return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''}">
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
-      <td><select class="proc" data-f="proceso">${procOpts}</select></td>
+      <td><select class="proc" data-f="proceso">${procOpts}</select>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
-      <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span></td>
+      <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
       <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" placeholder="Clic para escribir…">${esc(o.accion)}</textarea></td>
       <td><select class="resp ${o.responsable?"":"none"}" data-f="responsable">${respOpts}</select></td>
       <td><select class="est" data-f="estatus" style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
@@ -442,7 +442,9 @@ $("#importFile").addEventListener("change", async e=>{
       let hi = matrix.findIndex(row => row.some(c => HEADER_MAP[String(c).toLowerCase().trim()] ));
       if(hi<0) hi=0;
       const clean = matrix.slice(hi);
-      csv = clean.map(row => row.map(c => `"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
+      const width = clean[0] ? clean[0].length : 0;   // ancho del encabezado
+      csv = clean.map(row => { const r=row.slice(); while(r.length<width) r.push("");
+        return r.map(c => `"${String(c==null?"":c).replace(/"/g,'""')}"`).join(","); }).join("\n");
       $("#optHeader").checked = true;
     }
     $("#importText").value = csv;
@@ -454,15 +456,15 @@ $("#importFile").addEventListener("change", async e=>{
   e.target.value="";
 });
 
-const HEADER_MAP={"no":"no","no.":"no","orden":"no","# orden":"no","numero":"no","número":"no","modelo":"modelo","auto":"modelo","vehiculo":"modelo","vehículo":"modelo","color":"color","ordenante":"ordenante","aseguradora":"ordenante","cia":"ordenante","compañia":"ordenante","compañía":"ordenante","cliente":"ordenante","proceso actual":"proceso","proceso":"proceso","estatus":"proceso","estado":"proceso","etapa":"proceso","refacc.":"refacc","refacc":"refacc","refacciones":"refacc","piezas":"refacc","dias":"dias","días":"dias","dias en taller":"dias","antiguedad":"dias","antigüedad":"dias"};
-const DEFAULT_ORDER=["no","modelo","color","ordenante","proceso","refacc","dias"];
+const HEADER_MAP={"no":"no","no.":"no","no. orden":"no","no orden":"no","orden":"no","# orden":"no","numero":"no","número":"no","modelo":"modelo","auto":"modelo","vehiculo":"modelo","vehículo":"modelo","color":"color","ordenante":"ordenante","aseguradora":"ordenante","cia":"ordenante","compañia":"ordenante","compañía":"ordenante","cliente":"ordenante","proceso actual":"proceso","proceso":"proceso","estatus":"proceso","estado":"proceso","etapa":"proceso","refacc.":"refacc","refacc":"refacc","refacciones":"refacc","piezas":"refacc","dias":"dias","días":"dias","dias en taller":"dias","dias en sistema":"dias","días en sistema":"dias","dias en el sistema":"dias","antiguedad":"dias","antigüedad":"dias","ubicacion":"ubicacion","ubicación":"ubicacion","fecha ingreso":"fecha_ingreso","fecha de ingreso":"fecha_ingreso","fecha promesa taller":"fecha_promesa","fecha promesa":"fecha_promesa","fecha de promesa":"fecha_promesa","subproceso":"subproceso"};
+const DEFAULT_ORDER=["no","modelo","color","ordenante","proceso","refacc","dias","ubicacion","fecha_ingreso","fecha_promesa","subproceso"];
 function detectDelim(l){ if(l.includes("\t")) return "\t"; return ((l.match(/;/g)||[]).length>(l.match(/,/g)||[]).length)?";":","; }
 function splitCSV(line,d){ const out=[];let cur="",q=false; for(let i=0;i<line.length;i++){const ch=line[i];
   if(q){ if(ch==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
   else { if(ch==='"')q=true; else if(ch===d){out.push(cur);cur="";} else cur+=ch; } } out.push(cur); return out.map(s=>s.trim()); }
 function normalizeObj(o){ const g=k=>{ for(const key in o){ if(HEADER_MAP[key.toLowerCase().trim()]===k||key.toLowerCase().trim()===k) return o[key]; } return o[k]; };
   const no=(g("no")||"").toString().trim(); if(!no) return null;
-  return {no,modelo:(g("modelo")||"").toString().trim(),color:(g("color")||"").toString().trim(),ordenante:(g("ordenante")||"").toString().trim(),proceso:(g("proceso")||"").toString().trim(),refacc:(g("refacc")||"").toString().trim(),dias:Number(String(g("dias")||"").replace(/[^\d.-]/g,""))||0}; }
+  return {no,modelo:(g("modelo")||"").toString().trim(),color:(g("color")||"").toString().trim(),ordenante:(g("ordenante")||"").toString().trim(),proceso:(g("proceso")||"").toString().trim(),refacc:(g("refacc")||"").toString().trim(),dias:Number(String(g("dias")||"").replace(/[^\d.-]/g,""))||0,ubicacion:(g("ubicacion")||"").toString().trim(),subproceso:(g("subproceso")||"").toString().trim(),fecha_ingreso:(g("fecha_ingreso")||"").toString().trim(),fecha_promesa:(g("fecha_promesa")||"").toString().trim()}; }
 function parseImport(text,hasHeader){ text=text.trim(); if(!text) return [];
   if(text[0]==="["||text[0]==="{"){ try{ let j=JSON.parse(text); if(!Array.isArray(j)) j=j.orders||[j]; return j.map(normalizeObj).filter(Boolean); }catch(e){} }
   const lines=text.split(/\r?\n/).filter(l=>l.trim()); if(!lines.length) return [];
@@ -480,7 +482,7 @@ $("#btnImportRun").onclick=async()=>{
   if(!rows.length){ alert("No se detectaron órdenes válidas."); return; }
   const now=new Date().toISOString();
   // upsert SOLO de campos de Radar (+ no, actualizado_radar) → preserva accion/responsable/estatus
-  const payload=rows.map(r=>({no:r.no,modelo:r.modelo,color:r.color,ordenante:r.ordenante,proceso:r.proceso||"Diagnóstico",refacc:r.refacc||"0/0",dias:r.dias,actualizado_radar:now}));
+  const payload=rows.map(r=>({no:r.no,modelo:r.modelo,color:r.color,ordenante:r.ordenante,proceso:r.proceso||"Diagnóstico",refacc:r.refacc||"0/0",dias:r.dias,ubicacion:r.ubicacion||"",subproceso:r.subproceso||"",fecha_ingreso:r.fecha_ingreso||"",fecha_promesa:r.fecha_promesa||"",actualizado_radar:now}));
   const {error}=await sb.from(TABLE).upsert(payload,{onConflict:"no"});
   if(error){ alert("Error al importar: "+error.message); return; }
   let cerradas=0;
@@ -502,8 +504,8 @@ exportModal.addEventListener("click",e=>{ if(e.target===exportModal) exportModal
 function download(name,text,type){ const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement("a"); a.href=u;a.download=name;a.click();URL.revokeObjectURL(u); }
 $("#expJSON").onclick=()=>download("reporte-ordenes.json",JSON.stringify(orders,null,2),"application/json");
 $("#expCopy").onclick=async()=>{ await navigator.clipboard.writeText(JSON.stringify(orders,null,2)); alert("JSON copiado."); };
-$("#expCSV").onclick=()=>{ const cols=["no","modelo","color","ordenante","proceso","refacc","dias","accion","responsable","estatus"];
-  const head=["No.","Modelo","Color","Ordenante","Proceso Actual","Refacc.","Días","Acción a Tomar","Responsable","Tarea"];
+$("#expCSV").onclick=()=>{ const cols=["no","modelo","color","ordenante","proceso","subproceso","ubicacion","refacc","dias","fecha_ingreso","fecha_promesa","accion","responsable","estatus"];
+  const head=["No.","Modelo","Color","Ordenante","Proceso Actual","Subproceso","Ubicación","Refacc.","Días","Fecha ingreso","Fecha promesa","Acción a Tomar","Responsable","Tarea"];
   const q=s=>`"${String(s==null?"":s).replace(/"/g,'""')}"`;
   const csv=[head.map(q).join(",")].concat(orders.map(o=>cols.map(c=>q(o[c])).join(","))).join("\r\n");
   download("reporte-ordenes.csv","﻿"+csv,"text/csv"); };

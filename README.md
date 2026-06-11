@@ -128,8 +128,11 @@ El botón **«⭳ Importar de Radar Total Connect»** toma la información de la
    localiza solos los encabezados aunque el archivo traiga un título arriba.
 2. **Pegar** la **tabla copiada** (tabuladores), un **CSV** (`,` o `;`) o **JSON**.
 
-Columnas reconocidas (en cualquier orden): `No.`, `Modelo`, `Color`,
-`Ordenante`, `Proceso Actual`, `Refacc.`, `Días`.
+Columnas reconocidas del export de Radar (encabezados reales): `No. Orden`,
+`Modelo`, `Color`, `Ordenante`, `Proceso Actual`, `Refacciones`,
+`Días en Sistema`, `Ubicación`, `Fecha ingreso`, `Fecha promesa taller`,
+`Subproceso`. (Ubicación, Subproceso y Fecha promesa se muestran en el tablero;
+todos los campos los actualiza Radar y se conserva tu seguimiento).
 2. Las órdenes se emparejan por **No.**:
    - Radar **actualiza** modelo, color, ordenante, proceso, refacciones y días.
    - Se **conservan** la **acción a tomar**, el **responsable** y el **estado de
