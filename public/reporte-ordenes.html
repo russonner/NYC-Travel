@@ -138,7 +138,7 @@
     </div>
     <div class="userbox">
       <div class="avatar" id="avatar">?</div>
-      <div>Conectado: <b id="whoami">…</b></div>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Soy: <select id="meName" style="border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff"></select></label>
       <button class="ghost" id="btnLogout">Salir</button>
     </div>
   </header>
@@ -284,16 +284,35 @@ function showAuth(){ $("#auth").style.display="flex"; $("#app").style.display="n
 let appReady=false;
 async function enterApp(session){
   me.email = session.user.email;
+  me.id = session.user.id;
   me.nombre = session.user.user_metadata?.nombre || "";
   $("#auth").style.display="none"; $("#app").style.display="block";
   await ensureProfile(session.user);
-  $("#whoami").textContent = me.nombre || me.email;
-  $("#avatar").textContent = (me.nombre||me.email||"?").trim()[0].toUpperCase();
+  setupMeName();
   if(appReady) return;          // evita recargar/duplicar suscripción si el evento se repite
   appReady=true;
   initFiltersOnce();
   await loadOrders();
   subscribeRealtime();
+}
+
+// Selector "Soy:" — cada quien elige su nombre de responsable (para "Mis pendientes")
+function setupMeName(){
+  const s=$("#meName");
+  if(s.options.length===0){
+    s.add(new Option("— elige tu nombre —",""));
+    RESPONSABLES.forEach(r=>s.add(new Option(r,r)));
+    s.onchange=async()=>{
+      me.nombre=s.value; refreshMe();
+      await sb.from("seguimiento_perfiles").upsert({id:me.id, nombre:me.nombre});
+      if(typeof render==="function") render();
+    };
+  }
+  s.value = RESPONSABLES.includes(me.nombre) ? me.nombre : "";
+  refreshMe();
+}
+function refreshMe(){
+  $("#avatar").textContent=(me.nombre||me.email||"?").trim()[0].toUpperCase();
 }
 
 async function ensureProfile(user){
