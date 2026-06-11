@@ -121,11 +121,15 @@ pendientes. Desplegado queda en `/reporte-ordenes.html`.
 ### Actualización desde Radar Total Connect
 
 El botón **«⭳ Importar de Radar Total Connect»** toma la información de las
-órdenes que arroje Radar y la combina con el tablero:
+órdenes que arroje Radar y la combina con el tablero. Dos formas de cargar:
 
-1. Pega la **tabla copiada** (tabuladores), un **CSV** (`,` o `;`) o **JSON**.
-   Columnas reconocidas (en cualquier orden): `No.`, `Modelo`, `Color`,
-   `Ordenante`, `Proceso Actual`, `Refacc.`, `Días`.
+1. **Subir el archivo de Radar** (recomendado): el reporte exportado en
+   **Excel** (`.xlsx`/`.xls`), **XML** (SpreadsheetML) o **CSV**. El lector
+   localiza solos los encabezados aunque el archivo traiga un título arriba.
+2. **Pegar** la **tabla copiada** (tabuladores), un **CSV** (`,` o `;`) o **JSON**.
+
+Columnas reconocidas (en cualquier orden): `No.`, `Modelo`, `Color`,
+`Ordenante`, `Proceso Actual`, `Refacc.`, `Días`.
 2. Las órdenes se emparejan por **No.**:
    - Radar **actualiza** modelo, color, ordenante, proceso, refacciones y días.
    - Se **conservan** la **acción a tomar**, el **responsable** y el **estado de

@@ -182,6 +182,12 @@
   <div class="body">
     <p class="hint">Pega la información de las órdenes de <b>Radar Total Connect</b>: <b>tabla copiada</b> (tabuladores), <b>CSV</b> (<code>,</code> o <code>;</code>) o <b>JSON</b>. Columnas reconocidas: <code>No.</code>, <code>Modelo</code>, <code>Color</code>, <code>Ordenante</code>, <code>Proceso Actual</code>, <code>Refacc.</code>, <code>Días</code>.</p>
     <p class="hint" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px">🔒 Se emparejan por <b>No.</b>: Radar actualiza modelo, color, ordenante, proceso, refacciones y días; se <b>conservan</b> la acción a tomar, el responsable y el estado de la tarea.</p>
+    <div style="border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center;margin-bottom:10px">
+      <b>Subir archivo de Radar</b> (Excel <code>.xlsx/.xls</code>, <code>.xml</code> o <code>.csv</code>)<br>
+      <input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.xml,.csv,.txt" style="margin-top:8px">
+      <div class="hint" id="fileStatus" style="margin-top:6px"></div>
+    </div>
+    <div class="hint" style="margin:0 0 6px">…o pega los datos (tabla copiada con tabuladores, CSV o JSON):</div>
     <textarea class="import" id="importText" placeholder="Pega aquí los datos de Radar Total Connect…"></textarea>
     <div class="opts">
       <label><input type="checkbox" id="optHeader" checked> La primera fila es encabezado</label>
@@ -203,6 +209,7 @@
 </div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 //// ——— Configuración ———
 const SUPABASE_URL = "https://rrxakcjuykyoxzdfgthg.supabase.co";
@@ -415,6 +422,37 @@ $("#btnImport").onclick=()=>{ importModal.classList.add("open"); $("#importText"
 $("#btnImportCancel").onclick=()=>importModal.classList.remove("open");
 importModal.addEventListener("click",e=>{ if(e.target===importModal) importModal.classList.remove("open"); });
 $("#importText").addEventListener("input",previewImport); $("#optHeader").addEventListener("change",previewImport);
+
+// —— Subir archivo de Radar (Excel / XML / CSV) ——
+$("#importFile").addEventListener("change", async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const st=$("#fileStatus"); st.textContent="Leyendo "+file.name+"…";
+  try{
+    const ext=(file.name.split(".").pop()||"").toLowerCase();
+    let csv;
+    if(ext==="csv"||ext==="txt"){
+      csv = await file.text();
+    } else {
+      if(!window.XLSX){ st.innerHTML='<span style="color:#b91c1c">No se pudo cargar el lector de Excel (sin conexión). Usa CSV o pega los datos.</span>'; return; }
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:"array"});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const matrix = XLSX.utils.sheet_to_json(sheet, {header:1, blankrows:false, defval:""});
+      // localizar la fila de encabezados (ignora títulos como "REPORTE DE ÓRDENES")
+      let hi = matrix.findIndex(row => row.some(c => HEADER_MAP[String(c).toLowerCase().trim()] ));
+      if(hi<0) hi=0;
+      const clean = matrix.slice(hi);
+      csv = clean.map(row => row.map(c => `"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
+      $("#optHeader").checked = true;
+    }
+    $("#importText").value = csv;
+    previewImport();
+    const n = parseImport(csv, $("#optHeader").checked).length;
+    st.innerHTML = n ? `✅ <b>${file.name}</b>: ${n} órdenes detectadas. Revisa abajo y pulsa “Importar y combinar”.`
+                     : `<span style="color:#b91c1c">No se detectaron órdenes en <b>${file.name}</b>. ¿Tiene una columna de No.?</span>`;
+  }catch(err){ st.innerHTML='<span style="color:#b91c1c">Error al leer el archivo: '+esc(err.message)+'</span>'; }
+  e.target.value="";
+});
 
 const HEADER_MAP={"no":"no","no.":"no","orden":"no","# orden":"no","numero":"no","número":"no","modelo":"modelo","auto":"modelo","vehiculo":"modelo","vehículo":"modelo","color":"color","ordenante":"ordenante","aseguradora":"ordenante","cia":"ordenante","compañia":"ordenante","compañía":"ordenante","cliente":"ordenante","proceso actual":"proceso","proceso":"proceso","estatus":"proceso","estado":"proceso","etapa":"proceso","refacc.":"refacc","refacc":"refacc","refacciones":"refacc","piezas":"refacc","dias":"dias","días":"dias","dias en taller":"dias","antiguedad":"dias","antigüedad":"dias"};
 const DEFAULT_ORDER=["no","modelo","color","ordenante","proceso","refacc","dias"];
