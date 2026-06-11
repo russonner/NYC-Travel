@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reporte de Órdenes — Seguimiento (en la nube)</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --ink:#1f2430; --muted:#6b7280; --line:#e3e6ea;
+    --head:#2b3242; --accent:#2563eb; --accent-soft:#eff4ff;
+    --ok:#16a34a; --warn:#d97706; --bad:#dc2626; --row-action:#fffbeb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:13px}
+  button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:8px;padding:7px 11px;font-size:13px;cursor:pointer}
+  button:hover{background:#f8f9fb}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{filter:brightness(1.05)}
+  button.ghost{color:var(--muted)}
+  input,select,textarea{font-family:inherit}
+
+  /* ——— Login ——— */
+  #auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .authcard{background:#fff;border:1px solid var(--line);border-radius:14px;max-width:400px;width:100%;padding:26px;box-shadow:0 10px 40px rgba(0,0,0,.06)}
+  .authcard h1{font-size:19px;margin:0 0 2px}
+  .authcard .lead{color:var(--muted);font-size:12.5px;margin:0 0 18px}
+  .authtabs{display:flex;gap:6px;margin-bottom:16px}
+  .authtabs button{flex:1}
+  .authtabs button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .field input,.field select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:14px}
+  .authmsg{font-size:12.5px;border-radius:8px;padding:9px 11px;margin-bottom:12px;display:none}
+  .authmsg.err{display:block;background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+  .authmsg.ok{display:block;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+  .authmsg.info{display:block;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+
+  /* ——— App ——— */
+  #app{display:none}
+  header.top{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header.top h1{margin:0;font-size:18px;letter-spacing:.3px}
+  header.top .sub{color:var(--muted);font-size:12px}
+  .userbox{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+  .userbox b{color:var(--ink)}
+  .avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+  .wrap{padding:14px 20px 60px}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .card .n{font-size:22px;font-weight:700}
+  .card .l{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  .card.bad .n{color:var(--bad)} .card.warn .n{color:var(--warn)} .card.ok .n{color:var(--ok)}
+  .card.mine{cursor:pointer;border-color:var(--accent);background:var(--accent-soft)}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px}
+  .toolbar input[type=search],.toolbar select{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;background:#fff}
+  .toolbar input[type=search]{min-width:220px}
+  .spacer{flex:1}
+  #btnMine.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .badge{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:600}
+  #syncdot{width:9px;height:9px;border-radius:50%;background:#9ca3af;display:inline-block}
+  #syncdot.live{background:var(--ok);box-shadow:0 0 0 3px #16a34a22}
+
+  .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto}
+  table{border-collapse:collapse;width:100%;min-width:1100px}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  thead th{position:sticky;top:0;background:var(--head);color:#fff;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;z-index:1}
+  thead th.sortable{cursor:pointer} thead th.sortable:hover{background:#3a4357}
+  tbody tr:hover{background:#fafbfc}
+  td.no{font-weight:700;white-space:nowrap}
+  td.num{text-align:center;white-space:nowrap}
+  .dias{font-weight:700;border-radius:999px;padding:2px 8px;display:inline-block;min-width:34px;text-align:center}
+  .dias.lo{background:#dcfce7;color:#166534} .dias.mid{background:#fef9c3;color:#854d0e} .dias.hi{background:#fee2e2;color:#991b1b}
+  .accion{width:100%;border:1px solid transparent;border-radius:6px;padding:5px 6px;font-size:13px;font-family:inherit;resize:vertical;min-height:34px;background:transparent;color:var(--ink)}
+  .accion:hover{border-color:var(--line)} .accion:focus{outline:none;border-color:var(--accent);background:#fff}
+  td.accion-cell{background:var(--row-action);min-width:280px}
+  select.resp,select.proc,select.est{border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff;max-width:170px}
+  select.resp.none{color:#b91c1c;border-color:#fecaca;background:#fff5f5}
+  tr.done{opacity:.55} tr.done td.accion-cell{background:#f3f4f6}
+  tr.mine td.no{box-shadow:inset 3px 0 0 var(--accent)}
+  .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
+  .rowdel:hover{background:#fee2e2;border-radius:6px}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(15,20,30,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .modal h2{margin:0;padding:16px 20px;border-bottom:1px solid var(--line);font-size:17px}
+  .modal .body{padding:16px 20px}
+  .modal .foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:#fff}
+  textarea.import{width:100%;min-height:200px;border:1px solid var(--line);border-radius:8px;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  .hint{color:var(--muted);font-size:12.5px;line-height:1.6}
+  .hint code{background:#f1f5f9;padding:1px 5px;border-radius:4px}
+  .opts{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;font-size:13px}
+  .opts label{display:flex;gap:6px;align-items:center}
+  .preview{margin-top:10px;font-size:12.5px;color:var(--muted)}
+  @media print{ .toolbar,.rowdel,.modal-bg,header.top .userbox{display:none!important} .accion,select{border:none!important;-webkit-appearance:none;appearance:none} body{background:#fff} }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="auth">
+  <div class="authcard">
+    <h1>Reporte de Órdenes</h1>
+    <p class="lead">Seguimiento de tareas y responsables — Auto Plus Universidad</p>
+    <div class="authtabs">
+      <button id="tabLogin" class="active">Entrar</button>
+      <button id="tabReg">Crear cuenta</button>
+    </div>
+    <div class="authmsg" id="authMsg"></div>
+
+    <form id="formLogin">
+      <div class="field"><label>Correo</label><input type="email" id="loginEmail" autocomplete="username" required></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="loginPass" autocomplete="current-password" required></div>
+      <button class="primary" type="submit" style="width:100%">Entrar</button>
+    </form>
+
+    <form id="formReg" style="display:none">
+      <div class="field"><label>Tu nombre (responsable)</label>
+        <select id="regNombre" required></select>
+      </div>
+      <div class="field" id="regNombreOtroWrap" style="display:none"><label>Escribe tu nombre</label><input type="text" id="regNombreOtro"></div>
+      <div class="field"><label>Correo</label><input type="email" id="regEmail" autocomplete="username" required></div>
+      <div class="field"><label>Contraseña (mín. 6)</label><input type="password" id="regPass" autocomplete="new-password" minlength="6" required></div>
+      <div class="field"><label>Código de invitación</label><input type="text" id="regCode" placeholder="Pide el código al administrador" required></div>
+      <button class="primary" type="submit" style="width:100%">Crear cuenta y entrar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
+  <header class="top">
+    <div>
+      <h1>REPORTE DE ÓRDENES — AUTO PLUS UNIVERSIDAD</h1>
+      <div class="sub"><span id="syncdot"></span> <span id="meta">…</span> · <span id="updated"></span></div>
+    </div>
+    <div class="userbox">
+      <div class="avatar" id="avatar">?</div>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Soy: <select id="meName" style="border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff"></select></label>
+      <button class="ghost" id="btnLogout">Salir</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="stats" id="stats"></div>
+
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Buscar: No., modelo, ordenante, acción…" />
+      <select id="fProc"><option value="">Todos los procesos</option></select>
+      <select id="fResp"><option value="">Todos los responsables</option><option value="__none__">⚠ Sin responsable</option></select>
+      <select id="fEst"><option value="">Toda tarea</option><option value="pendiente">Pendiente</option><option value="proceso">En proceso</option><option value="hecho">Hecho</option></select>
+      <button id="btnMine">★ Mis pendientes</button>
+      <span class="spacer"></span>
+      <button id="btnAdd">+ Orden</button>
+      <button class="primary" id="btnImport">⭳ Importar de Radar Total Connect</button>
+      <button id="btnExport">Exportar</button>
+      <button class="ghost" id="btnPrint">Imprimir</button>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th class="sortable" data-k="no">No.</th><th>Modelo</th><th>Color</th>
+          <th class="sortable" data-k="ordenante">Ordenante</th>
+          <th class="sortable" data-k="proceso">Proceso Actual</th>
+          <th>Refacc.</th><th class="sortable" data-k="dias">Días</th>
+          <th>Acción a Tomar</th><th class="sortable" data-k="responsable">Responsable</th>
+          <th>Tarea</th><th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">No hay órdenes que coincidan con el filtro.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="modal-bg" id="importModal"><div class="modal">
+  <h2>Importar órdenes de Radar Total Connect</h2>
+  <div class="body">
+    <p class="hint">Pega la información de las órdenes de <b>Radar Total Connect</b>: <b>tabla copiada</b> (tabuladores), <b>CSV</b> (<code>,</code> o <code>;</code>) o <b>JSON</b>. Columnas reconocidas: <code>No.</code>, <code>Modelo</code>, <code>Color</code>, <code>Ordenante</code>, <code>Proceso Actual</code>, <code>Refacc.</code>, <code>Días</code>.</p>
+    <p class="hint" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px">🔒 Se emparejan por <b>No.</b>: Radar actualiza modelo, color, ordenante, proceso, refacciones y días; se <b>conservan</b> la acción a tomar, el responsable y el estado de la tarea.</p>
+    <div style="border:1px dashed var(--line);border-radius:8px;padding:12px;text-align:center;margin-bottom:10px">
+      <b>Subir archivo de Radar</b> (Excel <code>.xlsx/.xls</code>, <code>.xml</code> o <code>.csv</code>)<br>
+      <input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.xml,.csv,.txt" style="margin-top:8px">
+      <div class="hint" id="fileStatus" style="margin-top:6px"></div>
+    </div>
+    <div class="hint" style="margin:0 0 6px">…o pega los datos (tabla copiada con tabuladores, CSV o JSON):</div>
+    <textarea class="import" id="importText" placeholder="Pega aquí los datos de Radar Total Connect…"></textarea>
+    <div class="opts">
+      <label><input type="checkbox" id="optHeader" checked> La primera fila es encabezado</label>
+      <label><input type="checkbox" id="optMarkMissing"> Marcar como “Hecho” las que ya no aparecen</label>
+    </div>
+    <div class="preview" id="importPreview"></div>
+  </div>
+  <div class="foot"><button id="btnImportCancel">Cancelar</button><button class="primary" id="btnImportRun">Importar y combinar</button></div>
+</div></div>
+
+<!-- Export modal -->
+<div class="modal-bg" id="exportModal"><div class="modal">
+  <h2>Exportar</h2>
+  <div class="body">
+    <p class="hint">Descarga el reporte completo (incluye el seguimiento).</p>
+    <div class="opts"><button id="expJSON">Descargar JSON</button><button id="expCSV">Descargar CSV</button><button id="expCopy">Copiar JSON</button></div>
+  </div>
+  <div class="foot"><button id="btnExportClose">Cerrar</button></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+//// ——— Configuración ———
+const SUPABASE_URL = "https://rrxakcjuykyoxzdfgthg.supabase.co";
+const SUPABASE_KEY = "sb_publishable_GEx_IHCzA-EKuJy1iyAv2A_K5oTl0j3";
+const INVITE_CODE  = "AUTOPLUS2026";          // código para registrarse (cámbialo si quieres)
+const TABLE = "seguimiento_ordenes";
+const RESPONSABLES = ["Gloria","Adrian","Alejandro Martinez","Javier","Devany","Jesus Alejandro"];
+const PROCESOS = ["Diagnóstico","Valuación","En proceso","Listo para proceso","Espera de refacciones","En reparación","Listo para entrega","Unidad entregada"];
+const EST = {pendiente:{l:"Pendiente",bg:"#fef9c3",fg:"#854d0e"},proceso:{l:"En proceso",bg:"#dbeafe",fg:"#1e40af"},hecho:{l:"Hecho",bg:"#dcfce7",fg:"#166534"}};
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
+
+//// ——— Estado ———
+let orders = [];
+let me = {nombre:"", email:""};
+let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false;
+
+//// ====================== AUTH ======================
+function authMsg(t,kind){ const m=$("#authMsg"); m.textContent=t||""; m.className=t?("authmsg "+(kind||"info")):"authmsg"; }
+$("#tabLogin").onclick=()=>switchAuth(true);
+$("#tabReg").onclick=()=>switchAuth(false);
+function switchAuth(login){
+  $("#tabLogin").classList.toggle("active",login); $("#tabReg").classList.toggle("active",!login);
+  $("#formLogin").style.display=login?"block":"none"; $("#formReg").style.display=login?"none":"block"; authMsg("");
+}
+(function(){ const s=$("#regNombre"); s.add(new Option("— Elige tu nombre —","")); RESPONSABLES.forEach(n=>s.add(new Option(n,n))); s.add(new Option("Otro…","__otro__"));
+  s.onchange=()=>{ $("#regNombreOtroWrap").style.display = s.value==="__otro__"?"block":"none"; };
+})();
+
+$("#formLogin").addEventListener("submit", async e=>{
+  e.preventDefault(); authMsg("Entrando…","info");
+  const {error} = await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(), password:$("#loginPass").value});
+  if(error){ authMsg(traducirError(error.message),"err"); }
+});
+
+$("#formReg").addEventListener("submit", async e=>{
+  e.preventDefault();
+  if($("#regCode").value.trim()!==INVITE_CODE){ authMsg("Código de invitación incorrecto.","err"); return; }
+  const sel=$("#regNombre").value;
+  const nombre = sel==="__otro__" ? $("#regNombreOtro").value.trim() : sel;
+  if(!nombre){ authMsg("Indica tu nombre.","err"); return; }
+  const email=$("#regEmail").value.trim(), password=$("#regPass").value;
+  authMsg("Creando cuenta…","info");
+  const {data, error} = await sb.auth.signUp({email,password,options:{data:{nombre}}});
+  if(error){ authMsg(traducirError(error.message),"err"); return; }
+  if(!data.session){ // sin sesión → probablemente requiere confirmar correo
+    const {error:e2}=await sb.auth.signInWithPassword({email,password});
+    if(e2){ authMsg("Tu cuenta se creó. Si te pide confirmar el correo, ábrelo y confírmalo, o pide al administrador que desactive la confirmación de correo. Luego entra con tu contraseña.","ok"); switchAuth(true); }
+  }
+});
+
+function traducirError(m){
+  m=(m||"").toLowerCase();
+  if(m.includes("invalid login")) return "Correo o contraseña incorrectos.";
+  if(m.includes("email not confirmed")) return "Tu correo aún no está confirmado. Pide al administrador que desactive la confirmación de correo o confírmalo desde tu bandeja.";
+  if(m.includes("already registered")||m.includes("already been registered")) return "Ese correo ya tiene cuenta. Usa “Entrar”.";
+  if(m.includes("weak")||m.includes("pwned")||m.includes("leaked")||m.includes("compromis")||m.includes("known to be")||m.includes("breach")) return "Esa contraseña fue rechazada por seguridad (aparece en filtraciones conocidas o es muy común). Usa una contraseña NUEVA y distinta —no la de Radar.";
+  if(m.includes("at least 6")||m.includes("should be at least")||m.includes("minimum")||m.includes("too short")) return "La contraseña debe tener al menos 6 caracteres.";
+  if(m.includes("signups not allowed")||m.includes("signup is disabled")||m.includes("not allowed")) return "El registro de cuentas está deshabilitado. Pídele al administrador que lo active.";
+  if(m.includes("password")) return "No se aceptó la contraseña: "+m+". Prueba con una contraseña distinta.";
+  return m;
+}
+
+sb.auth.onAuthStateChange((_evt, session)=>{ session ? enterApp(session) : showAuth(); });
+sb.auth.getSession().then(({data})=>{ data.session ? enterApp(data.session) : showAuth(); });
+
+function showAuth(){ $("#auth").style.display="flex"; $("#app").style.display="none"; }
+
+let appReady=false;
+async function enterApp(session){
+  me.email = session.user.email;
+  me.id = session.user.id;
+  me.nombre = session.user.user_metadata?.nombre || "";
+  $("#auth").style.display="none"; $("#app").style.display="block";
+  await ensureProfile(session.user);
+  setupMeName();
+  if(appReady) return;          // evita recargar/duplicar suscripción si el evento se repite
+  appReady=true;
+  initFiltersOnce();
+  await loadOrders();
+  subscribeRealtime();
+}
+
+// Selector "Soy:" — cada quien elige su nombre de responsable (para "Mis pendientes")
+function setupMeName(){
+  const s=$("#meName");
+  if(s.options.length===0){
+    s.add(new Option("— elige tu nombre —",""));
+    RESPONSABLES.forEach(r=>s.add(new Option(r,r)));
+    s.onchange=async()=>{
+      me.nombre=s.value; refreshMe();
+      await sb.from("seguimiento_perfiles").upsert({id:me.id, nombre:me.nombre});
+      if(typeof render==="function") render();
+    };
+  }
+  s.value = RESPONSABLES.includes(me.nombre) ? me.nombre : "";
+  refreshMe();
+}
+function refreshMe(){
+  $("#avatar").textContent=(me.nombre||me.email||"?").trim()[0].toUpperCase();
+}
+
+async function ensureProfile(user){
+  const nombre = user.user_metadata?.nombre || "";
+  const {data} = await sb.from("seguimiento_perfiles").select("nombre").eq("id",user.id).maybeSingle();
+  if(!data){ await sb.from("seguimiento_perfiles").insert({id:user.id, nombre}); me.nombre=nombre; }
+  else { me.nombre = data.nombre || nombre; }
+}
+
+$("#btnLogout").onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+
+//// ====================== DATOS ======================
+async function loadOrders(){
+  const {data, error} = await sb.from(TABLE).select("*").order("dias",{ascending:false});
+  if(error){ console.error(error); $("#meta").textContent="Error al cargar: "+error.message; return; }
+  orders = data||[]; render();
+}
+
+function subscribeRealtime(){
+  sb.channel("ordenes-rt")
+    .on("postgres_changes",{event:"*",schema:"public",table:TABLE}, ()=>{
+      if(editing){ pendingReload=true; } else { loadOrders(); }
+    })
+    .subscribe(status=>{ $("#syncdot").classList.toggle("live", status==="SUBSCRIBED"); });
+}
+
+const saveTimers={};
+function editField(id, field, value){
+  const o = orders.find(x=>x.id===id); if(o) o[field]=value;     // optimista
+  clearTimeout(saveTimers[id+field]);
+  saveTimers[id+field]=setTimeout(async()=>{
+    const {error}=await sb.from(TABLE).update({[field]:value}).eq("id",id);
+    if(error){ alert("No se pudo guardar: "+error.message); loadOrders(); }
+  }, field==="accion"?600:0);
+}
+
+//// ====================== RENDER ======================
+function initFiltersOnce(){
+  const fp=$("#fProc"); if(fp.options.length<=1) PROCESOS.forEach(p=>fp.add(new Option(p,p)));
+  const fr=$("#fResp"); if(fr.options.length<=2) RESPONSABLES.forEach(r=>fr.add(new Option(r,r)));
+}
+
+function render(){
+  const q=$("#q").value.trim().toLowerCase(), fp=$("#fProc").value, fr=$("#fResp").value, fe=$("#fEst").value;
+  let rows=orders.filter(o=>{
+    if(onlyMine){ if((o.responsable||"")!==me.nombre || o.estatus==="hecho") return false; }
+    if(fp && o.proceso!==fp) return false;
+    if(fr==="__none__"){ if(o.responsable) return false; } else if(fr && o.responsable!==fr) return false;
+    if(fe && (o.estatus||"pendiente")!==fe) return false;
+    if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,o.responsable].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  rows.sort((a,b)=>{ let va=a[sortKey],vb=b[sortKey];
+    if(sortKey==="dias") {va=+va;vb=+vb;} else if(sortKey==="no"){va=+a.no||a.no;vb=+b.no||b.no;}
+    else {va=(va||"").toString().toLowerCase();vb=(vb||"").toString().toLowerCase();}
+    return va<vb?-sortDir:va>vb?sortDir:0; });
+
+  $("#tbody").innerHTML = rows.map(o=>{
+    const est=o.estatus||"pendiente";
+    const respOpts=['<option value="">— Selec. —</option>'].concat(RESPONSABLES.map(r=>`<option ${r===o.responsable?"selected":""}>${esc(r)}</option>`)).join("");
+    const procOpts=PROCESOS.map(p=>`<option ${p===o.proceso?"selected":""}>${esc(p)}</option>`).join("");
+    const estOpts=Object.keys(EST).map(k=>`<option value="${k}" ${k===est?"selected":""}>${EST[k].l}</option>`).join("");
+    const mine=(o.responsable||"")===me.nombre;
+    return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''}">
+      <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+      <td><select class="proc" data-f="proceso">${procOpts}</select>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
+      <td class="num">${esc(o.refacc||"")}</td>
+      <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
+      <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" placeholder="Clic para escribir…">${esc(o.accion)}</textarea></td>
+      <td><select class="resp ${o.responsable?"":"none"}" data-f="responsable">${respOpts}</select></td>
+      <td><select class="est" data-f="estatus" style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
+      <td><button class="rowdel" title="Eliminar">✕</button></td></tr>`;
+  }).join("");
+  $("#empty").style.display=rows.length?"none":"block";
+  $("#meta").textContent=`Total: ${orders.length}`+(rows.length!==orders.length?` · Mostrando ${rows.length}`:"");
+  const last = orders.map(o=>o.actualizado_radar).filter(Boolean).sort().pop();
+  $("#updated").textContent = last? `Última actualización Radar: ${new Date(last).toLocaleString("es-MX")}` : "Sin importación de Radar todavía";
+  renderStats();
+  $("#tbody").querySelectorAll(".accion").forEach(autosize);
+}
+
+function renderStats(){
+  const sinResp=orders.filter(x=>!x.responsable).length;
+  const atras=orders.filter(x=>+x.dias>=45).length;
+  const pend=orders.filter(x=>(x.estatus||"pendiente")!=="hecho").length;
+  const entrega=orders.filter(x=>x.proceso==="Listo para entrega").length;
+  const mias=orders.filter(x=>(x.responsable||"")===me.nombre && x.estatus!=="hecho").length;
+  const porResp={}; orders.forEach(x=>{ if(x.estatus!=="hecho" && x.responsable) porResp[x.responsable]=(porResp[x.responsable]||0)+1; });
+  const respHtml=Object.entries(porResp).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`<span class="badge">${esc(r)}: ${n}</span>`).join(" ")||'<span class="hint">—</span>';
+  $("#stats").innerHTML=`
+    <div class="card mine" id="cardMine"><div class="n">${mias}</div><div class="l">★ Mis pendientes (${esc(me.nombre||"—")})</div></div>
+    <div class="card"><div class="n">${orders.length}</div><div class="l">Órdenes activas</div></div>
+    <div class="card warn"><div class="n">${pend}</div><div class="l">Tareas pendientes</div></div>
+    <div class="card bad"><div class="n">${sinResp}</div><div class="l">Sin responsable</div></div>
+    <div class="card bad"><div class="n">${atras}</div><div class="l">Atrasadas (≥45 días)</div></div>
+    <div class="card ok"><div class="n">${entrega}</div><div class="l">Listas para entrega</div></div>
+    <div class="card" style="grid-column:1/-1"><div class="l">Carga por responsable (tareas abiertas)</div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${respHtml}</div></div>`;
+  $("#cardMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("active",onlyMine); render(); };
+}
+function autosize(t){ t.style.height="auto"; t.style.height=Math.max(34,t.scrollHeight)+"px"; }
+
+//// ——— edición / interacción ———
+$("#tbody").addEventListener("focusin",()=>editing=true);
+$("#tbody").addEventListener("focusout",()=>{ editing=false; if(pendingReload){pendingReload=false; loadOrders();} });
+$("#tbody").addEventListener("input", e=>{ const f=e.target.dataset.f; if(!f) return;
+  const id=+e.target.closest("tr").dataset.id; editField(id,f,e.target.value); if(f==="accion") autosize(e.target); });
+$("#tbody").addEventListener("change", e=>{ const f=e.target.dataset.f; if(!f) return;
+  const id=+e.target.closest("tr").dataset.id; editField(id,f,e.target.value);
+  if(f==="estatus"||f==="responsable"||f==="proceso") render(); });
+$("#tbody").addEventListener("click", async e=>{ if(!e.target.classList.contains("rowdel")) return;
+  const id=+e.target.closest("tr").dataset.id; const o=orders.find(x=>x.id===id);
+  if(confirm(`¿Eliminar la orden ${o.no} (${o.modelo})?`)){ const {error}=await sb.from(TABLE).delete().eq("id",id);
+    if(error) alert("No se pudo eliminar: "+error.message); else { orders=orders.filter(x=>x.id!==id); render(); } } });
+
+["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input",render));
+document.querySelectorAll("thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
+  const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=k==="dias"?-1:1;} render(); }));
+$("#btnMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("active",onlyMine); render(); };
+$("#btnPrint").onclick=()=>window.print();
+
+$("#btnAdd").onclick=async()=>{ const no=prompt("No. de orden:"); if(!no) return;
+  const {data,error}=await sb.from(TABLE).insert({no:String(no).trim(),proceso:"Diagnóstico",responsable:me.nombre}).select().single();
+  if(error){ alert(error.message.includes("duplicate")?"Ya existe una orden con ese número.":error.message); return; }
+  orders.unshift(data); render(); };
+
+//// ====================== IMPORTAR ======================
+const importModal=$("#importModal");
+$("#btnImport").onclick=()=>{ importModal.classList.add("open"); $("#importText").focus(); };
+$("#btnImportCancel").onclick=()=>importModal.classList.remove("open");
+importModal.addEventListener("click",e=>{ if(e.target===importModal) importModal.classList.remove("open"); });
+$("#importText").addEventListener("input",previewImport); $("#optHeader").addEventListener("change",previewImport);
+
+// —— Subir archivo de Radar (Excel / XML / CSV) ——
+$("#importFile").addEventListener("change", async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const st=$("#fileStatus"); st.textContent="Leyendo "+file.name+"…";
+  try{
+    const ext=(file.name.split(".").pop()||"").toLowerCase();
+    let csv;
+    if(ext==="csv"||ext==="txt"){
+      csv = await file.text();
+    } else {
+      if(!window.XLSX){ st.innerHTML='<span style="color:#b91c1c">No se pudo cargar el lector de Excel (sin conexión). Usa CSV o pega los datos.</span>'; return; }
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:"array"});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const matrix = XLSX.utils.sheet_to_json(sheet, {header:1, blankrows:false, defval:""});
+      // localizar la fila de encabezados (ignora títulos como "REPORTE DE ÓRDENES")
+      let hi = matrix.findIndex(row => row.some(c => HEADER_MAP[String(c).toLowerCase().trim()] ));
+      if(hi<0) hi=0;
+      const clean = matrix.slice(hi);
+      const width = clean[0] ? clean[0].length : 0;   // ancho del encabezado
+      csv = clean.map(row => { const r=row.slice(); while(r.length<width) r.push("");
+        return r.map(c => `"${String(c==null?"":c).replace(/"/g,'""')}"`).join(","); }).join("\n");
+      $("#optHeader").checked = true;
+    }
+    $("#importText").value = csv;
+    previewImport();
+    const n = parseImport(csv, $("#optHeader").checked).length;
+    st.innerHTML = n ? `✅ <b>${file.name}</b>: ${n} órdenes detectadas. Revisa abajo y pulsa “Importar y combinar”.`
+                     : `<span style="color:#b91c1c">No se detectaron órdenes en <b>${file.name}</b>. ¿Tiene una columna de No.?</span>`;
+  }catch(err){ st.innerHTML='<span style="color:#b91c1c">Error al leer el archivo: '+esc(err.message)+'</span>'; }
+  e.target.value="";
+});
+
+const HEADER_MAP={"no":"no","no.":"no","no. orden":"no","no orden":"no","orden":"no","# orden":"no","numero":"no","número":"no","modelo":"modelo","auto":"modelo","vehiculo":"modelo","vehículo":"modelo","color":"color","ordenante":"ordenante","aseguradora":"ordenante","cia":"ordenante","compañia":"ordenante","compañía":"ordenante","cliente":"ordenante","proceso actual":"proceso","proceso":"proceso","estatus":"proceso","estado":"proceso","etapa":"proceso","refacc.":"refacc","refacc":"refacc","refacciones":"refacc","piezas":"refacc","dias":"dias","días":"dias","dias en taller":"dias","dias en sistema":"dias","días en sistema":"dias","dias en el sistema":"dias","antiguedad":"dias","antigüedad":"dias","ubicacion":"ubicacion","ubicación":"ubicacion","fecha ingreso":"fecha_ingreso","fecha de ingreso":"fecha_ingreso","fecha promesa taller":"fecha_promesa","fecha promesa":"fecha_promesa","fecha de promesa":"fecha_promesa","subproceso":"subproceso"};
+const DEFAULT_ORDER=["no","modelo","color","ordenante","proceso","refacc","dias","ubicacion","fecha_ingreso","fecha_promesa","subproceso"];
+function detectDelim(l){ if(l.includes("\t")) return "\t"; return ((l.match(/;/g)||[]).length>(l.match(/,/g)||[]).length)?";":","; }
+function splitCSV(line,d){ const out=[];let cur="",q=false; for(let i=0;i<line.length;i++){const ch=line[i];
+  if(q){ if(ch==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+  else { if(ch==='"')q=true; else if(ch===d){out.push(cur);cur="";} else cur+=ch; } } out.push(cur); return out.map(s=>s.trim()); }
+function normalizeObj(o){ const g=k=>{ for(const key in o){ if(HEADER_MAP[key.toLowerCase().trim()]===k||key.toLowerCase().trim()===k) return o[key]; } return o[k]; };
+  const no=(g("no")||"").toString().trim(); if(!no) return null;
+  return {no,modelo:(g("modelo")||"").toString().trim(),color:(g("color")||"").toString().trim(),ordenante:(g("ordenante")||"").toString().trim(),proceso:(g("proceso")||"").toString().trim(),refacc:(g("refacc")||"").toString().trim(),dias:Number(String(g("dias")||"").replace(/[^\d.-]/g,""))||0,ubicacion:(g("ubicacion")||"").toString().trim(),subproceso:(g("subproceso")||"").toString().trim(),fecha_ingreso:(g("fecha_ingreso")||"").toString().trim(),fecha_promesa:(g("fecha_promesa")||"").toString().trim()}; }
+function parseImport(text,hasHeader){ text=text.trim(); if(!text) return [];
+  if(text[0]==="["||text[0]==="{"){ try{ let j=JSON.parse(text); if(!Array.isArray(j)) j=j.orders||[j]; return j.map(normalizeObj).filter(Boolean); }catch(e){} }
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()); if(!lines.length) return [];
+  const d=detectDelim(lines[0]); let fields=DEFAULT_ORDER,start=0;
+  if(hasHeader){ fields=splitCSV(lines[0],d).map(h=>HEADER_MAP[h.toLowerCase().trim()]||h.toLowerCase().trim()); start=1; }
+  const rows=[]; for(let i=start;i<lines.length;i++){ const cells=splitCSV(lines[i],d); const obj={};
+    fields.forEach((f,k)=>{ if(DEFAULT_ORDER.includes(f)) obj[f]=cells[k]!=null?cells[k].trim():""; });
+    const n=normalizeObj(obj); if(n) rows.push(n); } return rows; }
+function previewImport(){ const rows=parseImport($("#importText").value,$("#optHeader").checked);
+  const ex=new Set(orders.map(o=>o.no)); const nuevas=rows.filter(r=>!ex.has(r.no)).length;
+  $("#importPreview").innerHTML=rows.length?`Detectadas <b>${rows.length}</b> · <span class="badge">${rows.length-nuevas} actualizar</span> <span class="badge">${nuevas} nuevas</span>`:`<span style="color:#b91c1c">No se detectaron órdenes válidas (falta columna No.).</span>`; }
+
+$("#btnImportRun").onclick=async()=>{
+  const rows=parseImport($("#importText").value,$("#optHeader").checked);
+  if(!rows.length){ alert("No se detectaron órdenes válidas."); return; }
+  const now=new Date().toISOString();
+  // upsert SOLO de campos de Radar (+ no, actualizado_radar) → preserva accion/responsable/estatus
+  const payload=rows.map(r=>({no:r.no,modelo:r.modelo,color:r.color,ordenante:r.ordenante,proceso:r.proceso||"Diagnóstico",refacc:r.refacc||"0/0",dias:r.dias,ubicacion:r.ubicacion||"",subproceso:r.subproceso||"",fecha_ingreso:r.fecha_ingreso||"",fecha_promesa:r.fecha_promesa||"",actualizado_radar:now}));
+  const {error}=await sb.from(TABLE).upsert(payload,{onConflict:"no"});
+  if(error){ alert("Error al importar: "+error.message); return; }
+  let cerradas=0;
+  if($("#optMarkMissing").checked){
+    const seen=new Set(rows.map(r=>r.no));
+    const faltan=orders.filter(o=>!seen.has(o.no) && o.estatus!=="hecho").map(o=>o.id);
+    if(faltan.length){ await sb.from(TABLE).update({estatus:"hecho"}).in("id",faltan); cerradas=faltan.length; }
+  }
+  importModal.classList.remove("open"); $("#importText").value=""; $("#importPreview").innerHTML="";
+  await loadOrders();
+  alert(`Importación completa.\nSe conservó responsable y acción de las órdenes existentes.${cerradas?`\n${cerradas} marcadas como hechas.`:""}`);
+};
+
+//// ====================== EXPORTAR ======================
+const exportModal=$("#exportModal");
+$("#btnExport").onclick=()=>exportModal.classList.add("open");
+$("#btnExportClose").onclick=()=>exportModal.classList.remove("open");
+exportModal.addEventListener("click",e=>{ if(e.target===exportModal) exportModal.classList.remove("open"); });
+function download(name,text,type){ const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement("a"); a.href=u;a.download=name;a.click();URL.revokeObjectURL(u); }
+$("#expJSON").onclick=()=>download("reporte-ordenes.json",JSON.stringify(orders,null,2),"application/json");
+$("#expCopy").onclick=async()=>{ await navigator.clipboard.writeText(JSON.stringify(orders,null,2)); alert("JSON copiado."); };
+$("#expCSV").onclick=()=>{ const cols=["no","modelo","color","ordenante","proceso","subproceso","ubicacion","refacc","dias","fecha_ingreso","fecha_promesa","accion","responsable","estatus"];
+  const head=["No.","Modelo","Color","Ordenante","Proceso Actual","Subproceso","Ubicación","Refacc.","Días","Fecha ingreso","Fecha promesa","Acción a Tomar","Responsable","Tarea"];
+  const q=s=>`"${String(s==null?"":s).replace(/"/g,'""')}"`;
+  const csv=[head.map(q).join(",")].concat(orders.map(o=>cols.map(c=>q(o[c])).join(","))).join("\r\n");
+  download("reporte-ordenes.csv","﻿"+csv,"text/csv"); };
+
+window.addEventListener("resize",()=>document.querySelectorAll(".accion").forEach(autosize));
+</script>
+</body>
+</html>
