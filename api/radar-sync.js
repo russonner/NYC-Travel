@@ -30,3 +30,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "No se pudo contactar a GitHub: " + (e?.message || e) });
   }
 }
+
+// deploy: activar GH_DISPATCH_TOKEN
