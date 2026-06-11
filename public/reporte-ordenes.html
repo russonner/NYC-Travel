@@ -324,11 +324,19 @@ async function enterApp(session){
   me.nombre = session.user.user_metadata?.nombre || "";
   $("#auth").style.display="none"; $("#app").style.display="block";
   await ensureProfile(session.user);
+  // Enlace personal: ?yo=Nombre fija el responsable; ?mias=1 abre "Mis pendientes"
+  const params = new URLSearchParams(location.search);
+  const yo = params.get("yo");
+  if(yo && RESPONSABLES.includes(yo) && !RESPONSABLES.includes(me.nombre)){
+    me.nombre = yo; await sb.from("seguimiento_perfiles").upsert({id:me.id, nombre:yo});
+  }
+  if(params.get("mias")==="1") onlyMine = true;
   setupMeName();
   if(appReady) return;          // evita recargar/duplicar suscripción si el evento se repite
   appReady=true;
   initFiltersOnce();
   await loadOrders();
+  $("#btnMine").classList.toggle("active", onlyMine);
   subscribeRealtime();
 }
 
