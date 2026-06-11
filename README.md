@@ -1,11 +1,11 @@
 # 🗽 Planificador NYC — Familia
 
-> **Reporte de Órdenes (taller):** este repo también incluye
-> [`public/reporte-ordenes.html`](public/reporte-ordenes.html), un sistema
-> autónomo de seguimiento de tareas y responsables que se alimenta de las
-> órdenes de **Radar Total Connect**. Es un solo archivo HTML (sin build):
-> ábrelo directo en el navegador o, una vez desplegado, en
-> `/reporte-ordenes.html`. Ver sección [Reporte de Órdenes](#-reporte-de-órdenes).
+> **Reporte de Órdenes (taller):** módulo **independiente** en
+> [`public/reporte-ordenes.html`](public/reporte-ordenes.html). Sistema de
+> seguimiento de tareas y responsables, **guardado en la nube (Supabase)** con
+> **login individual**, que se alimenta de las órdenes de **Radar Total
+> Connect**. Un solo archivo HTML; desplegado queda en `/reporte-ordenes.html`.
+> Ver sección [Reporte de Órdenes](#-reporte-de-órdenes).
 
 Aplicación web para planificar un viaje familiar a Nueva York (24–31 ago 2026).
 Frontend en **React + Vite + Tailwind v4**; las sugerencias las genera una
@@ -83,24 +83,40 @@ planificador-nyc/
 
 ## 🛠 Reporte de Órdenes
 
-Sistema de **seguimiento de tareas y responsables** para el taller, reconstruido
-del reporte HTML original. Vive en un único archivo autónomo:
-[`public/reporte-ordenes.html`](public/reporte-ordenes.html) — sin dependencias
-ni build. Ábrelo con doble clic o, ya desplegado, en `/reporte-ordenes.html`.
+Módulo **independiente** de **seguimiento de tareas y responsables** para el
+taller, reconstruido del reporte HTML original. Es un único archivo
+([`public/reporte-ordenes.html`](public/reporte-ordenes.html)) sin build, pero
+los datos viven **en la nube (Supabase)** y se accede con **login individual**,
+para que todo el equipo trabaje el mismo tablero y cada quien atienda sus
+pendientes. Desplegado queda en `/reporte-ordenes.html`.
 
 ### Qué hace
 
 - **Tabla de órdenes** con las columnas del reporte original: No., Modelo, Color,
   Ordenante, Proceso Actual, Refacc., Días, Acción a Tomar y Responsable.
-- **Seguimiento manual editable en línea:** asigna **responsable**, escribe la
-  **acción a tomar** y marca el **estado de la tarea** (Pendiente / En proceso /
-  Hecho). Todo se guarda en `localStorage` del navegador.
-- **Tablero de control:** órdenes activas, tareas pendientes, sin responsable,
-  atrasadas (≥45 días), listas para entrega y **carga por responsable**.
-- **Filtros y orden:** búsqueda libre, por proceso, por responsable
-  (incluye «⚠ Sin responsable») y por estado de la tarea; orden por días, No.,
-  ordenante, etc.
-- **Exportar** a JSON o CSV (incluye tu seguimiento) e **Imprimir**.
+- **Seguimiento editable en línea** (responsable, acción a tomar, estado de la
+  tarea: Pendiente / En proceso / Hecho), guardado **al instante en la nube** y
+  **sincronizado en vivo** entre todos los que tengan el tablero abierto.
+- **Mis pendientes:** botón y tarjeta que filtran las órdenes asignadas al
+  usuario conectado (sus filas se marcan con una franja azul).
+- **Tablero de control:** mis pendientes, órdenes activas, tareas pendientes, sin
+  responsable, atrasadas (≥45 días), listas para entrega y **carga por
+  responsable**.
+- **Filtros y orden:** búsqueda libre, por proceso, responsable
+  (incluye «⚠ Sin responsable») y estado; orden por días, No., ordenante, etc.
+- **Exportar** a JSON/CSV e **Imprimir**.
+
+### Acceso (login individual)
+
+- Cada persona entra con su **correo y contraseña**. La primera vez se registra
+  desde **«Crear cuenta»**, elige su **nombre** (responsable) e introduce el
+  **código de invitación** (por defecto `AUTOPLUS2026`, cámbialo en el archivo).
+- Solo usuarios **autenticados** pueden ver o editar el tablero (Row Level
+  Security en Supabase).
+- **Importante:** si al registrarse aparece «confirma tu correo», el
+  administrador debe desactivar la confirmación en Supabase →
+  **Authentication → Sign In / Providers → Email → desactivar «Confirm email»**
+  (toggle reversible), o confirmar a cada usuario manualmente.
 
 ### Actualización desde Radar Total Connect
 
@@ -112,11 +128,20 @@ El botón **«⭳ Importar de Radar Total Connect»** toma la información de la
    `Ordenante`, `Proceso Actual`, `Refacc.`, `Días`.
 2. Las órdenes se emparejan por **No.**:
    - Radar **actualiza** modelo, color, ordenante, proceso, refacciones y días.
-   - Se **conservan** tu **acción a tomar**, **responsable** y **estado de la
-     tarea** — no se pierde el trabajo de seguimiento al refrescar.
+   - Se **conservan** la **acción a tomar**, el **responsable** y el **estado de
+     la tarea** — no se pierde el seguimiento al refrescar.
 3. Las órdenes nuevas se agregan con seguimiento vacío; opcionalmente las que ya
    no aparecen en Radar se marcan como «Hecho».
 
-> Los datos que trae el archivo son una reconstrucción de ejemplo (los
-> screenshots del reporte). La primera importación de Radar los reemplaza por
-> los reales. El botón ↺ restaura el ejemplo.
+### Infraestructura (Supabase)
+
+Módulo aislado del resto del sistema (sin llaves foráneas a otras tablas):
+
+- Proyecto **AUTOPLUS-HUB**. Tablas propias `public.seguimiento_ordenes`
+  (las órdenes + seguimiento) y `public.seguimiento_perfiles` (mapea cada
+  usuario con su nombre). RLS activo; realtime habilitado.
+- El HTML usa la **URL del proyecto** y la **llave publicable** (segura para el
+  navegador; los datos los protege RLS). Para apuntar a otro proyecto, edita las
+  constantes `SUPABASE_URL` / `SUPABASE_KEY` al inicio del `<script>`.
+- Se cargaron ~91 órdenes de ejemplo (reconstruidas de los screenshots). La
+  primera importación de Radar las actualiza/expande con los datos reales.
