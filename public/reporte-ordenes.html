@@ -173,7 +173,8 @@
       <button id="btnMine">★ Mis pendientes</button>
       <span class="spacer"></span>
       <button id="btnAdd">+ Orden</button>
-      <button class="primary" id="btnImport">⭳ Importar de Radar Total Connect</button>
+      <button class="primary" id="btnSyncNow" title="Trae las órdenes de Radar ahora mismo">🔄 Actualizar desde Radar</button>
+      <button id="btnImport">⭳ Importar manual</button>
       <button id="btnExport">Exportar</button>
       <button class="ghost" id="btnPrint">Imprimir</button>
     </div>
@@ -544,6 +545,23 @@ document.querySelectorAll("thead th.sortable").forEach(th=>th.addEventListener("
   const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=k==="dias"?-1:1;} render(); }));
 $("#btnMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("active",onlyMine); render(); };
 $("#btnPrint").onclick=()=>window.print();
+
+// Botón "Actualizar desde Radar": dispara el robot (GitHub Actions) vía /api/radar-sync
+$("#btnSyncNow").onclick=async()=>{
+  const b=$("#btnSyncNow"); const orig=b.textContent;
+  b.disabled=true; b.textContent="🔄 Solicitando…";
+  try{
+    const r=await fetch("/api/radar-sync",{method:"POST"});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok && d.ok){
+      b.textContent="✅ Robot lanzado";
+      alert("✅ Listo, el robot se está ejecutando.\nEl tablero se actualizará solo en ~1 minuto (deja esta página abierta).");
+    }else{
+      alert("No se pudo lanzar el robot:\n"+(d.error||("error "+r.status))+"\n\n(Mientras tanto puedes usar 'Importar manual').");
+    }
+  }catch(e){ alert("Error de conexión: "+e); }
+  setTimeout(()=>{ b.disabled=false; b.textContent=orig; }, 4000);
+};
 
 $("#btnAdd").onclick=async()=>{ const no=prompt("No. de orden:"); if(!no) return;
   const {data,error}=await sb.from(TABLE).insert({no:String(no).trim(),proceso:"Diagnóstico",responsables:me.nombre?[me.nombre]:[]}).select().single();
