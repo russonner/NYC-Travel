@@ -51,6 +51,11 @@
   .card .l{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
   .card.bad .n{color:var(--bad)} .card.warn .n{color:var(--warn)} .card.ok .n{color:var(--ok)}
   .card.mine{cursor:pointer;border-color:var(--accent);background:var(--accent-soft)}
+  .tabs{display:flex;gap:6px;margin:4px 0 12px}
+  .tab{border:1px solid var(--line);background:#fff;border-radius:8px 8px 0 0;padding:8px 16px;font-weight:600;color:var(--muted)}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .avctrl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+  .avctrl select{border:1px solid var(--line);border-radius:8px;padding:6px 9px}
 
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px}
   .toolbar input[type=search],.toolbar select{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;background:#fff}
@@ -184,6 +189,11 @@
   </header>
 
   <div class="wrap">
+    <div class="tabs">
+      <button id="tabTablero" class="tab active">📋 Tablero</button>
+      <button id="tabAvance" class="tab" style="display:none">📊 Avance (Dirección)</button>
+    </div>
+    <div id="viewTablero">
     <div class="stats" id="stats"></div>
 
     <div class="toolbar">
@@ -218,6 +228,17 @@
         <tbody id="tbody"></tbody>
       </table>
       <div class="empty" id="empty" style="display:none">No hay órdenes que coincidan con el filtro.</div>
+    </div>
+    </div><!-- /viewTablero -->
+
+    <div id="viewAvance" style="display:none">
+      <div class="avctrl">
+        <label>Persona: <select id="avPersona"><option value="">Todos</option></select></label>
+        <span class="hint">El historial empieza esta semana y se acumula cada semana.</span>
+      </div>
+      <div class="stats" id="avCards"></div>
+      <div class="card" style="margin:12px 0;height:340px;position:relative"><canvas id="avChart"></canvas></div>
+      <div class="tablewrap"><table id="avTable" style="min-width:auto"></table></div>
     </div>
   </div>
 </div>
@@ -276,6 +297,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 //// ——— Configuración ———
 const SUPABASE_URL = "https://rrxakcjuykyoxzdfgthg.supabase.co";
@@ -409,7 +431,68 @@ function aplicarRol(){
   const admin = me.rol === "admin";
   document.body.classList.toggle("rolmember", !admin);
   ["#btnAdd","#btnImport","#btnSyncNow"].forEach(s=>{ const el=$(s); if(el) el.style.display = admin ? "" : "none"; });
+  $("#tabAvance").style.display = admin ? "" : "none";   // dashboard solo dirección
 }
+
+//// ====================== AVANCE (Dirección) ======================
+let avChart=null, avData=[];
+function showView(av){
+  $("#viewTablero").style.display = av?"none":"block";
+  $("#viewAvance").style.display = av?"block":"none";
+  $("#tabTablero").classList.toggle("active",!av);
+  $("#tabAvance").classList.toggle("active",av);
+  if(av) loadAvance();
+}
+$("#tabTablero").onclick=()=>showView(false);
+$("#tabAvance").onclick=()=>showView(true);
+
+async function loadAvance(){
+  const {data,error}=await sb.rpc("avance_semanal");
+  if(error){ $("#avCards").innerHTML='<div class="hint">No se pudo cargar: '+esc(error.message)+'</div>'; return; }
+  avData=(data||[]).map(d=>({persona:d.persona, semana:d.semana, asignadas:+d.asignadas, cerradas:+d.cerradas}));
+  const s=$("#avPersona"); if(s.options.length<=1) RESPONSABLES.forEach(r=>s.add(new Option(r,r)));
+  renderAvance();
+}
+function fmtSemana(s){ const d=new Date(s+"T00:00:00"); return d.toLocaleDateString("es-MX",{day:"2-digit",month:"short"}); }
+function renderAvance(){
+  const persona=$("#avPersona").value;
+  const scope = persona? avData.filter(d=>d.persona===persona) : avData;
+  const weeks=[...new Set(avData.map(d=>d.semana))].sort();
+  const byWeek={}; weeks.forEach(w=>byWeek[w]={a:0,c:0});
+  scope.forEach(d=>{ byWeek[d.semana].a+=d.asignadas; byWeek[d.semana].c+=d.cerradas; });
+  const asig=weeks.map(w=>byWeek[w].a), cer=weeks.map(w=>byWeek[w].c);
+  let run=0; const arr=weeks.map(w=>{ run+=byWeek[w].a-byWeek[w].c; return Math.max(run,0); });
+  const totA=asig.reduce((x,y)=>x+y,0), totC=cer.reduce((x,y)=>x+y,0), pct=totA?Math.round(100*totC/totA):0;
+  const arrastre=arr.length?arr[arr.length-1]:0;
+  $("#avCards").innerHTML=`
+    <div class="card"><div class="n">${totA}</div><div class="l">Asignadas</div></div>
+    <div class="card ok"><div class="n">${totC}</div><div class="l">Cerradas</div></div>
+    <div class="card"><div class="n">${pct}%</div><div class="l">% de cierre</div></div>
+    <div class="card warn"><div class="n">${arrastre}</div><div class="l">Arrastre (abiertas)</div></div>`;
+  drawAvChart(weeks.map(fmtSemana), asig, cer, arr, persona||"Todos");
+  // tabla por persona
+  const people = persona? [persona] : [...new Set(avData.map(d=>d.persona))].sort();
+  let html=`<thead><tr><th>Persona</th><th class="num">Asignadas</th><th class="num">Cerradas</th><th class="num">% cierre</th><th class="num">Arrastre</th></tr></thead><tbody>`;
+  people.forEach(pe=>{ const dr=avData.filter(d=>d.persona===pe);
+    const a=dr.reduce((x,d)=>x+d.asignadas,0), c=dr.reduce((x,d)=>x+d.cerradas,0), p=a?Math.round(100*c/a):0;
+    html+=`<tr><td class="no">${esc(pe)}</td><td class="num">${a}</td><td class="num">${c}</td><td class="num">${p}%</td><td class="num">${Math.max(a-c,0)}</td></tr>`;
+  });
+  $("#avTable").innerHTML=html+"</tbody>";
+}
+function drawAvChart(labels,asig,cer,arr,titulo){
+  if(!window.Chart){ return; }
+  const ctx=$("#avChart"); if(avChart) avChart.destroy();
+  avChart=new Chart(ctx,{type:"bar",
+    data:{labels,datasets:[
+      {label:"Asignadas",data:asig,backgroundColor:"#93c5fd",borderRadius:4},
+      {label:"Cerradas",data:cer,backgroundColor:"#16a34a",borderRadius:4},
+      {type:"line",label:"Arrastre",data:arr,borderColor:"#d97706",backgroundColor:"#d97706",tension:.3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom"},title:{display:true,text:"Avance semanal — "+titulo}},
+      scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+$("#avPersona").addEventListener("change",renderAvance);
 
 $("#btnLogout").onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
 
