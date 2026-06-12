@@ -66,6 +66,8 @@
   th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
   thead th{position:sticky;top:0;background:var(--head);color:#fff;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;z-index:1}
   thead th.sortable{cursor:pointer} thead th.sortable:hover{background:#3a4357}
+  thead th.sortable::after{content:"⇅";opacity:.35;margin-left:5px;font-size:10px}
+  thead th.sortable.asc::after{content:"▲";opacity:1} thead th.sortable.desc::after{content:"▼";opacity:1}
   tbody tr:hover{background:#fafbfc}
   td.no{font-weight:700;white-space:nowrap}
   td.num{text-align:center;white-space:nowrap}
@@ -201,12 +203,17 @@
     <div class="tablewrap">
       <table>
         <thead><tr>
-          <th class="sortable" data-k="no">No.</th><th>Modelo</th><th>Color</th>
+          <th class="sortable" data-k="no">No.</th>
+          <th class="sortable" data-k="modelo">Modelo</th>
+          <th class="sortable" data-k="color">Color</th>
           <th class="sortable" data-k="ordenante">Ordenante</th>
           <th class="sortable" data-k="proceso">Proceso Actual</th>
-          <th>Refacc.</th><th class="sortable" data-k="dias">Días</th>
-          <th>Acción a Tomar</th><th>Responsable(s)</th>
-          <th>Tarea</th><th>💬</th><th></th>
+          <th class="sortable" data-k="refacc">Refacc.</th>
+          <th class="sortable" data-k="dias">Días</th>
+          <th class="sortable" data-k="accion">Acción a Tomar</th>
+          <th class="sortable" data-k="responsables">Responsable(s)</th>
+          <th class="sortable" data-k="estatus">Tarea</th>
+          <th class="sortable" data-k="coments">💬</th><th></th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -506,10 +513,20 @@ function render(){
     if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
-  rows.sort((a,b)=>{ let va=a[sortKey],vb=b[sortKey];
-    if(sortKey==="dias") {va=+va;vb=+vb;} else if(sortKey==="no"){va=+a.no||a.no;vb=+b.no||b.no;}
-    else {va=(va||"").toString().toLowerCase();vb=(vb||"").toString().toLowerCase();}
-    return va<vb?-sortDir:va>vb?sortDir:0; });
+  const ESTORD={pendiente:0,proceso:1,hecho:2};
+  const sortVal=o=>{
+    switch(sortKey){
+      case "dias": return +o.dias||0;
+      case "no": return +o.no||0;
+      case "refacc": return parseInt(o.refacc)||0;
+      case "responsables": return (o.responsables||[]).join(", ").toLowerCase();
+      case "estatus": return ESTORD[o.estatus||"pendiente"]??0;
+      case "coments": return (comentarios[o.id]||[]).length;
+      default: return (o[sortKey]||"").toString().toLowerCase();
+    }
+  };
+  rows.sort((a,b)=>{ const va=sortVal(a),vb=sortVal(b); return va<vb?-sortDir:va>vb?sortDir:0; });
+  updateSortUI();
 
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
@@ -680,7 +697,14 @@ comModal.addEventListener("click", e=>{ if(e.target===comModal){ comModal.classL
 
 ["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input",render));
 document.querySelectorAll("thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
-  const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=k==="dias"?-1:1;} render(); }));
+  const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=(k==="dias"||k==="coments")?-1:1;} render(); }));
+function updateSortUI(){
+  document.querySelectorAll("thead th.sortable").forEach(th=>{
+    const on=th.dataset.k===sortKey;
+    th.classList.toggle("asc", on && sortDir===1);
+    th.classList.toggle("desc", on && sortDir===-1);
+  });
+}
 $("#btnMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("active",onlyMine); render(); };
 $("#btnPrint").onclick=()=>window.print();
 
