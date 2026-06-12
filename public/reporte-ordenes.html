@@ -630,6 +630,10 @@ function renderCommentsModal(){
   const soyResp = resp.includes(me.nombre);
   const puedoTomar = me.nombre && !soyResp;
   $("#comBar").innerHTML =
+    `<div style="background:var(--row-action);border:1px solid #f3e8c4;border-radius:8px;padding:9px 11px;margin-bottom:10px">`+
+    `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#92700e;font-weight:700;margin-bottom:3px">📌 Acción a tomar / Tarea</div>`+
+    `<div style="font-size:13.5px;white-space:pre-wrap">${o.accion? esc(o.accion) : '<span class="hint">— sin acción registrada —</span>'}</div>`+
+    `</div>`+
     `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12.5px">`+
     `<div>Responsable(s): ${resp.length? resp.map(r=>`<span class="rchip">${esc(r)}</span>`).join(" ") : '<span class="hint">sin responsable</span>'}</div>`+
     (puedoTomar? `<button class="primary" id="comTomar" style="white-space:nowrap">➕ Agregarme</button>` : (soyResp?`<span class="hint">Eres responsable ✓</span>`:""))+
