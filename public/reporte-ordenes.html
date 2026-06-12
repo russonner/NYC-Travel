@@ -238,6 +238,7 @@
       </div>
       <div class="stats" id="avCards"></div>
       <div class="card" style="margin:12px 0;height:340px;position:relative"><canvas id="avChart"></canvas></div>
+      <div class="card" style="margin:12px 0;height:340px;position:relative"><canvas id="avChart2"></canvas></div>
       <div class="tablewrap"><table id="avTable" style="min-width:auto"></table></div>
     </div>
   </div>
@@ -464,20 +465,43 @@ function renderAvance(){
   let run=0; const arr=weeks.map(w=>{ run+=byWeek[w].a-byWeek[w].c; return Math.max(run,0); });
   const totA=asig.reduce((x,y)=>x+y,0), totC=cer.reduce((x,y)=>x+y,0), pct=totA?Math.round(100*totC/totA):0;
   const arrastre=arr.length?arr[arr.length-1]:0;
+  // estado actual (desde orders; el admin ve todas las órdenes)
+  const cur={};
+  orders.forEach(o=>{ (o.responsables||[]).forEach(r=>{ if(persona && r!==persona) return;
+    cur[r]=cur[r]||{pend:0,proc:0}; const e=o.estatus||"pendiente";
+    if(e==="pendiente") cur[r].pend++; else if(e==="proceso") cur[r].proc++; }); });
+  const totPend=Object.values(cur).reduce((x,v)=>x+v.pend,0), totProc=Object.values(cur).reduce((x,v)=>x+v.proc,0);
   $("#avCards").innerHTML=`
     <div class="card"><div class="n">${totA}</div><div class="l">Asignadas</div></div>
     <div class="card ok"><div class="n">${totC}</div><div class="l">Cerradas</div></div>
     <div class="card"><div class="n">${pct}%</div><div class="l">% de cierre</div></div>
-    <div class="card warn"><div class="n">${arrastre}</div><div class="l">Arrastre (abiertas)</div></div>`;
+    <div class="card warn"><div class="n">${arrastre}</div><div class="l">Abiertas (arrastre)</div></div>
+    <div class="card warn"><div class="n">${totProc}</div><div class="l">En proceso</div></div>
+    <div class="card bad"><div class="n">${totPend}</div><div class="l">Pendientes</div></div>`;
   drawAvChart(weeks.map(fmtSemana), asig, cer, arr, persona||"Todos");
+  // gráfica de estado actual por persona
+  const people = persona? [persona] : [...new Set([...Object.keys(cur), ...avData.map(d=>d.persona)])].sort();
+  drawAvChart2(people, people.map(p=>cur[p]?.proc||0), people.map(p=>cur[p]?.pend||0));
   // tabla por persona
-  const people = persona? [persona] : [...new Set(avData.map(d=>d.persona))].sort();
-  let html=`<thead><tr><th>Persona</th><th class="num">Asignadas</th><th class="num">Cerradas</th><th class="num">% cierre</th><th class="num">Arrastre</th></tr></thead><tbody>`;
+  let html=`<thead><tr><th>Persona</th><th class="num">Asignadas</th><th class="num">Cerradas</th><th class="num">% cierre</th><th class="num">En proceso</th><th class="num">Pendientes</th><th class="num">Abiertas</th></tr></thead><tbody>`;
   people.forEach(pe=>{ const dr=avData.filter(d=>d.persona===pe);
     const a=dr.reduce((x,d)=>x+d.asignadas,0), c=dr.reduce((x,d)=>x+d.cerradas,0), p=a?Math.round(100*c/a):0;
-    html+=`<tr><td class="no">${esc(pe)}</td><td class="num">${a}</td><td class="num">${c}</td><td class="num">${p}%</td><td class="num">${Math.max(a-c,0)}</td></tr>`;
+    const pr=cur[pe]?.proc||0, pe2=cur[pe]?.pend||0;
+    html+=`<tr><td class="no">${esc(pe)}</td><td class="num">${a}</td><td class="num">${c}</td><td class="num">${p}%</td><td class="num">${pr}</td><td class="num">${pe2}</td><td class="num">${pr+pe2}</td></tr>`;
   });
   $("#avTable").innerHTML=html+"</tbody>";
+}
+function drawAvChart2(labels,proc,pend){
+  if(!window.Chart) return;
+  const ctx=$("#avChart2"); if(window._avChart2) window._avChart2.destroy();
+  window._avChart2=new Chart(ctx,{type:"bar",
+    data:{labels,datasets:[
+      {label:"En proceso",data:proc,backgroundColor:"#3b82f6",borderRadius:4},
+      {label:"Pendientes",data:pend,backgroundColor:"#f59e0b",borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom"},title:{display:true,text:"Pendientes por estado (actual) — por persona"}},
+      scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
 }
 function drawAvChart(labels,asig,cer,arr,titulo){
   if(!window.Chart){ return; }
