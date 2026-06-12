@@ -97,6 +97,18 @@
   .comdel:hover{opacity:1}
   #comList{max-height:46vh;overflow:auto}
   textarea.cominput{width:100%;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:13px}
+  .men{color:var(--accent);font-weight:700}
+  .bellbadge{position:absolute;top:-4px;right:-4px;background:var(--bad);color:#fff;border-radius:999px;font-size:10px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px}
+  .bellpanel{display:none;position:absolute;right:0;top:34px;width:320px;max-height:60vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:60;padding:6px}
+  .bellpanel.open{display:block}
+  .bellpanel .mh{font-size:12px;color:var(--muted);padding:6px 8px;display:flex;justify-content:space-between;align-items:center}
+  .bellitem{padding:8px 9px;border-radius:8px;cursor:pointer;border:1px solid var(--line);margin-bottom:6px;background:#fbfcfe}
+  .bellitem:hover{background:#eff4ff}
+  .bellitem .de{font-size:11.5px;color:var(--muted)} .bellitem .tx{font-size:12.5px;margin-top:2px}
+  .mentionbox{display:none;position:absolute;left:8px;bottom:8px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:60;min-width:180px;overflow:hidden}
+  .mentionbox.open{display:block}
+  .mentionbox div{padding:7px 10px;font-size:13px;cursor:pointer}
+  .mentionbox div:hover,.mentionbox div.sel{background:var(--accent-soft);color:var(--accent)}
   tr.done{opacity:.55} tr.done td.accion-cell{background:#f3f4f6}
   tr.mine td.no{box-shadow:inset 3px 0 0 var(--accent)}
   .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
@@ -161,6 +173,10 @@
     <div class="userbox">
       <div class="avatar" id="avatar">?</div>
       <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Soy: <select id="meName" style="border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff"></select></label>
+      <div style="position:relative">
+        <button class="ghost" id="btnBell" title="Menciones" style="position:relative;font-size:16px">🔔<span id="bellCount" class="bellbadge" style="display:none">0</span></button>
+        <div id="bellPanel" class="bellpanel"></div>
+      </div>
       <button class="ghost" id="btnLogout">Salir</button>
     </div>
   </header>
@@ -237,8 +253,14 @@
   <div class="body">
     <div id="comList"></div>
     <div style="margin-top:12px">
-      <textarea class="cominput" id="comInput" placeholder="Escribe un comentario para esta orden…"></textarea>
-      <div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="primary" id="comAdd">Agregar comentario</button></div>
+      <div style="position:relative">
+        <textarea class="cominput" id="comInput" placeholder="Escribe un comentario… usa @ para mencionar a alguien"></textarea>
+        <div id="comMentions" class="mentionbox"></div>
+      </div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+        <span class="hint">Tip: escribe <b>@</b> y elige a quién avisar.</span>
+        <button class="primary" id="comAdd">Agregar comentario</button>
+      </div>
     </div>
   </div>
   <div class="foot"><button id="comClose">Cerrar</button></div>
@@ -265,7 +287,9 @@ function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
 //// ——— Estado ———
 let orders = [];
 let comentarios = {};          // { orden_id: [ {id,autor,texto,created_at,user_id} ] }
+let menciones = [];            // mis menciones sin leer
 let openCommentsId = null;
+const MEN_TABLE = "seguimiento_menciones";
 let me = {nombre:"", email:"", id:null, rol:"miembro"};
 let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false;
 
@@ -340,6 +364,7 @@ async function enterApp(session){
   appReady=true;
   initFiltersOnce();
   await loadOrders();
+  await loadMenciones();
   $("#btnMine").classList.toggle("active", onlyMine);
   subscribeRealtime();
 }
@@ -354,6 +379,7 @@ function setupMeName(){
       me.nombre=s.value; refreshMe();
       await sb.from("seguimiento_perfiles").upsert({id:me.id, nombre:me.nombre});
       if(typeof render==="function") render();
+      loadMenciones();
     };
   }
   s.value = RESPONSABLES.includes(me.nombre) ? me.nombre : "";
@@ -395,6 +421,51 @@ async function loadComments(){
   (data||[]).forEach(c=>{ (comentarios[c.orden_id]=comentarios[c.orden_id]||[]).push(c); });
 }
 
+//// ——— Menciones (@) y notificaciones ———
+function detectMenciones(texto){
+  const t=(texto||"").toLowerCase();
+  return RESPONSABLES.filter(r=>{
+    const full="@"+r.toLowerCase();
+    const first="@"+r.split(" ")[0].toLowerCase();
+    return t.includes(full) || t.includes(first);
+  });
+}
+function resaltarMenciones(texto){
+  return esc(texto).replace(/@([\wÁÉÍÓÚÑáéíóúñ]+)/g,'<span class="men">@$1</span>');
+}
+async function loadMenciones(){
+  if(!me.nombre){ menciones=[]; renderBell(); return; }
+  const {data}=await sb.from(MEN_TABLE).select("*").eq("para",me.nombre).eq("leido",false).order("created_at",{ascending:false});
+  menciones=data||[]; renderBell();
+}
+function renderBell(){
+  const n=menciones.length, c=$("#bellCount");
+  if(c){ c.textContent=n; c.style.display=n?"inline-block":"none"; }
+  const p=$("#bellPanel"); if(!p) return;
+  p.innerHTML = `<div class="mh"><b>Menciones</b>${n?`<a id="bellAll" style="cursor:pointer;color:var(--accent)">Marcar todas leídas</a>`:""}</div>`+
+    (n? menciones.map(m=>{
+      const o=orders.find(x=>x.id===m.orden_id);
+      return `<div class="bellitem" data-id="${m.id}" data-orden="${m.orden_id}"><div class="de">${esc(m.de||"")} · Orden ${esc(o?o.no:m.orden_id)}</div><div class="tx">${resaltarMenciones(m.texto||"")}</div></div>`;
+    }).join("") : '<div class="hint" style="padding:8px">Sin menciones pendientes 🎉</div>');
+  const all=$("#bellAll"); if(all) all.onclick=marcarTodasLeidas;
+}
+async function marcarLeido(ids){
+  if(!ids.length) return;
+  await sb.from(MEN_TABLE).update({leido:true}).in("id",ids);
+  menciones=menciones.filter(m=>!ids.includes(m.id)); renderBell();
+}
+function marcarTodasLeidas(){ marcarLeido(menciones.map(m=>m.id)); }
+
+$("#btnBell").onclick=(e)=>{ e.stopPropagation(); $("#bellPanel").classList.toggle("open"); };
+document.addEventListener("click",e=>{ const p=$("#bellPanel"); if(p&&p.classList.contains("open")&&!p.contains(e.target)&&e.target.id!=="btnBell") p.classList.remove("open"); });
+$("#bellPanel").addEventListener("click",e=>{
+  const it=e.target.closest(".bellitem"); if(!it) return;
+  const ordenId=+it.dataset.orden, menId=+it.dataset.id;
+  $("#bellPanel").classList.remove("open");
+  marcarLeido([menId]);
+  openComments(ordenId);
+});
+
 function subscribeRealtime(){
   sb.channel("ordenes-rt")
     .on("postgres_changes",{event:"*",schema:"public",table:TABLE}, ()=>{
@@ -403,6 +474,7 @@ function subscribeRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:COM_TABLE}, async ()=>{
       await loadComments(); render(); if(openCommentsId) renderCommentsModal();
     })
+    .on("postgres_changes",{event:"*",schema:"public",table:MEN_TABLE}, ()=>loadMenciones())
     .subscribe(status=>{ $("#syncdot").classList.toggle("live", status==="SUBSCRIBED"); });
 }
 
@@ -536,7 +608,7 @@ function renderCommentsModal(){
   $("#comList").innerHTML = list.length ? list.map(c=>{
     const fecha=new Date(c.created_at).toLocaleString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
     const puedeBorrar = c.user_id && c.user_id===me.id;
-    return `<div class="comitem"><div class="meta"><b>${esc(c.autor||"—")}</b><span>${esc(fecha)}${puedeBorrar?` · <a class="comdel" data-del="${c.id}">borrar</a>`:""}</span></div><div class="txt">${esc(c.texto)}</div></div>`;
+    return `<div class="comitem"><div class="meta"><b>${esc(c.autor||"—")}</b><span>${esc(fecha)}${puedeBorrar?` · <a class="comdel" data-del="${c.id}">borrar</a>`:""}</span></div><div class="txt">${resaltarMenciones(c.texto)}</div></div>`;
   }).join("") : '<div class="hint">Sin comentarios todavía. Escribe el primero abajo.</div>';
 }
 $("#comList").addEventListener("click", async e=>{
@@ -549,12 +621,46 @@ $("#comAdd").onclick=async()=>{
   const texto=$("#comInput").value.trim(); if(!texto||openCommentsId==null) return;
   if(!me.nombre){ alert("Primero elige tu nombre en 'Soy:' (arriba a la derecha)."); return; }
   $("#comAdd").disabled=true;
-  const {error}=await sb.from(COM_TABLE).insert({orden_id:openCommentsId, user_id:me.id, autor:me.nombre||me.email, texto});
+  const {error}=await sb.from(COM_TABLE).insert({orden_id:openCommentsId, user_id:me.id, autor:me.nombre||me.email, texto, menciones:detectMenciones(texto)});
   $("#comAdd").disabled=false;
   if(error){ alert("No se pudo agregar: "+error.message); return; }
-  $("#comInput").value="";
+  $("#comInput").value=""; hideMentionBox();
   await loadComments(); renderCommentsModal(); render();
 };
+
+//// ——— Autocompletar @ en el comentario ———
+let menSel=0, menOpts=[];
+function hideMentionBox(){ const b=$("#comMentions"); if(b){ b.classList.remove("open"); b.innerHTML=""; } menOpts=[]; }
+function showMentionBox(partial){
+  const b=$("#comMentions");
+  menOpts=RESPONSABLES.filter(r=>{
+    const p=partial.toLowerCase();
+    return r.toLowerCase().startsWith(p) || r.split(" ")[0].toLowerCase().startsWith(p);
+  });
+  if(!menOpts.length){ hideMentionBox(); return; }
+  if(menSel>=menOpts.length) menSel=0;
+  b.innerHTML=menOpts.map((r,i)=>`<div data-r="${esc(r)}" class="${i===menSel?'sel':''}">@${esc(r)}</div>`).join("");
+  b.classList.add("open");
+}
+function curWord(){
+  const ta=$("#comInput"), pos=ta.selectionStart, upto=ta.value.slice(0,pos);
+  const m=upto.match(/@([\wÁÉÍÓÚÑáéíóúñ]*)$/);
+  return m?{partial:m[1],start:pos-m[0].length,end:pos}:null;
+}
+function pickMention(r){
+  const ta=$("#comInput"), w=curWord(); if(!w) return;
+  ta.value=ta.value.slice(0,w.start)+"@"+r+" "+ta.value.slice(w.end);
+  const np=w.start+r.length+2; ta.setSelectionRange(np,np); ta.focus(); hideMentionBox();
+}
+$("#comInput").addEventListener("input",()=>{ const w=curWord(); if(w) showMentionBox(w.partial); else hideMentionBox(); });
+$("#comInput").addEventListener("keydown",e=>{
+  const b=$("#comMentions"); if(!b.classList.contains("open")||!menOpts.length) return;
+  if(e.key==="ArrowDown"){ e.preventDefault(); menSel=(menSel+1)%menOpts.length; showMentionBox(curWord()?.partial||""); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); menSel=(menSel-1+menOpts.length)%menOpts.length; showMentionBox(curWord()?.partial||""); }
+  else if(e.key==="Enter"||e.key==="Tab"){ e.preventDefault(); pickMention(menOpts[menSel]); }
+  else if(e.key==="Escape"){ hideMentionBox(); }
+});
+$("#comMentions").addEventListener("mousedown",e=>{ const d=e.target.closest("div[data-r]"); if(d){ e.preventDefault(); pickMention(d.dataset.r); } });
 $("#comClose").onclick=()=>{ comModal.classList.remove("open"); openCommentsId=null; };
 comModal.addEventListener("click", e=>{ if(e.target===comModal){ comModal.classList.remove("open"); openCommentsId=null; } });
 
