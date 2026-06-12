@@ -251,6 +251,7 @@
 <div class="modal-bg" id="comModal"><div class="modal">
   <h2 id="comTitle">Comentarios</h2>
   <div class="body">
+    <div id="comBar"></div>
     <div id="comList"></div>
     <div style="margin-top:12px">
       <div style="position:relative">
@@ -474,7 +475,7 @@ function subscribeRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:COM_TABLE}, async ()=>{
       await loadComments(); render(); if(openCommentsId) renderCommentsModal();
     })
-    .on("postgres_changes",{event:"*",schema:"public",table:MEN_TABLE}, ()=>loadMenciones())
+    .on("postgres_changes",{event:"*",schema:"public",table:MEN_TABLE}, async ()=>{ await loadMenciones(); loadOrders(); })
     .subscribe(status=>{ $("#syncdot").classList.toggle("live", status==="SUBSCRIBED"); });
 }
 
@@ -600,10 +601,23 @@ async function setResponsables(id, arr){
 
 //// ——— Comentarios ———
 const comModal=$("#comModal");
-function openComments(id){ openCommentsId=id; renderCommentsModal(); comModal.classList.add("open"); $("#comInput").focus(); }
+async function openComments(id){
+  if(!orders.find(x=>x.id===id)){ await loadOrders(); }   // p.ej. orden donde solo me mencionaron
+  openCommentsId=id; renderCommentsModal(); comModal.classList.add("open"); $("#comInput").focus();
+}
 function renderCommentsModal(){
   const o=orders.find(x=>x.id===openCommentsId); if(!o) return;
   $("#comTitle").textContent=`Comentarios — Orden ${o.no} (${o.modelo||""})`;
+  // barra: responsables + opción de agregarme
+  const resp=o.responsables||[];
+  const soyResp = resp.includes(me.nombre);
+  const puedoTomar = me.nombre && !soyResp;
+  $("#comBar").innerHTML =
+    `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12.5px">`+
+    `<div>Responsable(s): ${resp.length? resp.map(r=>`<span class="rchip">${esc(r)}</span>`).join(" ") : '<span class="hint">sin responsable</span>'}</div>`+
+    (puedoTomar? `<button class="primary" id="comTomar" style="white-space:nowrap">➕ Agregarme</button>` : (soyResp?`<span class="hint">Eres responsable ✓</span>`:""))+
+    `</div>`;
+  const t=$("#comTomar"); if(t) t.onclick=async()=>{ await setResponsables(o.id,[...resp, me.nombre]); renderCommentsModal(); };
   const list=comentarios[openCommentsId]||[];
   $("#comList").innerHTML = list.length ? list.map(c=>{
     const fecha=new Date(c.created_at).toLocaleString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
