@@ -73,6 +73,7 @@
   .dias.lo{background:#dcfce7;color:#166534} .dias.mid{background:#fef9c3;color:#854d0e} .dias.hi{background:#fee2e2;color:#991b1b}
   .accion{width:100%;border:1px solid transparent;border-radius:6px;padding:5px 6px;font-size:13px;font-family:inherit;resize:vertical;min-height:34px;background:transparent;color:var(--ink)}
   .accion:hover{border-color:var(--line)} .accion:focus{outline:none;border-color:var(--accent);background:#fff}
+  .accion[readonly]{cursor:default;background:transparent} .accion[readonly]:hover{border-color:transparent}
   td.accion-cell{background:var(--row-action);min-width:280px}
   select.resp,select.proc,select.est{border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff;max-width:170px}
   .proctag{display:inline-block;font-size:12.5px;font-weight:600;color:#334155;background:#eef2f7;border:1px solid var(--line);border-radius:6px;padding:4px 9px;white-space:nowrap}
@@ -448,7 +449,7 @@ function render(){
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
-      <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" placeholder="Clic para escribir…">${esc(o.accion)}</textarea></td>
+      <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'Clic para escribir…':''}">${esc(o.accion)}</textarea></td>
       <td>${respChips(resp)}</td>
       <td><select class="est" data-f="estatus" style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
       <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
