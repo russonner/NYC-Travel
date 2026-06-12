@@ -468,8 +468,8 @@ function renderAvance(){
   // estado actual (desde orders; el admin ve todas las órdenes)
   const cur={};
   orders.forEach(o=>{ (o.responsables||[]).forEach(r=>{ if(persona && r!==persona) return;
-    cur[r]=cur[r]||{pend:0,proc:0}; const e=o.estatus||"pendiente";
-    if(e==="pendiente") cur[r].pend++; else if(e==="proceso") cur[r].proc++; }); });
+    cur[r]=cur[r]||{pend:0,proc:0,hecho:0}; const e=o.estatus||"pendiente";
+    if(e==="pendiente") cur[r].pend++; else if(e==="proceso") cur[r].proc++; else cur[r].hecho++; }); });
   const totPend=Object.values(cur).reduce((x,v)=>x+v.pend,0), totProc=Object.values(cur).reduce((x,v)=>x+v.proc,0);
   $("#avCards").innerHTML=`
     <div class="card"><div class="n">${totA}</div><div class="l">Asignadas</div></div>
@@ -481,7 +481,7 @@ function renderAvance(){
   drawAvChart(weeks.map(fmtSemana), asig, cer, arr, persona||"Todos");
   // gráfica de estado actual por persona
   const people = persona? [persona] : [...new Set([...Object.keys(cur), ...avData.map(d=>d.persona)])].sort();
-  drawAvChart2(people, people.map(p=>cur[p]?.proc||0), people.map(p=>cur[p]?.pend||0));
+  drawAvChart2(people, people.map(p=>cur[p]?.proc||0), people.map(p=>cur[p]?.pend||0), people.map(p=>cur[p]?.hecho||0));
   // tabla por persona
   let html=`<thead><tr><th>Persona</th><th class="num">Asignadas</th><th class="num">Cerradas</th><th class="num">% cierre</th><th class="num">En proceso</th><th class="num">Pendientes</th><th class="num">Abiertas</th></tr></thead><tbody>`;
   people.forEach(pe=>{ const dr=avData.filter(d=>d.persona===pe);
@@ -491,16 +491,17 @@ function renderAvance(){
   });
   $("#avTable").innerHTML=html+"</tbody>";
 }
-function drawAvChart2(labels,proc,pend){
+function drawAvChart2(labels,proc,pend,hecho){
   if(!window.Chart) return;
   const ctx=$("#avChart2"); if(window._avChart2) window._avChart2.destroy();
   window._avChart2=new Chart(ctx,{type:"bar",
     data:{labels,datasets:[
       {label:"En proceso",data:proc,backgroundColor:"#3b82f6",borderRadius:4},
-      {label:"Pendientes",data:pend,backgroundColor:"#f59e0b",borderRadius:4}
+      {label:"Pendientes",data:pend,backgroundColor:"#f59e0b",borderRadius:4},
+      {label:"Cerradas",data:hecho,backgroundColor:"#16a34a",borderRadius:4}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:"bottom"},title:{display:true,text:"Pendientes por estado (actual) — por persona"}},
+      plugins:{legend:{position:"bottom"},title:{display:true,text:"Estado de tareas (actual) — por persona"}},
       scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
 }
 function drawAvChart(labels,asig,cer,arr,titulo){
