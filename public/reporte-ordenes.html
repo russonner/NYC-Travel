@@ -75,6 +75,7 @@
   .accion:hover{border-color:var(--line)} .accion:focus{outline:none;border-color:var(--accent);background:#fff}
   td.accion-cell{background:var(--row-action);min-width:280px}
   select.resp,select.proc,select.est{border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff;max-width:170px}
+  .proctag{display:inline-block;font-size:12.5px;font-weight:600;color:#334155;background:#eef2f7;border:1px solid var(--line);border-radius:6px;padding:4px 9px;white-space:nowrap}
   select.resp.none{color:#b91c1c;border-color:#fecaca;background:#fff5f5}
   /* responsables múltiples */
   .resps{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-width:150px}
@@ -439,13 +440,12 @@ function render(){
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
     const resp=o.responsables||[];
-    const procOpts=PROCESOS.map(p=>`<option ${p===o.proceso?"selected":""}>${esc(p)}</option>`).join("");
     const estOpts=Object.keys(EST).map(k=>`<option value="${k}" ${k===est?"selected":""}>${EST[k].l}</option>`).join("");
     const mine=resp.includes(me.nombre);
     const nCom=(comentarios[o.id]||[]).length;
     return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''}">
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
-      <td><select class="proc" data-f="proceso">${procOpts}</select>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
+      <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
       <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" placeholder="Clic para escribir…">${esc(o.accion)}</textarea></td>
@@ -503,7 +503,7 @@ $("#tbody").addEventListener("change", e=>{
   }
   const f=e.target.dataset.f; if(!f) return;
   const id=+e.target.closest("tr").dataset.id; editField(id,f,e.target.value);
-  if(f==="estatus"||f==="proceso") render(); });
+  if(f==="estatus") render(); });
 $("#tbody").addEventListener("click", async e=>{
   const tr=e.target.closest("tr"); if(!tr) return; const id=+tr.dataset.id;
   if(e.target.classList.contains("rx")){                // quitar responsable
