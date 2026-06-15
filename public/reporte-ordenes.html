@@ -104,6 +104,8 @@
   .comdel:hover{opacity:1}
   #comList{max-height:46vh;overflow:auto}
   textarea.cominput{width:100%;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:13px}
+  .wabtn{display:inline-block;background:#25d366;color:#fff;text-decoration:none;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
+  .wabtn:hover{filter:brightness(1.05)}
   .men{color:var(--accent);font-weight:700}
   .bellbadge{position:absolute;top:-4px;right:-4px;background:var(--bad);color:#fff;border-radius:999px;font-size:10px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px}
   .bellpanel{display:none;position:absolute;right:0;top:34px;width:320px;max-height:60vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.18);z-index:60;padding:6px}
@@ -319,6 +321,7 @@ function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
 let orders = [];
 let comentarios = {};          // { orden_id: [ {id,autor,texto,created_at,user_id} ] }
 let menciones = [];            // mis menciones sin leer
+let telefonos = {};            // nombre -> teléfono (para WhatsApp)
 let openCommentsId = null;
 const MEN_TABLE = "seguimiento_menciones";
 let me = {nombre:"", email:"", id:null, rol:"miembro"};
@@ -396,6 +399,7 @@ async function enterApp(session){
   initFiltersOnce();
   await loadOrders();
   await loadMenciones();
+  loadDirectorio();
   $("#btnMine").classList.toggle("active", onlyMine);
   subscribeRealtime();
 }
@@ -553,6 +557,10 @@ async function loadMenciones(){
   if(!me.nombre){ menciones=[]; renderBell(); return; }
   const {data}=await sb.from(MEN_TABLE).select("*").eq("para",me.nombre).eq("leido",false).order("created_at",{ascending:false});
   menciones=data||[]; renderBell();
+}
+async function loadDirectorio(){
+  const {data}=await sb.from("seguimiento_directorio").select("nombre,telefono");
+  telefonos={}; (data||[]).forEach(d=>{ const t=(d.telefono||"").replace(/\D/g,""); if(t) telefonos[d.nombre]=t; });
 }
 function renderBell(){
   const n=menciones.length, c=$("#bellCount");
@@ -751,7 +759,12 @@ function renderCommentsModal(){
   $("#comList").innerHTML = list.length ? list.map(c=>{
     const fecha=new Date(c.created_at).toLocaleString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
     const puedeBorrar = c.user_id && c.user_id===me.id;
-    return `<div class="comitem"><div class="meta"><b>${esc(c.autor||"—")}</b><span>${esc(fecha)}${puedeBorrar?` · <a class="comdel" data-del="${c.id}">borrar</a>`:""}</span></div><div class="txt">${resaltarMenciones(c.texto)}</div></div>`;
+    const wabtns=(c.menciones||[]).filter(m=>telefonos[m]).map(m=>{
+      const link=location.origin+"/reporte-ordenes.html?yo="+encodeURIComponent(m)+"&mias=1";
+      const msg="Hola "+m+", te mencionaron en la orden "+o.no+" ("+(o.modelo||"")+"): \""+c.texto+"\". Ábrela aquí: "+link;
+      return `<a class="wabtn" target="_blank" rel="noopener" href="https://wa.me/${telefonos[m]}?text=${encodeURIComponent(msg)}">📱 Avisar a ${esc(m)}</a>`;
+    }).join(" ");
+    return `<div class="comitem"><div class="meta"><b>${esc(c.autor||"—")}</b><span>${esc(fecha)}${puedeBorrar?` · <a class="comdel" data-del="${c.id}">borrar</a>`:""}</span></div><div class="txt">${resaltarMenciones(c.texto)}</div>${wabtns?`<div style="margin-top:6px">${wabtns}</div>`:""}</div>`;
   }).join("") : '<div class="hint">Sin comentarios todavía. Escribe el primero abajo.</div>';
 }
 $("#comList").addEventListener("click", async e=>{
