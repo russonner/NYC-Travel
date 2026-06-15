@@ -51,6 +51,9 @@
   .card .l{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
   .card.bad .n{color:var(--bad)} .card.warn .n{color:var(--warn)} .card.ok .n{color:var(--ok)}
   .card.mine{cursor:pointer;border-color:var(--accent);background:var(--accent-soft)}
+  .card.clic{cursor:pointer;transition:transform .05s,box-shadow .1s}
+  .card.clic:hover{box-shadow:0 4px 14px rgba(0,0,0,.10);transform:translateY(-1px)}
+  .badge.clic{cursor:pointer} .badge.clic:hover{filter:brightness(.95)}
   .tabs{display:flex;gap:6px;margin:4px 0 12px}
   .tab{border:1px solid var(--line);background:#fff;border-radius:8px 8px 0 0;padding:8px 16px;font-weight:600;color:var(--muted)}
   .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -373,7 +376,7 @@ let comCtx = null;             // contexto de comentarios {kind:'orden'|'tarea',
 const MEN_TABLE = "seguimiento_menciones";
 const TAR_TABLE = "seguimiento_tareas";
 let me = {nombre:"", email:"", id:null, rol:"miembro"};
-let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false;
+let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false, cardFiltro=null;
 
 //// ====================== AUTH ======================
 function authMsg(t,kind){ const m=$("#authMsg"); m.textContent=t||""; m.className=t?("authmsg "+(kind||"info")):"authmsg"; }
@@ -691,6 +694,8 @@ function render(){
     if(fp && o.proceso!==fp) return false;
     if(fr==="__none__"){ if(resp.length) return false; } else if(fr && !resp.includes(fr)) return false;
     if(fe && (o.estatus||"pendiente")!==fe) return false;
+    if(cardFiltro==="abiertas" && o.estatus==="hecho") return false;
+    if(cardFiltro==="atrasadas" && +o.dias<45) return false;
     if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
@@ -749,16 +754,15 @@ function renderStats(){
   const entrega=orders.filter(x=>x.proceso==="Listo para entrega").length;
   const mias=orders.filter(x=>(x.responsables||[]).includes(me.nombre) && x.estatus!=="hecho").length;
   const porResp={}; orders.forEach(x=>{ if(x.estatus!=="hecho") (x.responsables||[]).forEach(r=>{ porResp[r]=(porResp[r]||0)+1; }); });
-  const respHtml=Object.entries(porResp).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`<span class="badge">${esc(r)}: ${n}</span>`).join(" ")||'<span class="hint">—</span>';
+  const respHtml=Object.entries(porResp).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`<span class="badge clic" data-resp="${esc(r)}">${esc(r)}: ${n}</span>`).join(" ")||'<span class="hint">—</span>';
   $("#stats").innerHTML=`
-    <div class="card mine" id="cardMine"><div class="n">${mias}</div><div class="l">★ Mis pendientes (${esc(me.nombre||"—")})</div></div>
-    <div class="card"><div class="n">${orders.length}</div><div class="l">Órdenes activas</div></div>
-    <div class="card warn"><div class="n">${pend}</div><div class="l">Tareas pendientes</div></div>
-    <div class="card bad"><div class="n">${sinResp}</div><div class="l">Sin responsable</div></div>
-    <div class="card bad"><div class="n">${atras}</div><div class="l">Atrasadas (≥45 días)</div></div>
-    <div class="card ok"><div class="n">${entrega}</div><div class="l">Listas para entrega</div></div>
-    <div class="card" style="grid-column:1/-1"><div class="l">Carga por responsable (tareas abiertas)</div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${respHtml}</div></div>`;
-  $("#cardMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("active",onlyMine); render(); };
+    <div class="card mine clic" data-card="mias"><div class="n">${mias}</div><div class="l">★ Mis pendientes (${esc(me.nombre||"—")})</div></div>
+    <div class="card clic" data-card="todas"><div class="n">${orders.length}</div><div class="l">Órdenes activas</div></div>
+    <div class="card warn clic" data-card="abiertas"><div class="n">${pend}</div><div class="l">Tareas pendientes</div></div>
+    <div class="card bad clic" data-card="sinresp"><div class="n">${sinResp}</div><div class="l">Sin responsable</div></div>
+    <div class="card bad clic" data-card="atrasadas"><div class="n">${atras}</div><div class="l">Atrasadas (≥45 días)</div></div>
+    <div class="card ok clic" data-card="entrega"><div class="n">${entrega}</div><div class="l">Listas para entrega</div></div>
+    <div class="card" style="grid-column:1/-1"><div class="l">Carga por responsable (tareas abiertas) — clic para filtrar</div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${respHtml}</div></div>`;
 }
 function autosize(t){ t.style.height="auto"; t.style.height=Math.max(34,t.scrollHeight)+"px"; }
 
@@ -893,7 +897,27 @@ $("#comMentions").addEventListener("mousedown",e=>{ const d=e.target.closest("di
 $("#comClose").onclick=()=>{ comModal.classList.remove("open"); comCtx=null; };
 comModal.addEventListener("click", e=>{ if(e.target===comModal){ comModal.classList.remove("open"); comCtx=null; } });
 
-["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input",render));
+["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input",()=>{ cardFiltro=null; render(); }));
+
+// Tarjetas y badges del tablero = filtros rápidos
+function aplicarTarjeta(tipo){
+  $("#q").value=""; $("#fProc").value=""; $("#fResp").value=""; $("#fEst").value="";
+  onlyMine=false; cardFiltro=null;
+  if(tipo==="mias") onlyMine=true;
+  else if(tipo==="abiertas") cardFiltro="abiertas";
+  else if(tipo==="atrasadas") cardFiltro="atrasadas";
+  else if(tipo==="sinresp") $("#fResp").value="__none__";
+  else if(tipo==="entrega") $("#fProc").value="Listo para entrega";
+  $("#btnMine").classList.toggle("active",onlyMine);
+  render();
+}
+$("#stats").addEventListener("click",e=>{
+  const card=e.target.closest("[data-card]");
+  if(card){ aplicarTarjeta(card.dataset.card); return; }
+  const b=e.target.closest("[data-resp]");
+  if(b){ $("#q").value=""; $("#fProc").value=""; $("#fEst").value=""; onlyMine=false; cardFiltro=null;
+    $("#btnMine").classList.remove("active"); $("#fResp").value=b.dataset.resp; render(); }
+});
 document.querySelectorAll("thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
   const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=(k==="dias"||k==="coments")?-1:1;} render(); }));
 function updateSortUI(){
