@@ -56,6 +56,22 @@
   .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
   .avctrl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
   .avctrl select{border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+  /* tareas admin */
+  #tbtnMine.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+  .tcard.done{opacity:.6}
+  .tcard .thead{display:flex;align-items:center;gap:8px}
+  .tcard .ttit{font-size:14px}
+  .tcard .tdesc{font-size:13px;color:#374151;margin:6px 0;white-space:pre-wrap}
+  .tcard .tmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:6px}
+  .pri{font-size:10.5px;text-transform:uppercase;font-weight:700;border-radius:999px;padding:2px 8px}
+  .pri-alta{background:#fee2e2;color:#991b1b} .pri-media{background:#fef9c3;color:#854d0e} .pri-baja{background:#e0f2fe;color:#075985}
+  select.test{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12px}
+  select.taddresp{border:1px dashed var(--line);border-radius:8px;padding:2px 5px;font-size:11.5px;background:#fff;color:var(--muted)}
+  .tcard .trx{cursor:pointer;color:#1e40af;font-weight:700;margin-left:3px;opacity:.6}
+  .tcard .trx:hover{opacity:1;color:#b91c1c}
+  .tdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:14px}
+  .tvenc{color:#b91c1c;font-weight:600} .thint{color:var(--muted)}
 
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px}
   .toolbar input[type=search],.toolbar select{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;background:#fff}
@@ -192,7 +208,8 @@
 
   <div class="wrap">
     <div class="tabs">
-      <button id="tabTablero" class="tab active">📋 Tablero</button>
+      <button id="tabTablero" class="tab active">📋 Órdenes</button>
+      <button id="tabTareas" class="tab">📝 Pendientes admin</button>
       <button id="tabAvance" class="tab" style="display:none">📊 Avance (Dirección)</button>
     </div>
     <div id="viewTablero">
@@ -242,6 +259,19 @@
       <div class="card" style="margin:12px 0;height:340px;position:relative"><canvas id="avChart"></canvas></div>
       <div class="card" style="margin:12px 0;height:340px;position:relative"><canvas id="avChart2"></canvas></div>
       <div class="tablewrap"><table id="avTable" style="min-width:auto"></table></div>
+    </div>
+
+    <div id="viewTareas" style="display:none">
+      <div class="toolbar">
+        <input type="search" id="tq" placeholder="Buscar pendiente…" />
+        <select id="tfEst"><option value="">Todo estado</option><option value="pendiente">Pendiente</option><option value="proceso">En proceso</option><option value="hecho">Hecho</option></select>
+        <select id="tfResp"><option value="">Todos</option></select>
+        <button id="tbtnMine">★ Míos</button>
+        <span class="spacer"></span>
+        <button class="primary" id="btnNuevaTarea" style="display:none">+ Nueva tarea</button>
+      </div>
+      <div id="tareasList"></div>
+      <div class="empty" id="tareasEmpty" style="display:none">No hay pendientes administrativos.</div>
     </div>
   </div>
 </div>
@@ -298,6 +328,21 @@
   <div class="foot"><button id="comClose">Cerrar</button></div>
 </div></div>
 
+<!-- Nueva tarea modal -->
+<div class="modal-bg" id="tareaModal"><div class="modal" style="max-width:560px">
+  <h2 id="tareaModalTitle">Nueva tarea / pendiente</h2>
+  <div class="body">
+    <div class="field"><label>Título</label><input type="text" id="tTitulo" placeholder="Ej. Enviar reporte de facturación a contabilidad"></div>
+    <div class="field"><label>Descripción</label><textarea class="cominput" id="tDesc" placeholder="Detalle del pendiente…"></textarea></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="field" style="flex:1;min-width:160px"><label>Responsable(s)</label><select id="tResp" multiple size="5" style="width:100%"></select><span class="hint">Ctrl/⌘ para elegir varios</span></div>
+      <div class="field" style="width:140px"><label>Prioridad</label><select id="tPri"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select>
+        <label style="margin-top:8px">Fecha límite</label><input type="date" id="tFecha"></div>
+    </div>
+  </div>
+  <div class="foot"><button id="tCancel">Cancelar</button><button class="primary" id="tGuardar">Guardar</button></div>
+</div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -319,11 +364,14 @@ function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
 
 //// ——— Estado ———
 let orders = [];
-let comentarios = {};          // { orden_id: [ {id,autor,texto,created_at,user_id} ] }
+let tareas = [];               // pendientes administrativos
+let comentarios = {};          // { orden_id: [...] }
+let comentariosT = {};         // { tarea_id: [...] }
 let menciones = [];            // mis menciones sin leer
 let telefonos = {};            // nombre -> teléfono (para WhatsApp)
-let openCommentsId = null;
+let comCtx = null;             // contexto de comentarios {kind:'orden'|'tarea', id}
 const MEN_TABLE = "seguimiento_menciones";
+const TAR_TABLE = "seguimiento_tareas";
 let me = {nombre:"", email:"", id:null, rol:"miembro"};
 let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false;
 
@@ -398,6 +446,7 @@ async function enterApp(session){
   appReady=true;
   initFiltersOnce();
   await loadOrders();
+  await loadTareas();
   await loadMenciones();
   loadDirectorio();
   $("#btnMine").classList.toggle("active", onlyMine);
@@ -435,21 +484,25 @@ async function ensureProfile(user){
 function aplicarRol(){
   const admin = me.rol === "admin";
   document.body.classList.toggle("rolmember", !admin);
-  ["#btnAdd","#btnImport","#btnSyncNow"].forEach(s=>{ const el=$(s); if(el) el.style.display = admin ? "" : "none"; });
+  ["#btnAdd","#btnImport","#btnSyncNow","#btnNuevaTarea"].forEach(s=>{ const el=$(s); if(el) el.style.display = admin ? "" : "none"; });
   $("#tabAvance").style.display = admin ? "" : "none";   // dashboard solo dirección
 }
 
 //// ====================== AVANCE (Dirección) ======================
 let avChart=null, avData=[];
-function showView(av){
-  $("#viewTablero").style.display = av?"none":"block";
-  $("#viewAvance").style.display = av?"block":"none";
-  $("#tabTablero").classList.toggle("active",!av);
-  $("#tabAvance").classList.toggle("active",av);
-  if(av) loadAvance();
+function showView(v){
+  $("#viewTablero").style.display = v==="tablero"?"block":"none";
+  $("#viewTareas").style.display  = v==="tareas"?"block":"none";
+  $("#viewAvance").style.display  = v==="avance"?"block":"none";
+  $("#tabTablero").classList.toggle("active",v==="tablero");
+  $("#tabTareas").classList.toggle("active",v==="tareas");
+  $("#tabAvance").classList.toggle("active",v==="avance");
+  if(v==="avance") loadAvance();
+  if(v==="tareas") renderTareas();
 }
-$("#tabTablero").onclick=()=>showView(false);
-$("#tabAvance").onclick=()=>showView(true);
+$("#tabTablero").onclick=()=>showView("tablero");
+$("#tabTareas").onclick=()=>showView("tareas");
+$("#tabAvance").onclick=()=>showView("avance");
 
 async function loadAvance(){
   const {data,error}=await sb.rpc("avance_semanal");
@@ -537,8 +590,16 @@ async function loadOrders(){
 
 async function loadComments(){
   const {data} = await sb.from(COM_TABLE).select("*").order("created_at",{ascending:true});
-  comentarios = {};
-  (data||[]).forEach(c=>{ (comentarios[c.orden_id]=comentarios[c.orden_id]||[]).push(c); });
+  comentarios = {}; comentariosT = {};
+  (data||[]).forEach(c=>{
+    if(c.orden_id) (comentarios[c.orden_id]=comentarios[c.orden_id]||[]).push(c);
+    if(c.tarea_id) (comentariosT[c.tarea_id]=comentariosT[c.tarea_id]||[]).push(c);
+  });
+}
+async function loadTareas(){
+  const {data,error}=await sb.from(TAR_TABLE).select("*").order("created_at",{ascending:false});
+  if(error){ console.error(error); return; }
+  tareas = data||[]; if(typeof renderTareas==="function") renderTareas();
 }
 
 //// ——— Menciones (@) y notificaciones ———
@@ -568,8 +629,10 @@ function renderBell(){
   const p=$("#bellPanel"); if(!p) return;
   p.innerHTML = `<div class="mh"><b>Menciones</b>${n?`<a id="bellAll" style="cursor:pointer;color:var(--accent)">Marcar todas leídas</a>`:""}</div>`+
     (n? menciones.map(m=>{
-      const o=orders.find(x=>x.id===m.orden_id);
-      return `<div class="bellitem" data-id="${m.id}" data-orden="${m.orden_id}"><div class="de">${esc(m.de||"")} · Orden ${esc(o?o.no:m.orden_id)}</div><div class="tx">${resaltarMenciones(m.texto||"")}</div></div>`;
+      let etiq;
+      if(m.tarea_id){ const t=tareas.find(x=>x.id===m.tarea_id); etiq="Tarea: "+esc(t?t.titulo:("#"+m.tarea_id)); }
+      else { const o=orders.find(x=>x.id===m.orden_id); etiq="Orden "+esc(o?o.no:m.orden_id); }
+      return `<div class="bellitem" data-id="${m.id}" data-orden="${m.orden_id||''}" data-tarea="${m.tarea_id||''}"><div class="de">${esc(m.de||"")} · ${etiq}</div><div class="tx">${resaltarMenciones(m.texto||"")}</div></div>`;
     }).join("") : '<div class="hint" style="padding:8px">Sin menciones pendientes 🎉</div>');
   const all=$("#bellAll"); if(all) all.onclick=marcarTodasLeidas;
 }
@@ -584,10 +647,11 @@ $("#btnBell").onclick=(e)=>{ e.stopPropagation(); $("#bellPanel").classList.togg
 document.addEventListener("click",e=>{ const p=$("#bellPanel"); if(p&&p.classList.contains("open")&&!p.contains(e.target)&&e.target.id!=="btnBell") p.classList.remove("open"); });
 $("#bellPanel").addEventListener("click",e=>{
   const it=e.target.closest(".bellitem"); if(!it) return;
-  const ordenId=+it.dataset.orden, menId=+it.dataset.id;
+  const menId=+it.dataset.id;
   $("#bellPanel").classList.remove("open");
   marcarLeido([menId]);
-  openComments(ordenId);
+  if(it.dataset.tarea){ showView("tareas"); abrirComentarios("tarea", +it.dataset.tarea); }
+  else abrirComentarios("orden", +it.dataset.orden);
 });
 
 function subscribeRealtime(){
@@ -596,9 +660,10 @@ function subscribeRealtime(){
       if(editing){ pendingReload=true; } else { loadOrders(); }
     })
     .on("postgres_changes",{event:"*",schema:"public",table:COM_TABLE}, async ()=>{
-      await loadComments(); render(); if(openCommentsId) renderCommentsModal();
+      await loadComments(); render(); if(typeof renderTareas==="function") renderTareas(); if(comCtx) renderCommentsModal();
     })
-    .on("postgres_changes",{event:"*",schema:"public",table:MEN_TABLE}, async ()=>{ await loadMenciones(); loadOrders(); })
+    .on("postgres_changes",{event:"*",schema:"public",table:TAR_TABLE}, ()=>loadTareas())
+    .on("postgres_changes",{event:"*",schema:"public",table:MEN_TABLE}, async ()=>{ await loadMenciones(); loadOrders(); loadTareas(); })
     .subscribe(status=>{ $("#syncdot").classList.toggle("live", status==="SUBSCRIBED"); });
 }
 
@@ -717,7 +782,7 @@ $("#tbody").addEventListener("click", async e=>{
     const name=e.target.dataset.rm; const o=orders.find(x=>x.id===id);
     setResponsables(id,(o.responsables||[]).filter(r=>r!==name)); return;
   }
-  if(e.target.classList.contains("combtn")){ openComments(id); return; }
+  if(e.target.classList.contains("combtn")){ abrirComentarios("orden", id); return; }
   if(e.target.classList.contains("rowdel")){
     const o=orders.find(x=>x.id===id);
     if(confirm(`¿Eliminar la orden ${o.no} (${o.modelo})?`)){ const {error}=await sb.from(TABLE).delete().eq("id",id);
@@ -734,34 +799,41 @@ async function setResponsables(id, arr){
 
 //// ——— Comentarios ———
 const comModal=$("#comModal");
-async function openComments(id){
-  if(!orders.find(x=>x.id===id)){ await loadOrders(); }   // p.ej. orden donde solo me mencionaron
-  openCommentsId=id; renderCommentsModal(); comModal.classList.add("open"); $("#comInput").focus();
+function comObj(){ return comCtx ? (comCtx.kind==='tarea' ? tareas.find(x=>x.id===comCtx.id) : orders.find(x=>x.id===comCtx.id)) : null; }
+async function abrirComentarios(kind,id){
+  if(kind==='orden' && !orders.find(x=>x.id===id)) await loadOrders();
+  if(kind==='tarea' && !tareas.find(x=>x.id===id)) await loadTareas();
+  comCtx={kind,id}; renderCommentsModal(); comModal.classList.add("open"); $("#comInput").focus();
+}
+async function setResp(ctx, arr){
+  if(ctx.kind==='orden'){ await setResponsables(ctx.id, arr); }
+  else { const t=tareas.find(x=>x.id===ctx.id); if(t) t.responsables=arr; renderTareas();
+    const {error}=await sb.from(TAR_TABLE).update({responsables:arr}).eq("id",ctx.id); if(error){ alert(error.message); loadTareas(); } }
 }
 function renderCommentsModal(){
-  const o=orders.find(x=>x.id===openCommentsId); if(!o) return;
-  $("#comTitle").textContent=`Comentarios — Orden ${o.no} (${o.modelo||""})`;
-  // barra: responsables + opción de agregarme
-  const resp=o.responsables||[];
-  const soyResp = resp.includes(me.nombre);
-  const puedoTomar = me.nombre && !soyResp;
+  const ctx=comCtx; if(!ctx) return; const o=comObj(); if(!o) return;
+  const esT = ctx.kind==='tarea';
+  $("#comTitle").textContent = esT ? `Tarea — ${o.titulo}` : `Comentarios — Orden ${o.no} (${o.modelo||""})`;
+  const resp=o.responsables||[]; const soyResp=resp.includes(me.nombre), puedoTomar=me.nombre && !soyResp;
+  const cabT = esT ? "📝 Pendiente / Descripción" : "📌 Acción a tomar / Tarea";
+  const cabTx = esT ? (o.descripcion||"") : (o.accion||"");
   $("#comBar").innerHTML =
     `<div style="background:var(--row-action);border:1px solid #f3e8c4;border-radius:8px;padding:9px 11px;margin-bottom:10px">`+
-    `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#92700e;font-weight:700;margin-bottom:3px">📌 Acción a tomar / Tarea</div>`+
-    `<div style="font-size:13.5px;white-space:pre-wrap">${o.accion? esc(o.accion) : '<span class="hint">— sin acción registrada —</span>'}</div>`+
-    `</div>`+
+    `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#92700e;font-weight:700;margin-bottom:3px">${cabT}</div>`+
+    `<div style="font-size:13.5px;white-space:pre-wrap">${cabTx? esc(cabTx):'<span class="hint">—</span>'}</div></div>`+
     `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12.5px">`+
     `<div>Responsable(s): ${resp.length? resp.map(r=>`<span class="rchip">${esc(r)}</span>`).join(" ") : '<span class="hint">sin responsable</span>'}</div>`+
     (puedoTomar? `<button class="primary" id="comTomar" style="white-space:nowrap">➕ Agregarme</button>` : (soyResp?`<span class="hint">Eres responsable ✓</span>`:""))+
     `</div>`;
-  const t=$("#comTomar"); if(t) t.onclick=async()=>{ await setResponsables(o.id,[...resp, me.nombre]); renderCommentsModal(); };
-  const list=comentarios[openCommentsId]||[];
+  const tb=$("#comTomar"); if(tb) tb.onclick=async()=>{ await setResp(ctx,[...resp, me.nombre]); renderCommentsModal(); };
+  const list=(esT? comentariosT[ctx.id] : comentarios[ctx.id])||[];
+  const refTxt = esT ? ('la tarea "'+o.titulo+'"') : ('la orden '+o.no+' ('+(o.modelo||'')+')');
   $("#comList").innerHTML = list.length ? list.map(c=>{
     const fecha=new Date(c.created_at).toLocaleString("es-MX",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
     const puedeBorrar = c.user_id && c.user_id===me.id;
     const wabtns=(c.menciones||[]).filter(m=>telefonos[m]).map(m=>{
       const link=location.origin+"/reporte-ordenes.html?yo="+encodeURIComponent(m)+"&mias=1";
-      const msg="Hola "+m+", te mencionaron en la orden "+o.no+" ("+(o.modelo||"")+"): \""+c.texto+"\". Ábrela aquí: "+link;
+      const msg="Hola "+m+", te mencionaron en "+refTxt+": \""+c.texto+"\". Ábrela aquí: "+link;
       return `<a class="wabtn" target="_blank" rel="noopener" href="https://wa.me/${telefonos[m]}?text=${encodeURIComponent(msg)}">📱 Avisar a ${esc(m)}</a>`;
     }).join(" ");
     return `<div class="comitem"><div class="meta"><b>${esc(c.autor||"—")}</b><span>${esc(fecha)}${puedeBorrar?` · <a class="comdel" data-del="${c.id}">borrar</a>`:""}</span></div><div class="txt">${resaltarMenciones(c.texto)}</div>${wabtns?`<div style="margin-top:6px">${wabtns}</div>`:""}</div>`;
@@ -771,17 +843,18 @@ $("#comList").addEventListener("click", async e=>{
   if(!e.target.classList.contains("comdel")) return;
   const cid=+e.target.dataset.del;
   if(confirm("¿Borrar este comentario?")){ const {error}=await sb.from(COM_TABLE).delete().eq("id",cid);
-    if(error) alert(error.message); else { await loadComments(); renderCommentsModal(); render(); } }
+    if(error) alert(error.message); else { await loadComments(); renderCommentsModal(); if(comCtx&&comCtx.kind==='tarea') renderTareas(); else render(); } }
 });
 $("#comAdd").onclick=async()=>{
-  const texto=$("#comInput").value.trim(); if(!texto||openCommentsId==null) return;
+  const texto=$("#comInput").value.trim(); if(!texto||!comCtx) return;
   if(!me.nombre){ alert("Primero elige tu nombre en 'Soy:' (arriba a la derecha)."); return; }
   $("#comAdd").disabled=true;
-  const {error}=await sb.from(COM_TABLE).insert({orden_id:openCommentsId, user_id:me.id, autor:me.nombre||me.email, texto, menciones:detectMenciones(texto)});
+  const ref = comCtx.kind==='tarea' ? {tarea_id:comCtx.id} : {orden_id:comCtx.id};
+  const {error}=await sb.from(COM_TABLE).insert({...ref, user_id:me.id, autor:me.nombre||me.email, texto, menciones:detectMenciones(texto)});
   $("#comAdd").disabled=false;
   if(error){ alert("No se pudo agregar: "+error.message); return; }
   $("#comInput").value=""; hideMentionBox();
-  await loadComments(); renderCommentsModal(); render();
+  await loadComments(); renderCommentsModal(); if(comCtx.kind==='tarea') renderTareas(); else render();
 };
 
 //// ——— Autocompletar @ en el comentario ———
@@ -817,8 +890,8 @@ $("#comInput").addEventListener("keydown",e=>{
   else if(e.key==="Escape"){ hideMentionBox(); }
 });
 $("#comMentions").addEventListener("mousedown",e=>{ const d=e.target.closest("div[data-r]"); if(d){ e.preventDefault(); pickMention(d.dataset.r); } });
-$("#comClose").onclick=()=>{ comModal.classList.remove("open"); openCommentsId=null; };
-comModal.addEventListener("click", e=>{ if(e.target===comModal){ comModal.classList.remove("open"); openCommentsId=null; } });
+$("#comClose").onclick=()=>{ comModal.classList.remove("open"); comCtx=null; };
+comModal.addEventListener("click", e=>{ if(e.target===comModal){ comModal.classList.remove("open"); comCtx=null; } });
 
 ["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input",render));
 document.querySelectorAll("thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
@@ -949,6 +1022,77 @@ $("#expCSV").onclick=()=>{ const cols=["no","modelo","color","ordenante","proces
   const cell=(o,c)=> c==="responsables" ? (o.responsables||[]).join(" / ") : o[c];
   const csv=[head.map(q).join(",")].concat(orders.map(o=>cols.map(c=>q(cell(o,c))).join(","))).join("\r\n");
   download("reporte-ordenes.csv","﻿"+csv,"text/csv"); };
+
+//// ====================== TAREAS (pendientes admin) ======================
+let onlyMineT=false;
+function renderTareas(){
+  const admin = me.rol==="admin";
+  const fr=$("#tfResp"); if(fr.options.length<=1) RESPONSABLES.forEach(r=>fr.add(new Option(r,r)));
+  const q=$("#tq").value.trim().toLowerCase(), fe=$("#tfEst").value, frv=$("#tfResp").value;
+  const hoy=new Date(new Date().toDateString());
+  let rows=tareas.filter(t=>{ const resp=t.responsables||[];
+    if(onlyMineT && !resp.includes(me.nombre)) return false;
+    if(fe && (t.estatus||"pendiente")!==fe) return false;
+    if(frv && !resp.includes(frv)) return false;
+    if(q){ const hay=[t.titulo,t.descripcion,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  $("#tbtnMine").classList.toggle("active",onlyMineT);
+  $("#tareasList").innerHTML = rows.map(t=>{
+    const est=t.estatus||"pendiente", resp=t.responsables||[];
+    const estOpts=Object.keys(EST).map(k=>`<option value="${k}" ${k===est?"selected":""}>${EST[k].l}</option>`).join("");
+    const chips=resp.map(r=>`<span class="rchip">${esc(r)}${admin?`<a class="trx" data-rm="${esc(r)}" title="Quitar">×</a>`:""}</span>`).join(" ");
+    const avail=RESPONSABLES.filter(r=>!resp.includes(r));
+    const add=admin?`<select class="taddresp"><option value="">+ asignar…</option>${avail.map(r=>`<option>${esc(r)}</option>`).join("")}</select>`:"";
+    const nCom=(comentariosT[t.id]||[]).length;
+    const venc=t.fecha_limite?`<span class="${(new Date(t.fecha_limite)<hoy && est!=='hecho')?'tvenc':'thint'}">📅 ${esc(t.fecha_limite)}</span>`:"";
+    return `<div class="tcard ${est==='hecho'?'done':''}" data-id="${t.id}">
+      <div class="thead"><span class="pri pri-${esc(t.prioridad||'media')}">${esc(t.prioridad||'media')}</span>
+        <b class="ttit">${esc(t.titulo)}</b><span class="spacer"></span>
+        <select class="test" data-f="estatus" style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select>
+        ${admin?`<button class="tdel" title="Eliminar">✕</button>`:""}</div>
+      ${t.descripcion?`<div class="tdesc">${esc(t.descripcion)}</div>`:""}
+      <div class="tmeta"><span>Resp.: ${resp.length?chips:'<span class="thint">sin asignar</span>'} ${add}</span> ${venc}<span class="spacer"></span>
+        <button class="combtn ${nCom?'has':''}">💬 ${nCom}</button></div></div>`;
+  }).join("");
+  $("#tareasEmpty").style.display = rows.length?"none":"block";
+}
+$("#tareasList").addEventListener("change", async e=>{
+  const card=e.target.closest(".tcard"); if(!card) return; const id=+card.dataset.id;
+  if(e.target.classList.contains("test")){ const t=tareas.find(x=>x.id===id); if(t)t.estatus=e.target.value;
+    const {error}=await sb.from(TAR_TABLE).update({estatus:e.target.value}).eq("id",id); if(error){alert(error.message);loadTareas();} else renderTareas(); }
+  else if(e.target.classList.contains("taddresp")){ const name=e.target.value; if(!name)return; const t=tareas.find(x=>x.id===id);
+    setResp({kind:'tarea',id},[...(t.responsables||[]),name]); }
+});
+$("#tareasList").addEventListener("click", async e=>{
+  const card=e.target.closest(".tcard"); if(!card) return; const id=+card.dataset.id;
+  if(e.target.classList.contains("trx")){ const t=tareas.find(x=>x.id===id); setResp({kind:'tarea',id},(t.responsables||[]).filter(r=>r!==e.target.dataset.rm)); return; }
+  if(e.target.classList.contains("combtn")){ abrirComentarios("tarea", id); return; }
+  if(e.target.classList.contains("tdel")){ const t=tareas.find(x=>x.id===id);
+    if(confirm('¿Eliminar la tarea "'+(t?t.titulo:"")+'"?')){ const {error}=await sb.from(TAR_TABLE).delete().eq("id",id);
+      if(error)alert(error.message); else { tareas=tareas.filter(x=>x.id!==id); renderTareas(); } } }
+});
+["#tq","#tfEst","#tfResp"].forEach(s=>$(s).addEventListener("input",renderTareas));
+$("#tbtnMine").onclick=()=>{ onlyMineT=!onlyMineT; renderTareas(); };
+
+const tareaModal=$("#tareaModal");
+$("#btnNuevaTarea").onclick=()=>{
+  const s=$("#tResp"); if(s.options.length===0) RESPONSABLES.forEach(r=>s.add(new Option(r,r)));
+  [...s.options].forEach(o=>o.selected=false);
+  $("#tTitulo").value=""; $("#tDesc").value=""; $("#tFecha").value=""; $("#tPri").value="media";
+  tareaModal.classList.add("open"); $("#tTitulo").focus();
+};
+$("#tCancel").onclick=()=>tareaModal.classList.remove("open");
+tareaModal.addEventListener("click",e=>{ if(e.target===tareaModal) tareaModal.classList.remove("open"); });
+$("#tGuardar").onclick=async()=>{
+  const titulo=$("#tTitulo").value.trim(); if(!titulo){ alert("Escribe un título."); return; }
+  const resp=[...$("#tResp").selectedOptions].map(o=>o.value);
+  $("#tGuardar").disabled=true;
+  const {error}=await sb.from(TAR_TABLE).insert({titulo, descripcion:$("#tDesc").value.trim(), responsables:resp, prioridad:$("#tPri").value, fecha_limite:$("#tFecha").value||null, creado_por:me.nombre||me.email});
+  $("#tGuardar").disabled=false;
+  if(error){ alert("No se pudo guardar: "+error.message); return; }
+  tareaModal.classList.remove("open"); await loadTareas();
+};
 
 window.addEventListener("resize",()=>document.querySelectorAll(".accion").forEach(autosize));
 </script>
