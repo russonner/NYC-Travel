@@ -377,6 +377,7 @@ const MEN_TABLE = "seguimiento_menciones";
 const TAR_TABLE = "seguimiento_tareas";
 let me = {nombre:"", email:"", id:null, rol:"miembro"};
 let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false, cardFiltro=null;
+let displayOrder=[];   // ids en el orden mostrado; solo se recalcula al ordenar/cargar, nunca al actualizar
 
 //// ====================== AUTH ======================
 function authMsg(t,kind){ const m=$("#authMsg"); m.textContent=t||""; m.className=t?("authmsg "+(kind||"info")):"authmsg"; }
@@ -686,7 +687,7 @@ function initFiltersOnce(){
   const fr=$("#fResp"); if(fr.options.length<=2) RESPONSABLES.forEach(r=>fr.add(new Option(r,r)));
 }
 
-function render(){
+function render(resort=false){
   const q=$("#q").value.trim().toLowerCase(), fp=$("#fProc").value, fr=$("#fResp").value, fe=$("#fEst").value;
   let rows=orders.filter(o=>{
     const resp=o.responsables||[];
@@ -711,7 +712,19 @@ function render(){
       default: return (o[sortKey]||"").toString().toLowerCase();
     }
   };
-  rows.sort((a,b)=>{ const va=sortVal(a),vb=sortVal(b); return va<vb?-sortDir:va>vb?sortDir:0; });
+  if(resort || !displayOrder.length){
+    // orden explícito (clic en encabezado) o primera carga: memoriza el consecutivo de TODAS las órdenes
+    displayOrder = orders.slice()
+      .sort((a,b)=>{ const va=sortVal(a),vb=sortVal(b); return va<vb?-sortDir:va>vb?sortDir:0; })
+      .map(o=>o.id);
+  } else {
+    // agrega al final las órdenes nuevas (p.ej. recién llegadas de Radar) sin mover las demás
+    const known=new Set(displayOrder);
+    orders.forEach(o=>{ if(!known.has(o.id)) displayOrder.push(o.id); });
+  }
+  // ordena las filas visibles según el consecutivo memorizado (ninguna actualización las mueve)
+  const pos=new Map(displayOrder.map((id,i)=>[id,i]));
+  rows.sort((a,b)=>(pos.get(a.id)??Infinity)-(pos.get(b.id)??Infinity));
   updateSortUI();
 
   $("#tbody").innerHTML = rows.map(o=>{
@@ -919,7 +932,7 @@ $("#stats").addEventListener("click",e=>{
     $("#btnMine").classList.remove("active"); $("#fResp").value=b.dataset.resp; render(); }
 });
 document.querySelectorAll("thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
-  const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=(k==="dias"||k==="coments")?-1:1;} render(); }));
+  const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=(k==="dias"||k==="coments")?-1:1;} render(true); }));
 function updateSortUI(){
   document.querySelectorAll("thead th.sortable").forEach(th=>{
     const on=th.dataset.k===sortKey;
