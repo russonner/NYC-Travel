@@ -160,9 +160,8 @@ try {
   if (radarAuth) {
     const API = "https://radar-api.azurewebsites.net/api";
     const headers = { authorization: radarAuth, accept: "application/json, text/plain, */*", referer: BASE + "/" };
-    let enriquecidas = 0;
-    for (const row of result.rows) {
-      if (!row.orderId) continue;
+    const enriquecer = async (row) => {
+      if (!row.orderId) return;
       try {
         const r = await ctx.request.get(`${API}/vehicles/orders/${row.orderId}/vehicle-detail`, { headers, timeout: 25000 });
         if (r.ok()) {
@@ -178,8 +177,13 @@ try {
           row.num_siniestro = String(j.sinisterNumber ?? "").trim();
         }
       } catch {}
-      if (row.placas || row.num_serie || row.num_siniestro) enriquecidas++;
+    };
+    // En lotes de 8 para no saturar la API ni alargar la corrida.
+    const LOTE = 8;
+    for (let i = 0; i < result.rows.length; i += LOTE) {
+      await Promise.all(result.rows.slice(i, i + LOTE).map(enriquecer));
     }
+    const enriquecidas = result.rows.filter((r) => r.placas || r.num_serie || r.num_siniestro).length;
     console.log(`→ Detalle obtenido para ${enriquecidas}/${result.rows.length} órdenes (placas/serie/siniestro).`);
   } else {
     console.warn("⚠ No se capturó el token de la API de Radar; se envían sin placas/serie/siniestro.");
