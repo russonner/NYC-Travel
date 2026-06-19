@@ -174,10 +174,25 @@ try {
       });
       const origin = new URL(page.url()).origin;
       const panelUrl = `${origin}/MasterPanel/Order/${orderId}`;
+
+      // Capturar respuestas de red que contengan los datos del panel (JSON)
+      const apiHits = [];
+      page.on("response", async (resp) => {
+        try {
+          const ct = (resp.headers()["content-type"] || "").toLowerCase();
+          if (!/json|text|javascript/.test(ct)) return;
+          const body = await resp.text();
+          if (/platesNumber|sinisterNumber|policyNumber|"vin"|appraiserExternNumber/.test(body)) {
+            apiHits.push({ url: resp.url(), status: resp.status(), len: body.length, snippet: body.replace(/\s+/g, " ").slice(0, 1200) });
+          }
+        } catch {}
+      });
+
       console.log("DIAG navegando a panel maestro:", panelUrl);
       await page.goto(panelUrl, { waitUntil: "networkidle", timeout: 60000 }).catch((e) => console.log("DIAG goto err:", e.message));
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(5000);
       console.log("DIAG panel URL:", page.url(), "| título:", await page.title());
+      console.log("DIAG API hits:", JSON.stringify(apiHits.slice(0, 4)));
 
       const det = await page.evaluate(() => {
         const KW = ["placa", "serie", "vin", "niv", "siniestro", "reporte", "folio", "póliza", "poliza", "aseguradora", "número de sistema externo", "valuadora externo", "color", "modelo"];
