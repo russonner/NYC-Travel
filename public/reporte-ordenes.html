@@ -235,6 +235,7 @@
       <select id="fEst"><option value="">Toda tarea</option><option value="pendiente">Pendiente</option><option value="proceso">En proceso</option><option value="hecho">Hecho</option></select>
       <button id="btnMine">★ Mis pendientes</button>
       <span class="spacer"></span>
+      <button id="btnRefresh" title="Recargar las órdenes con la información más reciente">🔄 Actualizar</button>
       <button id="btnAdd">+ Orden</button>
       <button class="primary" id="btnSyncNow" title="Trae las órdenes de Radar ahora mismo">🔄 Actualizar desde Radar</button>
       <button id="btnImport">⭳ Importar manual</button>
@@ -1005,6 +1006,18 @@ function updateSortUI(){
 }
 $("#btnMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("active",onlyMine); render(); };
 $("#btnPrint").onclick=()=>window.print();
+
+// Botón "Actualizar": recarga las órdenes con la información más reciente (disponible para todos los roles)
+$("#btnRefresh").onclick=async()=>{
+  const b=$("#btnRefresh"); const orig=b.textContent;
+  b.disabled=true; b.textContent="🔄 Actualizando…";
+  try{
+    await loadOrders();
+    if(me.rol!=="consulta"){ await loadMenciones(); loadTareas(); }
+  }catch(e){ console.error(e); }
+  b.textContent="✅ Actualizado";
+  setTimeout(()=>{ b.disabled=false; b.textContent=orig; }, 1200);
+};
 
 // Botón "Actualizar desde Radar": dispara el robot (GitHub Actions) vía /api/radar-sync
 $("#btnSyncNow").onclick=async()=>{
