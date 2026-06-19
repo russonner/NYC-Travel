@@ -175,53 +175,45 @@ try {
       const origin = new URL(page.url()).origin;
       const panelUrl = `${origin}/MasterPanel/Order/${orderId}`;
 
-      // Capturar respuestas de red que contengan los datos del panel (JSON)
-      const apiHits = [];
+      // Capturar peticiones/respuestas a la API REST de Radar (radar-api.azurewebsites.net)
+      const apiReqs = [];
+      page.on("request", (req) => {
+        const u = req.url();
+        if (u.includes("radar-api.azurewebsites.net")) {
+          const h = req.headers();
+          apiReqs.push({ method: req.method(), url: u, authPrefix: (h.authorization || h.Authorization || "").slice(0, 18), headerKeys: Object.keys(h).join(",") });
+        }
+      });
+      const apiResp = [];
       page.on("response", async (resp) => {
+        const u = resp.url();
+        if (!u.includes("radar-api.azurewebsites.net")) return;
         try {
-          const ct = (resp.headers()["content-type"] || "").toLowerCase();
-          if (!/json|text|javascript/.test(ct)) return;
           const body = await resp.text();
-          if (/platesNumber|sinisterNumber|policyNumber|"vin"|appraiserExternNumber/.test(body)) {
-            apiHits.push({ url: resp.url(), status: resp.status(), len: body.length, snippet: body.replace(/\s+/g, " ").slice(0, 1200) });
-          }
+          apiResp.push({ url: u, status: resp.status(), snippet: body.replace(/\s+/g, " ").slice(0, 700) });
         } catch {}
       });
 
       console.log("DIAG navegando a panel maestro:", panelUrl);
       await page.goto(panelUrl, { waitUntil: "networkidle", timeout: 60000 }).catch((e) => console.log("DIAG goto err:", e.message));
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(4000);
       console.log("DIAG panel URL:", page.url(), "| título:", await page.title());
-      console.log("DIAG API hits:", JSON.stringify(apiHits.slice(0, 4)));
 
-      const det = await page.evaluate(() => {
-        const KW = ["placa", "serie", "vin", "niv", "siniestro", "reporte", "folio", "póliza", "poliza", "aseguradora", "número de sistema externo", "valuadora externo", "color", "modelo"];
-        // textContent incluye pestañas ocultas (innerText no)
-        const full = (document.body.textContent || "").replace(/\s+/g, " ").trim();
-        const contexts = [];
-        for (const k of KW) {
-          let i = full.toLowerCase().indexOf(k);
-          let guard = 0;
-          while (i !== -1 && guard < 4) {
-            contexts.push(full.slice(Math.max(0, i - 5), i + 70));
-            i = full.toLowerCase().indexOf(k, i + k.length);
-            guard++;
-          }
-        }
-        // También: pares etiqueta→valor en filas del panel (dt/dd, .info-label, etc.)
-        const pairs = [];
-        document.querySelectorAll("*").forEach((e) => {
-          const own = Array.from(e.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join(" ").replace(/\s+/g, " ").trim();
-          if (/plac|serie|vin|niv|siniestro|fol|poliz|póliz|asegurad/i.test(own) && own.length < 50) {
-            const sib = (e.nextElementSibling?.textContent || "").replace(/\s+/g, " ").trim();
-            pairs.push({ tag: e.tagName, cls: (e.className || "").toString().slice(0, 30), label: own.slice(0, 40), sib: sib.slice(0, 40) });
-          }
-        });
-        return { contexts: [...new Set(contexts)].slice(0, 40), pairs: pairs.slice(0, 40), fullLen: full.length };
-      });
-      console.log("DIAG panel fullLen:", det.fullLen);
-      console.log("DIAG panel contextos:", JSON.stringify(det.contexts));
-      console.log("DIAG panel pares:", JSON.stringify(det.pairs));
+      // Hacer clic en las pestañas para disparar la carga de placas/serie/etc.
+      const tabNames = ["Vehículo", "Vehiculo", "Datos de reparación", "Datos de reparacion", "Información adicional", "Informacion adicional", "Aseguradora"];
+      for (const name of tabNames) {
+        const clicked = await page.evaluate((n) => {
+          const els = Array.from(document.querySelectorAll('a, [role="tab"], .nav-link, button'));
+          const el = els.find((e) => (e.textContent || "").trim().toLowerCase().includes(n.toLowerCase()));
+          if (el) { el.click(); return true; }
+          return false;
+        }, name);
+        if (clicked) await page.waitForTimeout(1500);
+      }
+      await page.waitForTimeout(2000);
+
+      console.log("DIAG API peticiones:", JSON.stringify([...new Map(apiReqs.map((r) => [r.url, r])).values()].slice(0, 25)));
+      console.log("DIAG API respuestas:", JSON.stringify([...new Map(apiResp.map((r) => [r.url, r])).values()].slice(0, 25)));
     } catch (e) {
       console.log("DIAG error:", e && e.message ? e.message : e);
     }
