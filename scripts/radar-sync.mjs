@@ -97,6 +97,18 @@ try {
       ubicacion: "ubicacion", "ubicación": "ubicacion",
       "fecha ingreso": "fecha_ingreso", "fecha promesa taller": "fecha_promesa",
       subproceso: "subproceso",
+      // Placas
+      placas: "placas", placa: "placas", "no. placas": "placas", "núm. placas": "placas",
+      "numero de placas": "placas", "número de placas": "placas", "placas vehiculo": "placas",
+      // Número de serie / VIN / NIV
+      serie: "num_serie", "no. serie": "num_serie", "núm. serie": "num_serie",
+      "numero de serie": "num_serie", "número de serie": "num_serie",
+      "no. de serie": "num_serie", "n° serie": "num_serie", vin: "num_serie", niv: "num_serie",
+      // Número de siniestro / reporte / folio
+      siniestro: "num_siniestro", "no. siniestro": "num_siniestro", "núm. siniestro": "num_siniestro",
+      "numero de siniestro": "num_siniestro", "número de siniestro": "num_siniestro",
+      "no. de siniestro": "num_siniestro", "folio siniestro": "num_siniestro",
+      "no. reporte": "num_siniestro", reporte: "num_siniestro", folio: "num_siniestro",
     };
     const rows = dt
       .rows()
@@ -120,6 +132,9 @@ try {
     process.exit(1);
   }
 
+  console.log("→ Encabezados detectados en Radar:", JSON.stringify(result.headers));
+  const muestra = result.rows.find((r) => r.placas || r.num_serie || r.num_siniestro) || result.rows[0];
+  console.log("→ Muestra de fila:", JSON.stringify(muestra));
   console.log(`→ Extraídas ${result.rows.length} órdenes. Enviando al tablero…`);
   const res = await fetch(FN_URL, {
     method: "POST",
