@@ -516,7 +516,8 @@ function aplicarRol(){
   const consulta = me.rol === "consulta";
   document.body.classList.toggle("rolmember", !admin);
   document.body.classList.toggle("rolconsulta", consulta);
-  ["#btnAdd","#btnImport","#btnSyncNow","#btnNuevaTarea"].forEach(s=>{ const el=$(s); if(el) el.style.display = admin ? "" : "none"; });
+  ["#btnAdd","#btnImport","#btnNuevaTarea"].forEach(s=>{ const el=$(s); if(el) el.style.display = admin ? "" : "none"; });
+  const bs=$("#btnSyncNow"); if(bs) bs.style.display="none";   // reemplazado por "Actualizar" (btnRefresh), disponible a todos
   $("#tabAvance").style.display = admin ? "" : "none";   // dashboard solo dirección
   if(consulta){
     sortKey="no"; sortDir=1;   // "Días" no se muestra; ordena por No. de orden
@@ -1026,17 +1027,25 @@ function updateSortUI(){
 $("#btnMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("active",onlyMine); render(); };
 $("#btnPrint").onclick=()=>window.print();
 
-// Botón "Actualizar": recarga las órdenes con la información más reciente (disponible para todos los roles)
-$("#btnRefresh").onclick=async()=>{
-  const b=$("#btnRefresh"); const orig=b.textContent;
-  b.disabled=true; b.textContent="🔄 Actualizando…";
+// Botón "Actualizar": jala de Radar (robot) y recarga — disponible para TODOS los roles
+async function dispararRadar(b){
+  const orig=b.textContent; b.disabled=true; b.textContent="🔄 Solicitando…";
   try{
-    await loadOrders();
-    if(me.rol!=="consulta"){ await loadMenciones(); loadTareas(); }
-  }catch(e){ console.error(e); }
+    const r=await fetch("/api/radar-sync",{method:"POST"});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok && d.ok){
+      b.textContent="🔄 Actualizando desde Radar…";
+      alert("✅ Listo, se está trayendo la información de Radar.\nEl tablero se actualizará solo en ~1 minuto (deja esta página abierta).");
+    }else{
+      b.textContent="🔄 Recargando…";
+      alert("No se pudo lanzar la sincronización con Radar:\n"+(d.error||("error "+r.status))+"\n\nMientras tanto recargo la información actual.");
+    }
+  }catch(e){ alert("Error de conexión: "+e); }
+  try{ await loadOrders(); if(me.rol!=="consulta"){ await loadMenciones(); loadTareas(); } }catch(e){ console.error(e); }
   b.textContent="✅ Actualizado";
-  setTimeout(()=>{ b.disabled=false; b.textContent=orig; }, 1200);
-};
+  setTimeout(()=>{ b.disabled=false; b.textContent=orig; }, 3000);
+}
+$("#btnRefresh").onclick=()=>dispararRadar($("#btnRefresh"));
 
 // Botón "Actualizar desde Radar": dispara el robot (GitHub Actions) vía /api/radar-sync
 $("#btnSyncNow").onclick=async()=>{
