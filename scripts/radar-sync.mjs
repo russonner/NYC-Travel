@@ -27,6 +27,16 @@ const ctx = await browser.newContext({
 const page = await ctx.newPage();
 page.setDefaultTimeout(45000);
 
+// Captura del token Bearer que la app usa contra la API REST de Radar.
+let radarAuth = null;
+page.on("request", (req) => {
+  if (radarAuth) return;
+  if (req.url().includes("radar-api.azurewebsites.net")) {
+    const a = req.headers()["authorization"];
+    if (a) radarAuth = a;
+  }
+});
+
 try {
   console.log("→ Abriendo página de inicio de sesión…");
   await page.goto(BASE + "/Account/Login", { waitUntil: "domcontentloaded" });
@@ -120,6 +130,8 @@ try {
           const f = M[H[i]];
           if (f) o[f] = td.innerText.replace(/\s+/g, " ").trim();
         });
+        const link = tr.querySelector("[data-order-id]");
+        if (link) o.orderId = link.getAttribute("data-order-id");
         return o;
       })
       .filter((o) => o.no);
@@ -133,9 +145,49 @@ try {
   }
 
   console.log("→ Encabezados detectados en Radar:", JSON.stringify(result.headers));
+  console.log(`→ Extraídas ${result.rows.length} órdenes de la lista.`);
+
+  // Enriquecer cada orden con placas / serie / siniestro desde la API REST de Radar.
+  // Si todavía no se capturó el token, abrir un panel maestro para forzar una llamada.
+  if (!radarAuth && result.rows[0]?.orderId) {
+    console.log("→ Obteniendo token de la API de Radar…");
+    await page
+      .goto(`${BASE}/MasterPanel/Order/${result.rows[0].orderId}`, { waitUntil: "networkidle", timeout: 60000 })
+      .catch(() => {});
+    await page.waitForTimeout(3000);
+  }
+
+  if (radarAuth) {
+    const API = "https://radar-api.azurewebsites.net/api";
+    const headers = { authorization: radarAuth, accept: "application/json, text/plain, */*", referer: BASE + "/" };
+    let enriquecidas = 0;
+    for (const row of result.rows) {
+      if (!row.orderId) continue;
+      try {
+        const r = await ctx.request.get(`${API}/vehicles/orders/${row.orderId}/vehicle-detail`, { headers, timeout: 25000 });
+        if (r.ok()) {
+          const j = await r.json();
+          row.placas = String(j.platesNumber ?? "").trim();
+          row.num_serie = String(j.vin ?? "").trim();
+        }
+      } catch {}
+      try {
+        const r = await ctx.request.get(`${API}/orders/${row.orderId}/order-detail-binnacle`, { headers, timeout: 25000 });
+        if (r.ok()) {
+          const j = await r.json();
+          row.num_siniestro = String(j.sinisterNumber ?? "").trim();
+        }
+      } catch {}
+      if (row.placas || row.num_serie || row.num_siniestro) enriquecidas++;
+    }
+    console.log(`→ Detalle obtenido para ${enriquecidas}/${result.rows.length} órdenes (placas/serie/siniestro).`);
+  } else {
+    console.warn("⚠ No se capturó el token de la API de Radar; se envían sin placas/serie/siniestro.");
+  }
+
   const muestra = result.rows.find((r) => r.placas || r.num_serie || r.num_siniestro) || result.rows[0];
   console.log("→ Muestra de fila:", JSON.stringify(muestra));
-  console.log(`→ Extraídas ${result.rows.length} órdenes. Enviando al tablero…`);
+  console.log("→ Enviando al tablero…");
   const res = await fetch(FN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: ANON },
@@ -145,79 +197,6 @@ try {
   console.log("→ Respuesta del receptor:", res.status, txt);
   if (!res.ok) process.exit(1);
   console.log("✓ Sincronización completa.");
-
-  // DIAGNÓSTICO TEMPORAL: explorar el detalle de la primera orden para ubicar
-  // placas / serie / siniestro (Radar no las muestra en la lista).
-  if (process.env.RADAR_DIAG === "1") {
-    try {
-      const rowInfo = await page.evaluate(() => {
-        const $ = window.jQuery;
-        const tr = $("#mftable").DataTable().rows().nodes().toArray()[0];
-        const links = Array.from(tr.querySelectorAll("a,button,[onclick],[data-href],[data-url],[data-id]")).map((e) => ({
-          tag: e.tagName,
-          text: (e.innerText || e.textContent || "").replace(/\s+/g, " ").trim().slice(0, 30),
-          href: e.getAttribute("href"),
-          onclick: e.getAttribute("onclick"),
-          dataId: e.getAttribute("data-id"),
-          dataHref: e.getAttribute("data-href") || e.getAttribute("data-url"),
-        }));
-        return { html: tr.innerHTML.replace(/\s+/g, " ").slice(0, 2000), links };
-      });
-      console.log("DIAG fila[0] links:", JSON.stringify(rowInfo.links));
-      console.log("DIAG fila[0] html:", rowInfo.html);
-
-      // Obtener el id interno de la orden y navegar al Panel Maestro
-      const orderId = await page.evaluate(() => {
-        const tr = window.jQuery("#mftable").DataTable().rows().nodes().toArray()[0];
-        const a = tr.querySelector("[data-order-id]");
-        return a ? a.getAttribute("data-order-id") : null;
-      });
-      const origin = new URL(page.url()).origin;
-      const panelUrl = `${origin}/MasterPanel/Order/${orderId}`;
-
-      // Capturar peticiones/respuestas a la API REST de Radar (radar-api.azurewebsites.net)
-      const apiReqs = [];
-      page.on("request", (req) => {
-        const u = req.url();
-        if (u.includes("radar-api.azurewebsites.net")) {
-          const h = req.headers();
-          apiReqs.push({ method: req.method(), url: u, authPrefix: (h.authorization || h.Authorization || "").slice(0, 18), headerKeys: Object.keys(h).join(",") });
-        }
-      });
-      const apiResp = [];
-      page.on("response", async (resp) => {
-        const u = resp.url();
-        if (!u.includes("radar-api.azurewebsites.net")) return;
-        try {
-          const body = await resp.text();
-          apiResp.push({ url: u, status: resp.status(), snippet: body.replace(/\s+/g, " ").slice(0, 700) });
-        } catch {}
-      });
-
-      console.log("DIAG navegando a panel maestro:", panelUrl);
-      await page.goto(panelUrl, { waitUntil: "networkidle", timeout: 60000 }).catch((e) => console.log("DIAG goto err:", e.message));
-      await page.waitForTimeout(4000);
-      console.log("DIAG panel URL:", page.url(), "| título:", await page.title());
-
-      // Hacer clic en las pestañas para disparar la carga de placas/serie/etc.
-      const tabNames = ["Vehículo", "Vehiculo", "Datos de reparación", "Datos de reparacion", "Información adicional", "Informacion adicional", "Aseguradora"];
-      for (const name of tabNames) {
-        const clicked = await page.evaluate((n) => {
-          const els = Array.from(document.querySelectorAll('a, [role="tab"], .nav-link, button'));
-          const el = els.find((e) => (e.textContent || "").trim().toLowerCase().includes(n.toLowerCase()));
-          if (el) { el.click(); return true; }
-          return false;
-        }, name);
-        if (clicked) await page.waitForTimeout(1500);
-      }
-      await page.waitForTimeout(2000);
-
-      console.log("DIAG API peticiones:", JSON.stringify([...new Map(apiReqs.map((r) => [r.url, r])).values()].slice(0, 25)));
-      console.log("DIAG API respuestas:", JSON.stringify([...new Map(apiResp.map((r) => [r.url, r])).values()].slice(0, 25)));
-    } catch (e) {
-      console.log("DIAG error:", e && e.message ? e.message : e);
-    }
-  }
 } catch (e) {
   console.error("✗ Error:", e && e.message ? e.message : e);
   try { console.error("  URL:", page.url()); } catch {}
