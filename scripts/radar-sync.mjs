@@ -166,31 +166,37 @@ try {
       console.log("DIAG fila[0] links:", JSON.stringify(rowInfo.links));
       console.log("DIAG fila[0] html:", rowInfo.html);
 
-      // Intentar abrir el detalle haciendo clic en el primer enlace de la fila
-      const before = page.url();
-      await page.evaluate(() => {
+      // Obtener el id interno de la orden y navegar al Panel Maestro
+      const orderId = await page.evaluate(() => {
         const tr = window.jQuery("#mftable").DataTable().rows().nodes().toArray()[0];
-        const a = tr.querySelector("a[href]:not([href='#']), a[onclick], button");
-        if (a) a.click();
+        const a = tr.querySelector("[data-order-id]");
+        return a ? a.getAttribute("data-order-id") : null;
       });
-      await page.waitForTimeout(4000);
-      console.log("DIAG URL detalle:", page.url(), "(antes:", before + ")");
+      const origin = new URL(page.url()).origin;
+      const panelUrl = `${origin}/MasterPanel/Order/${orderId}`;
+      console.log("DIAG navegando a panel maestro:", panelUrl);
+      await page.goto(panelUrl, { waitUntil: "networkidle", timeout: 60000 }).catch((e) => console.log("DIAG goto err:", e.message));
+      await page.waitForTimeout(3000);
+      console.log("DIAG panel URL:", page.url(), "| título:", await page.title());
 
       const det = await page.evaluate(() => {
         const KW = ["placa", "serie", "vin", "niv", "siniestro", "reporte", "folio", "póliza", "poliza", "aseguradora"];
         const hits = [];
-        const els = Array.from(document.querySelectorAll("label,th,td,span,div,strong,b,dt,dd,input"));
+        const els = Array.from(document.querySelectorAll("label,th,td,span,div,strong,b,dt,dd,input,p,small,h1,h2,h3,h4,h5"));
         for (const e of els) {
-          const t = (e.tagName === "INPUT" ? (e.previousElementSibling?.innerText || e.getAttribute("placeholder") || e.name || "") : (e.innerText || e.textContent || "")).toLowerCase();
+          const own = Array.from(e.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join(" ");
+          const t = (e.tagName === "INPUT" ? (e.previousElementSibling?.innerText || e.getAttribute("placeholder") || e.name || "") : own).toLowerCase();
           if (KW.some((k) => t.includes(k)) && t.length < 60) {
             const val = e.tagName === "INPUT" ? e.value : (e.nextElementSibling?.innerText || e.parentElement?.innerText || "");
-            hits.push({ tag: e.tagName, label: (e.innerText || e.name || e.getAttribute("placeholder") || "").replace(/\s+/g, " ").trim().slice(0, 40), val: (val || "").replace(/\s+/g, " ").trim().slice(0, 40) });
+            hits.push({ tag: e.tagName, label: (e.tagName === "INPUT" ? (e.name || e.getAttribute("placeholder")) : own).replace(/\s+/g, " ").trim().slice(0, 45), val: (val || "").replace(/\s+/g, " ").trim().slice(0, 45) });
           }
         }
-        return { title: document.title, hits: hits.slice(0, 40) };
+        const body = (document.body.innerText || "").replace(/\s+/g, " ").trim();
+        return { hits: hits.slice(0, 50), bodyLen: body.length, bodySlice: body.slice(0, 2500) };
       });
-      console.log("DIAG detalle título:", det.title);
-      console.log("DIAG detalle campos:", JSON.stringify(det.hits));
+      console.log("DIAG panel campos:", JSON.stringify(det.hits));
+      console.log("DIAG panel bodyLen:", det.bodyLen);
+      console.log("DIAG panel texto:", det.bodySlice);
     } catch (e) {
       console.log("DIAG error:", e && e.message ? e.message : e);
     }
