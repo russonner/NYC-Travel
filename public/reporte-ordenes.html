@@ -101,6 +101,9 @@
   .accion:hover{border-color:var(--line)} .accion:focus{outline:none;border-color:var(--accent);background:#fff}
   .accion[readonly]{cursor:default;background:transparent} .accion[readonly]:hover{border-color:transparent}
   td.accion-cell{background:var(--row-action);min-width:280px}
+  .placas-in{width:100%;min-width:90px;border:1px solid transparent;border-radius:6px;padding:5px 6px;font-size:12.5px;font-family:inherit;background:transparent;color:var(--ink)}
+  .placas-in:hover{border-color:var(--line)} .placas-in:focus{outline:none;border-color:var(--accent);background:#fff}
+  .placas-in[readonly]{cursor:default;border-color:transparent;background:transparent}
   select.resp,select.proc,select.est{border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff;max-width:170px}
   .proctag{display:inline-block;font-size:12.5px;font-weight:600;color:#334155;background:#eef2f7;border:1px solid var(--line);border-radius:6px;padding:4px 9px;white-space:nowrap}
   select.resp.none{color:#b91c1c;border-color:#fecaca;background:#fff5f5}
@@ -142,6 +145,10 @@
   .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
   .rowdel:hover{background:#fee2e2;border-radius:6px}
   body.rolmember .rowdel{display:none}  /* miembros no eliminan órdenes */
+  /* rol consulta (aseguradora): solo lectura, vista reducida */
+  body.rolconsulta #stats, body.rolconsulta #fResp, body.rolconsulta #fEst,
+  body.rolconsulta #btnMine, body.rolconsulta #btnBell, body.rolconsulta #tabTareas,
+  body.rolconsulta #meName, body.rolconsulta label:has(#meName){display:none}
   .empty{padding:40px;text-align:center;color:var(--muted)}
 
   .modal-bg{position:fixed;inset:0;background:rgba(15,20,30,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
@@ -234,13 +241,15 @@
 
     <div class="tablewrap">
       <table>
-        <thead><tr>
+        <thead><tr id="theadRow">
           <th class="sortable" data-k="no">No.</th>
           <th class="sortable" data-k="modelo">Modelo</th>
           <th class="sortable" data-k="color">Color</th>
           <th class="sortable" data-k="ordenante">Ordenante</th>
           <th class="sortable" data-k="proceso">Proceso Actual</th>
           <th class="sortable" data-k="refacc">Refacc.</th>
+          <th class="sortable" data-k="placas">Placas</th>
+          <th class="sortable" data-k="num_serie">No. Serie</th>
           <th class="sortable" data-k="dias">Días</th>
           <th class="sortable" data-k="accion">Acción a Tomar</th>
           <th class="sortable" data-k="responsables">Responsable(s)</th>
@@ -485,11 +494,30 @@ async function ensureProfile(user){
 }
 
 // Oculta controles de administrador para los miembros
+const COLS_CONSULTA = `
+  <th class="sortable" data-k="no">No.</th>
+  <th class="sortable" data-k="modelo">Modelo</th>
+  <th class="sortable" data-k="color">Color</th>
+  <th class="sortable" data-k="ordenante">Ordenante</th>
+  <th class="sortable" data-k="proceso">Proceso Actual</th>
+  <th class="sortable" data-k="refacc">Refacc.</th>
+  <th class="sortable" data-k="placas">Placas</th>
+  <th class="sortable" data-k="num_serie">No. Serie</th>
+  <th class="sortable" data-k="fecha_ingreso">Fecha ingreso</th>
+  <th class="sortable" data-k="ubicacion">Ubicación</th>`;
 function aplicarRol(){
   const admin = me.rol === "admin";
+  const consulta = me.rol === "consulta";
   document.body.classList.toggle("rolmember", !admin);
+  document.body.classList.toggle("rolconsulta", consulta);
   ["#btnAdd","#btnImport","#btnSyncNow","#btnNuevaTarea"].forEach(s=>{ const el=$(s); if(el) el.style.display = admin ? "" : "none"; });
   $("#tabAvance").style.display = admin ? "" : "none";   // dashboard solo dirección
+  if(consulta){
+    sortKey="no"; sortDir=1;   // "Días" no se muestra; ordena por No. de orden
+    const tr=$("#theadRow"); if(tr) tr.innerHTML = COLS_CONSULTA;
+    const h=document.querySelector("header.top h1"); if(h) h.textContent="REPORTE DE ÓRDENES — AXA · AUTO PLUS UNIVERSIDAD";
+    const qi=$("#q"); if(qi) qi.placeholder="Buscar: No., modelo, placas, serie…";
+  }
 }
 
 //// ====================== AVANCE (Dirección) ======================
@@ -584,10 +612,14 @@ $("#btnLogout").onclick=async()=>{ await sb.auth.signOut(); location.reload(); }
 
 //// ====================== DATOS ======================
 async function loadOrders(){
-  const [ordRes] = await Promise.all([
-    sb.from(TABLE).select("*").order("dias",{ascending:false}),
-    loadComments()
-  ]);
+  // El rol consulta (aseguradora) solo recibe las columnas permitidas; nunca se le
+  // envían días, acción, responsables, estatus ni notas.
+  const sel = me.rol==="consulta"
+    ? "id,no,modelo,color,ordenante,proceso,refacc,placas,num_serie,fecha_ingreso,ubicacion,subproceso,actualizado_radar"
+    : "*";
+  const tasks = [ sb.from(TABLE).select(sel).order("no",{ascending:true}) ];
+  if(me.rol!=="consulta") tasks.push(loadComments());
+  const [ordRes] = await Promise.all(tasks);
   if(ordRes.error){ console.error(ordRes.error); $("#meta").textContent="Error al cargar: "+ordRes.error.message; return; }
   orders = ordRes.data||[]; render();
 }
@@ -678,7 +710,7 @@ function editField(id, field, value){
   saveTimers[id+field]=setTimeout(async()=>{
     const {error}=await sb.from(TABLE).update({[field]:value}).eq("id",id);
     if(error){ alert("No se pudo guardar: "+error.message); loadOrders(); }
-  }, field==="accion"?600:0);
+  }, ["accion","placas","num_serie"].includes(field)?600:0);
 }
 
 //// ====================== RENDER ======================
@@ -697,7 +729,7 @@ function render(resort=false){
     if(fe && (o.estatus||"pendiente")!==fe) return false;
     if(cardFiltro==="abiertas" && o.estatus==="hecho") return false;
     if(cardFiltro==="atrasadas" && +o.dias<45) return false;
-    if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+    if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,o.placas,o.num_serie,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
   const ESTORD={pendiente:0,proceso:1,hecho:2};
@@ -727,6 +759,22 @@ function render(resort=false){
   rows.sort((a,b)=>(pos.get(a.id)??Infinity)-(pos.get(b.id)??Infinity));
   updateSortUI();
 
+  if(me.rol==="consulta"){   // vista de aseguradora: solo lectura, columnas reducidas
+    $("#tbody").innerHTML = rows.map(o=>`<tr data-id="${o.id}">
+      <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+      <td><span class="proctag">${esc(o.proceso||"")}</span></td>
+      <td class="num">${esc(o.refacc||"")}</td>
+      <td>${esc(o.placas||"")}</td>
+      <td>${esc(o.num_serie||"")}</td>
+      <td style="white-space:nowrap">${esc(o.fecha_ingreso||"")}</td>
+      <td>${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</td></tr>`).join("");
+    $("#empty").style.display=rows.length?"none":"block";
+    $("#meta").textContent=`Órdenes AXA: ${orders.length}`+(rows.length!==orders.length?` · Mostrando ${rows.length}`:"");
+    const lastC = orders.map(o=>o.actualizado_radar).filter(Boolean).sort().pop();
+    $("#updated").textContent = lastC? `Última actualización Radar: ${new Date(lastC).toLocaleString("es-MX")}` : "";
+    return;
+  }
+
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
     const resp=o.responsables||[];
@@ -737,6 +785,8 @@ function render(resort=false){
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
+      <td><input class="placas-in" data-f="placas" value="${esc(o.placas||"")}" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'—':''}"/></td>
+      <td><input class="placas-in" data-f="num_serie" value="${esc(o.num_serie||"")}" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'—':''}"/></td>
       <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
       <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'Clic para escribir…':''}">${esc(o.accion)}</textarea></td>
       <td>${respChips(resp)}</td>
@@ -931,8 +981,10 @@ $("#stats").addEventListener("click",e=>{
   if(b){ $("#q").value=""; $("#fProc").value=""; $("#fEst").value=""; onlyMine=false; cardFiltro=null;
     $("#btnMine").classList.remove("active"); $("#fResp").value=b.dataset.resp; render(); }
 });
-document.querySelectorAll("thead th.sortable").forEach(th=>th.addEventListener("click",()=>{
-  const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=(k==="dias"||k==="coments")?-1:1;} render(true); }));
+// delegación: el encabezado se reconstruye para el rol consulta, así que escuchamos en <thead>
+document.querySelector("thead").addEventListener("click",e=>{
+  const th=e.target.closest("th.sortable"); if(!th) return;
+  const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else {sortKey=k; sortDir=(k==="dias"||k==="coments")?-1:1;} render(true); });
 function updateSortUI(){
   document.querySelectorAll("thead th.sortable").forEach(th=>{
     const on=th.dataset.k===sortKey;
