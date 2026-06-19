@@ -252,6 +252,7 @@
           <th class="sortable" data-k="ordenante">Ordenante</th>
           <th class="sortable" data-k="proceso">Proceso Actual</th>
           <th class="sortable" data-k="refacc">Refacc.</th>
+          <th class="sortable" data-k="num_siniestro">No. Siniestro</th>
           <th class="sortable" data-k="placas">Placas</th>
           <th class="sortable" data-k="num_serie">No. Serie</th>
           <th class="sortable" data-k="dias">Días</th>
@@ -388,7 +389,7 @@ let telefonos = {};            // nombre -> teléfono (para WhatsApp)
 let comCtx = null;             // contexto de comentarios {kind:'orden'|'tarea', id}
 const MEN_TABLE = "seguimiento_menciones";
 const TAR_TABLE = "seguimiento_tareas";
-let me = {nombre:"", email:"", id:null, rol:"miembro"};
+let me = {nombre:"", email:"", id:null, rol:"miembro", aseguradora:""};
 let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false, cardFiltro=null;
 let displayOrder=[];   // ids en el orden mostrado; solo se recalcula al ordenar/cargar, nunca al actualizar
 
@@ -492,9 +493,9 @@ function refreshMe(){
 
 async function ensureProfile(user){
   const nombre = user.user_metadata?.nombre || "";
-  const {data} = await sb.from("seguimiento_perfiles").select("nombre, rol").eq("id",user.id).maybeSingle();
-  if(!data){ await sb.from("seguimiento_perfiles").insert({id:user.id, nombre}); me.nombre=nombre; me.rol="miembro"; }
-  else { me.nombre = data.nombre || nombre; me.rol = data.rol || "miembro"; }
+  const {data} = await sb.from("seguimiento_perfiles").select("nombre, rol, aseguradora").eq("id",user.id).maybeSingle();
+  if(!data){ await sb.from("seguimiento_perfiles").insert({id:user.id, nombre}); me.nombre=nombre; me.rol="miembro"; me.aseguradora=""; }
+  else { me.nombre = data.nombre || nombre; me.rol = data.rol || "miembro"; me.aseguradora = data.aseguradora || ""; }
 }
 
 // Oculta controles de administrador para los miembros
@@ -505,6 +506,7 @@ const COLS_CONSULTA = `
   <th class="sortable" data-k="ordenante">Ordenante</th>
   <th class="sortable" data-k="proceso">Proceso Actual</th>
   <th class="sortable" data-k="refacc">Refacc.</th>
+  <th class="sortable" data-k="num_siniestro">No. Siniestro</th>
   <th class="sortable" data-k="placas">Placas</th>
   <th class="sortable" data-k="num_serie">No. Serie</th>
   <th class="sortable" data-k="fecha_ingreso">Fecha ingreso</th>
@@ -519,7 +521,7 @@ function aplicarRol(){
   if(consulta){
     sortKey="no"; sortDir=1;   // "Días" no se muestra; ordena por No. de orden
     const tr=$("#theadRow"); if(tr) tr.innerHTML = COLS_CONSULTA;
-    const h=document.querySelector("header.top h1"); if(h) h.textContent="REPORTE DE ÓRDENES — AXA · AUTO PLUS UNIVERSIDAD";
+    const h=document.querySelector("header.top h1"); if(h) h.textContent=`REPORTE DE ÓRDENES — ${(me.aseguradora||"AXA").toUpperCase()} · AUTO PLUS UNIVERSIDAD`;
     const qi=$("#q"); if(qi) qi.placeholder="Buscar: No., modelo, placas, serie…";
   }
 }
@@ -619,7 +621,7 @@ async function loadOrders(){
   // El rol consulta (aseguradora) solo recibe las columnas permitidas; nunca se le
   // envían días, acción, responsables, estatus ni notas.
   const sel = me.rol==="consulta"
-    ? "id,no,modelo,color,ordenante,proceso,refacc,placas,num_serie,fecha_ingreso,ubicacion,subproceso,actualizado_radar"
+    ? "id,no,modelo,color,ordenante,proceso,refacc,num_siniestro,placas,num_serie,fecha_ingreso,ubicacion,subproceso,actualizado_radar"
     : "*";
   const tasks = [ sb.from(TABLE).select(sel).order("no",{ascending:true}) ];
   if(me.rol!=="consulta") tasks.push(loadComments());
@@ -714,7 +716,16 @@ function editField(id, field, value){
   saveTimers[id+field]=setTimeout(async()=>{
     const {error}=await sb.from(TABLE).update({[field]:value}).eq("id",id);
     if(error){ alert("No se pudo guardar: "+error.message); loadOrders(); }
-  }, ["accion","placas","num_serie"].includes(field)?600:0);
+  }, ["accion","placas","num_serie","num_siniestro","fecha_ingreso"].includes(field)?600:0);
+}
+// El rol consulta (aseguradora) guarda vía función segura, acotada a sus campos y sus órdenes
+function editFieldConsulta(id, field, value){
+  const o = orders.find(x=>x.id===id); if(o) o[field]=value;     // optimista
+  clearTimeout(saveTimers[id+field]);
+  saveTimers[id+field]=setTimeout(async()=>{
+    const {error}=await sb.rpc("aseguradora_set",{p_id:id,p_field:field,p_value:value});
+    if(error){ alert("No se pudo guardar: "+error.message); loadOrders(); }
+  }, 600);
 }
 
 //// ====================== RENDER ======================
@@ -763,25 +774,30 @@ function render(resort=false){
   rows.sort((a,b)=>(pos.get(a.id)??Infinity)-(pos.get(b.id)??Infinity));
   updateSortUI();
 
-  if(me.rol==="consulta"){   // vista de aseguradora: solo lectura, columnas reducidas
-    const total=orders.length;
-    const listas=orders.filter(o=>o.proceso==="Listo para entrega").length;
+  if(me.rol==="consulta"){   // vista de aseguradora: columnas reducidas, captura acotada
+    // defensa adicional: además de la RLS, solo mostramos las de su aseguradora
+    if(me.aseguradora){ const a=me.aseguradora.toLowerCase(); rows=rows.filter(o=>(o.ordenante||"").toLowerCase().includes(a)); }
+    const aseg=(me.aseguradora||"AXA").toUpperCase();
+    const total=rows.length;
+    const listas=rows.filter(o=>o.proceso==="Listo para entrega").length;
     const enProceso=total-listas;
     $("#consultaResumen").style.display="";
     $("#consultaResumen").innerHTML=`
       <div class="card"><div class="n">${enProceso}</div><div class="l">🔧 Unidades en proceso</div></div>
       <div class="card"><div class="n" style="color:#16a34a">${listas}</div><div class="l">✅ Listas para entrega</div></div>
-      <div class="card"><div class="n">${total}</div><div class="l">📋 Total de unidades AXA</div></div>`;
+      <div class="card"><div class="n">${total}</div><div class="l">📋 Total de unidades ${esc(aseg)}</div></div>`;
+    const cIn=(o,f)=>`<input class="placas-in" data-f="${f}" value="${esc(o[f]||"")}" placeholder="—"/>`;
     $("#tbody").innerHTML = rows.map(o=>`<tr data-id="${o.id}">
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span></td>
       <td class="num">${esc(o.refacc||"")}</td>
-      <td>${esc(o.placas||"")}</td>
-      <td>${esc(o.num_serie||"")}</td>
-      <td style="white-space:nowrap">${esc(o.fecha_ingreso||"")}</td>
+      <td>${cIn(o,"num_siniestro")}</td>
+      <td>${cIn(o,"placas")}</td>
+      <td>${cIn(o,"num_serie")}</td>
+      <td>${cIn(o,"fecha_ingreso")}</td>
       <td>${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</td></tr>`).join("");
     $("#empty").style.display=rows.length?"none":"block";
-    $("#meta").textContent=`Órdenes AXA: ${orders.length}`+(rows.length!==orders.length?` · Mostrando ${rows.length}`:"");
+    $("#meta").textContent=`Órdenes ${esc(aseg)}: ${rows.length}`;
     const lastC = orders.map(o=>o.actualizado_radar).filter(Boolean).sort().pop();
     $("#updated").textContent = lastC? `Última actualización Radar: ${new Date(lastC).toLocaleString("es-MX")}` : "";
     return;
@@ -797,6 +813,7 @@ function render(resort=false){
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
+      <td><input class="placas-in" data-f="num_siniestro" value="${esc(o.num_siniestro||"")}" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'—':''}"/></td>
       <td><input class="placas-in" data-f="placas" value="${esc(o.placas||"")}" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'—':''}"/></td>
       <td><input class="placas-in" data-f="num_serie" value="${esc(o.num_serie||"")}" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'—':''}"/></td>
       <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
@@ -845,7 +862,9 @@ function autosize(t){ t.style.height="auto"; t.style.height=Math.max(34,t.scroll
 $("#tbody").addEventListener("focusin",()=>editing=true);
 $("#tbody").addEventListener("focusout",()=>{ editing=false; if(pendingReload){pendingReload=false; loadOrders();} });
 $("#tbody").addEventListener("input", e=>{ const f=e.target.dataset.f; if(!f) return;
-  const id=+e.target.closest("tr").dataset.id; editField(id,f,e.target.value); if(f==="accion") autosize(e.target); });
+  const id=+e.target.closest("tr").dataset.id;
+  if(me.rol==="consulta") editFieldConsulta(id,f,e.target.value);
+  else { editField(id,f,e.target.value); if(f==="accion") autosize(e.target); } });
 $("#tbody").addEventListener("change", e=>{
   if(e.target.classList.contains("addresp")){          // agregar responsable
     const name=e.target.value; if(!name) return;
@@ -1132,11 +1151,11 @@ $("#expCopy").onclick=async()=>{ await navigator.clipboard.writeText(JSON.string
 $("#expCSV").onclick=()=>{
   const consulta = me.rol==="consulta";
   const cols = consulta
-    ? ["no","modelo","color","ordenante","proceso","refacc","placas","num_serie","fecha_ingreso","ubicacion"]
-    : ["no","modelo","color","ordenante","proceso","subproceso","ubicacion","refacc","dias","fecha_ingreso","fecha_promesa","accion","responsables","estatus"];
+    ? ["no","modelo","color","ordenante","proceso","refacc","num_siniestro","placas","num_serie","fecha_ingreso","ubicacion"]
+    : ["no","modelo","color","ordenante","proceso","subproceso","ubicacion","refacc","num_siniestro","placas","num_serie","dias","fecha_ingreso","fecha_promesa","accion","responsables","estatus"];
   const head = consulta
-    ? ["No.","Modelo","Color","Ordenante","Proceso Actual","Refacc.","Placas","No. Serie","Fecha ingreso","Ubicación"]
-    : ["No.","Modelo","Color","Ordenante","Proceso Actual","Subproceso","Ubicación","Refacc.","Días","Fecha ingreso","Fecha promesa","Acción a Tomar","Responsable(s)","Tarea"];
+    ? ["No.","Modelo","Color","Ordenante","Proceso Actual","Refacc.","No. Siniestro","Placas","No. Serie","Fecha ingreso","Ubicación"]
+    : ["No.","Modelo","Color","Ordenante","Proceso Actual","Subproceso","Ubicación","Refacc.","No. Siniestro","Placas","No. Serie","Días","Fecha ingreso","Fecha promesa","Acción a Tomar","Responsable(s)","Tarea"];
   const q=s=>`"${String(s==null?"":s).replace(/"/g,'""')}"`;
   const cell=(o,c)=> c==="responsables" ? (o.responsables||[]).join(" / ") : o[c];
   const csv=[head.map(q).join(",")].concat(orders.map(o=>cols.map(c=>q(cell(o,c))).join(","))).join("\r\n");
