@@ -36,3 +36,4 @@ jobs:
           RADAR_INGEST_TOKEN: ${{ secrets.RADAR_INGEST_TOKEN }}
           SUPABASE_FN_URL: "https://rrxakcjuykyoxzdfgthg.supabase.co/functions/v1/radar-ingest"
           SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeGFrY2p1eWt5b3h6ZGZndGhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMjA4NjUsImV4cCI6MjA5MzY5Njg2NX0.K5TPot2ATsFqL3jkYPODbXwr8i9OQmjgD5lNi-l5CyI"
+          RADAR_DIAG: "1"   # TEMPORAL: explora el detalle de una orden para ubicar placas/serie/siniestro

@@ -145,6 +145,56 @@ try {
   console.log("→ Respuesta del receptor:", res.status, txt);
   if (!res.ok) process.exit(1);
   console.log("✓ Sincronización completa.");
+
+  // DIAGNÓSTICO TEMPORAL: explorar el detalle de la primera orden para ubicar
+  // placas / serie / siniestro (Radar no las muestra en la lista).
+  if (process.env.RADAR_DIAG === "1") {
+    try {
+      const rowInfo = await page.evaluate(() => {
+        const $ = window.jQuery;
+        const tr = $("#mftable").DataTable().rows().nodes().toArray()[0];
+        const links = Array.from(tr.querySelectorAll("a,button,[onclick],[data-href],[data-url],[data-id]")).map((e) => ({
+          tag: e.tagName,
+          text: (e.innerText || e.textContent || "").replace(/\s+/g, " ").trim().slice(0, 30),
+          href: e.getAttribute("href"),
+          onclick: e.getAttribute("onclick"),
+          dataId: e.getAttribute("data-id"),
+          dataHref: e.getAttribute("data-href") || e.getAttribute("data-url"),
+        }));
+        return { html: tr.innerHTML.replace(/\s+/g, " ").slice(0, 2000), links };
+      });
+      console.log("DIAG fila[0] links:", JSON.stringify(rowInfo.links));
+      console.log("DIAG fila[0] html:", rowInfo.html);
+
+      // Intentar abrir el detalle haciendo clic en el primer enlace de la fila
+      const before = page.url();
+      await page.evaluate(() => {
+        const tr = window.jQuery("#mftable").DataTable().rows().nodes().toArray()[0];
+        const a = tr.querySelector("a[href]:not([href='#']), a[onclick], button");
+        if (a) a.click();
+      });
+      await page.waitForTimeout(4000);
+      console.log("DIAG URL detalle:", page.url(), "(antes:", before + ")");
+
+      const det = await page.evaluate(() => {
+        const KW = ["placa", "serie", "vin", "niv", "siniestro", "reporte", "folio", "póliza", "poliza", "aseguradora"];
+        const hits = [];
+        const els = Array.from(document.querySelectorAll("label,th,td,span,div,strong,b,dt,dd,input"));
+        for (const e of els) {
+          const t = (e.tagName === "INPUT" ? (e.previousElementSibling?.innerText || e.getAttribute("placeholder") || e.name || "") : (e.innerText || e.textContent || "")).toLowerCase();
+          if (KW.some((k) => t.includes(k)) && t.length < 60) {
+            const val = e.tagName === "INPUT" ? e.value : (e.nextElementSibling?.innerText || e.parentElement?.innerText || "");
+            hits.push({ tag: e.tagName, label: (e.innerText || e.name || e.getAttribute("placeholder") || "").replace(/\s+/g, " ").trim().slice(0, 40), val: (val || "").replace(/\s+/g, " ").trim().slice(0, 40) });
+          }
+        }
+        return { title: document.title, hits: hits.slice(0, 40) };
+      });
+      console.log("DIAG detalle título:", det.title);
+      console.log("DIAG detalle campos:", JSON.stringify(det.hits));
+    } catch (e) {
+      console.log("DIAG error:", e && e.message ? e.message : e);
+    }
+  }
 } catch (e) {
   console.error("✗ Error:", e && e.message ? e.message : e);
   try { console.error("  URL:", page.url()); } catch {}
