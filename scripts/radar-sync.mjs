@@ -180,23 +180,33 @@ try {
       console.log("DIAG panel URL:", page.url(), "| título:", await page.title());
 
       const det = await page.evaluate(() => {
-        const KW = ["placa", "serie", "vin", "niv", "siniestro", "reporte", "folio", "póliza", "poliza", "aseguradora"];
-        const hits = [];
-        const els = Array.from(document.querySelectorAll("label,th,td,span,div,strong,b,dt,dd,input,p,small,h1,h2,h3,h4,h5"));
-        for (const e of els) {
-          const own = Array.from(e.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join(" ");
-          const t = (e.tagName === "INPUT" ? (e.previousElementSibling?.innerText || e.getAttribute("placeholder") || e.name || "") : own).toLowerCase();
-          if (KW.some((k) => t.includes(k)) && t.length < 60) {
-            const val = e.tagName === "INPUT" ? e.value : (e.nextElementSibling?.innerText || e.parentElement?.innerText || "");
-            hits.push({ tag: e.tagName, label: (e.tagName === "INPUT" ? (e.name || e.getAttribute("placeholder")) : own).replace(/\s+/g, " ").trim().slice(0, 45), val: (val || "").replace(/\s+/g, " ").trim().slice(0, 45) });
+        const KW = ["placa", "serie", "vin", "niv", "siniestro", "reporte", "folio", "póliza", "poliza", "aseguradora", "número de sistema externo", "valuadora externo", "color", "modelo"];
+        // textContent incluye pestañas ocultas (innerText no)
+        const full = (document.body.textContent || "").replace(/\s+/g, " ").trim();
+        const contexts = [];
+        for (const k of KW) {
+          let i = full.toLowerCase().indexOf(k);
+          let guard = 0;
+          while (i !== -1 && guard < 4) {
+            contexts.push(full.slice(Math.max(0, i - 5), i + 70));
+            i = full.toLowerCase().indexOf(k, i + k.length);
+            guard++;
           }
         }
-        const body = (document.body.innerText || "").replace(/\s+/g, " ").trim();
-        return { hits: hits.slice(0, 50), bodyLen: body.length, bodySlice: body.slice(0, 2500) };
+        // También: pares etiqueta→valor en filas del panel (dt/dd, .info-label, etc.)
+        const pairs = [];
+        document.querySelectorAll("*").forEach((e) => {
+          const own = Array.from(e.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join(" ").replace(/\s+/g, " ").trim();
+          if (/plac|serie|vin|niv|siniestro|fol|poliz|póliz|asegurad/i.test(own) && own.length < 50) {
+            const sib = (e.nextElementSibling?.textContent || "").replace(/\s+/g, " ").trim();
+            pairs.push({ tag: e.tagName, cls: (e.className || "").toString().slice(0, 30), label: own.slice(0, 40), sib: sib.slice(0, 40) });
+          }
+        });
+        return { contexts: [...new Set(contexts)].slice(0, 40), pairs: pairs.slice(0, 40), fullLen: full.length };
       });
-      console.log("DIAG panel campos:", JSON.stringify(det.hits));
-      console.log("DIAG panel bodyLen:", det.bodyLen);
-      console.log("DIAG panel texto:", det.bodySlice);
+      console.log("DIAG panel fullLen:", det.fullLen);
+      console.log("DIAG panel contextos:", JSON.stringify(det.contexts));
+      console.log("DIAG panel pares:", JSON.stringify(det.pairs));
     } catch (e) {
       console.log("DIAG error:", e && e.message ? e.message : e);
     }
