@@ -226,6 +226,7 @@
     </div>
     <div id="viewTablero">
     <div class="stats" id="stats"></div>
+    <div class="stats" id="consultaResumen" style="display:none"></div>
 
     <div class="toolbar">
       <input type="search" id="q" placeholder="Buscar: No., modelo, ordenante, acción…" />
@@ -762,6 +763,14 @@ function render(resort=false){
   updateSortUI();
 
   if(me.rol==="consulta"){   // vista de aseguradora: solo lectura, columnas reducidas
+    const total=orders.length;
+    const listas=orders.filter(o=>o.proceso==="Listo para entrega").length;
+    const enProceso=total-listas;
+    $("#consultaResumen").style.display="";
+    $("#consultaResumen").innerHTML=`
+      <div class="card"><div class="n">${enProceso}</div><div class="l">🔧 Unidades en proceso</div></div>
+      <div class="card"><div class="n" style="color:#16a34a">${listas}</div><div class="l">✅ Listas para entrega</div></div>
+      <div class="card"><div class="n">${total}</div><div class="l">📋 Total de unidades AXA</div></div>`;
     $("#tbody").innerHTML = rows.map(o=>`<tr data-id="${o.id}">
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span></td>
