@@ -390,7 +390,7 @@ let comCtx = null;             // contexto de comentarios {kind:'orden'|'tarea',
 const MEN_TABLE = "seguimiento_menciones";
 const TAR_TABLE = "seguimiento_tareas";
 let me = {nombre:"", email:"", id:null, rol:"miembro", aseguradora:""};
-let sortKey="dias", sortDir=-1, onlyMine=false, editing=false, pendingReload=false, cardFiltro=null;
+let sortKey="no", sortDir=1, onlyMine=false, editing=false, pendingReload=false, cardFiltro=null;
 let displayOrder=[];   // ids en el orden mostrado; solo se recalcula al ordenar/cargar, nunca al actualizar
 
 //// ====================== AUTH ======================
@@ -787,15 +787,14 @@ function render(resort=false){
       <div class="card"><div class="n">${enProceso}</div><div class="l">🔧 Unidades en proceso</div></div>
       <div class="card"><div class="n" style="color:#16a34a">${listas}</div><div class="l">✅ Listas para entrega</div></div>
       <div class="card"><div class="n">${total}</div><div class="l">📋 Total de unidades ${esc(aseg)}</div></div>`;
-    const cIn=(o,f)=>`<input class="placas-in" data-f="${f}" value="${esc(o[f]||"")}" placeholder="—"/>`;
     $("#tbody").innerHTML = rows.map(o=>`<tr data-id="${o.id}">
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span></td>
       <td class="num">${esc(o.refacc||"")}</td>
-      <td>${cIn(o,"num_siniestro")}</td>
-      <td>${cIn(o,"placas")}</td>
-      <td>${cIn(o,"num_serie")}</td>
-      <td>${cIn(o,"fecha_ingreso")}</td>
+      <td>${esc(o.num_siniestro||"")}</td>
+      <td>${esc(o.placas||"")}</td>
+      <td>${esc(o.num_serie||"")}</td>
+      <td>${esc(o.fecha_ingreso||"")}</td>
       <td>${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</td></tr>`).join("");
     $("#empty").style.display=rows.length?"none":"block";
     $("#meta").textContent=`Órdenes ${esc(aseg)}: ${rows.length}`;
@@ -804,6 +803,8 @@ function render(resort=false){
     return;
   }
 
+  // "Acción a Tomar" solo la pueden editar Adrian o Alejandro Martinez
+  const puedeAccion = ["adrian","adrián","alejandro martinez","alejandro martínez"].includes((me.nombre||"").trim().toLowerCase());
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
     const resp=o.responsables||[];
@@ -814,11 +815,11 @@ function render(resort=false){
       <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
-      <td><input class="placas-in" data-f="num_siniestro" value="${esc(o.num_siniestro||"")}" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'—':''}"/></td>
-      <td><input class="placas-in" data-f="placas" value="${esc(o.placas||"")}" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'—':''}"/></td>
-      <td><input class="placas-in" data-f="num_serie" value="${esc(o.num_serie||"")}" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'—':''}"/></td>
+      <td>${esc(o.num_siniestro||"")}</td>
+      <td>${esc(o.placas||"")}</td>
+      <td>${esc(o.num_serie||"")}</td>
       <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
-      <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" ${me.rol==='admin'?'':'readonly'} placeholder="${me.rol==='admin'?'Clic para escribir…':''}">${esc(o.accion)}</textarea></td>
+      <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" ${puedeAccion?'':'readonly'} placeholder="${puedeAccion?'Clic para escribir…':''}">${esc(o.accion)}</textarea></td>
       <td>${respChips(resp)}</td>
       <td><select class="est" data-f="estatus" style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
       <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
