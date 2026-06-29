@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/sura", "destination": "/reporte-ordenes.html" },
+    { "source": "/axa", "destination": "/reporte-ordenes.html" }
+  ]
+}

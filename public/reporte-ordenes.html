@@ -151,6 +151,11 @@
   body.rolconsulta #meName, body.rolconsulta label:has(#meName),
   body.rolconsulta .tabs, body.rolconsulta #q, body.rolconsulta #fProc,
   body.rolconsulta #btnPrint{display:none}
+  /* rol supervisor (aseguradora con edición): tablero completo, pero sin controles internos */
+  body.rolsupervisor #stats, body.rolsupervisor #btnBell, body.rolsupervisor #tabTareas,
+  body.rolsupervisor #meName, body.rolsupervisor label:has(#meName),
+  body.rolsupervisor #btnMine, body.rolsupervisor #btnAdd,
+  body.rolsupervisor #btnImport, body.rolsupervisor #btnSyncNow{display:none}
   .empty{padding:40px;text-align:center;color:var(--muted)}
 
   .modal-bg{position:fixed;inset:0;background:rgba(15,20,30,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
@@ -182,7 +187,7 @@
     <div class="authmsg" id="authMsg"></div>
 
     <form id="formLogin">
-      <div class="field"><label>Correo</label><input type="email" id="loginEmail" autocomplete="username" required></div>
+      <div class="field"><label>Usuario o correo</label><input type="text" id="loginEmail" autocomplete="username" required></div>
       <div class="field"><label>Contraseña</label><input type="password" id="loginPass" autocomplete="current-password" required></div>
       <button class="primary" type="submit" style="width:100%">Entrar</button>
     </form>
@@ -376,6 +381,15 @@ const EST = {pendiente:{l:"Pendiente",bg:"#fef9c3",fg:"#854d0e"},proceso:{l:"En 
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = s=>document.querySelector(s);
+const PORTAL_DOMAIN = "portal.autoplusmx.com";   // dominio interno para usuarios de portal (login por usuario)
+// Marca el portal según la URL: /sura o /axa muestran branding de la aseguradora en el login
+(function(){
+  const m = location.pathname.toLowerCase().match(/\/(sura|axa)\b/);
+  if(!m) return;
+  const ins = m[1].toUpperCase();
+  const h=document.querySelector(".authcard h1"); if(h) h.textContent=`Portal Supervisores — ${ins}`;
+  const p=document.querySelector(".authcard .lead"); if(p) p.textContent=`Acceso para supervisores de ${ins} — Auto Plus Universidad`;
+})();
 const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
 
@@ -407,7 +421,9 @@ function switchAuth(login){
 
 $("#formLogin").addEventListener("submit", async e=>{
   e.preventDefault(); authMsg("Entrando…","info");
-  const {error} = await sb.auth.signInWithPassword({email:$("#loginEmail").value.trim(), password:$("#loginPass").value});
+  let email=$("#loginEmail").value.trim();
+  if(email && !email.includes("@")) email += "@"+PORTAL_DOMAIN;   // login por usuario (p. ej. netzelsura)
+  const {error} = await sb.auth.signInWithPassword({email, password:$("#loginPass").value});
   if(error){ authMsg(traducirError(error.message),"err"); }
 });
 
@@ -514,8 +530,10 @@ const COLS_CONSULTA = `
 function aplicarRol(){
   const admin = me.rol === "admin";
   const consulta = me.rol === "consulta";
+  const supervisor = me.rol === "supervisor";
   document.body.classList.toggle("rolmember", !admin);
   document.body.classList.toggle("rolconsulta", consulta);
+  document.body.classList.toggle("rolsupervisor", supervisor);
   ["#btnAdd","#btnImport","#btnNuevaTarea"].forEach(s=>{ const el=$(s); if(el) el.style.display = admin ? "" : "none"; });
   const bs=$("#btnSyncNow"); if(bs) bs.style.display="none";   // reemplazado por "Actualizar" (btnRefresh), disponible a todos
   $("#tabAvance").style.display = admin ? "" : "none";   // dashboard solo dirección
@@ -524,6 +542,11 @@ function aplicarRol(){
     const tr=$("#theadRow"); if(tr) tr.innerHTML = COLS_CONSULTA;
     const h=document.querySelector("header.top h1"); if(h) h.textContent=`REPORTE DE ÓRDENES — ${(me.aseguradora||"AXA").toUpperCase()} · AUTO PLUS UNIVERSIDAD`;
     const qi=$("#q"); if(qi) qi.placeholder="Buscar: No., modelo, placas, serie…";
+  }
+  if(supervisor){
+    // Tablero completo (Acción/Responsable/Tarea/Comentarios) pero filtrado por su aseguradora vía RLS
+    sortKey="no"; sortDir=1;
+    const h=document.querySelector("header.top h1"); if(h) h.textContent=`REPORTE DE ÓRDENES — ${(me.aseguradora||"SURA").toUpperCase()} · AUTO PLUS UNIVERSIDAD`;
   }
 }
 
@@ -803,8 +826,8 @@ function render(resort=false){
     return;
   }
 
-  // "Acción a Tomar" solo la pueden editar Adrian o Alejandro Martinez
-  const puedeAccion = ["adrian","adrián","alejandro martinez","alejandro martínez"].includes((me.nombre||"").trim().toLowerCase());
+  // "Acción a Tomar" la pueden editar Adrian, Alejandro Martinez o los supervisores (p. ej. SURA)
+  const puedeAccion = me.rol==="supervisor" || ["adrian","adrián","alejandro martinez","alejandro martínez"].includes((me.nombre||"").trim().toLowerCase());
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
     const resp=o.responsables||[];
