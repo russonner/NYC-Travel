@@ -151,8 +151,8 @@
   body.rolconsulta #meName, body.rolconsulta label:has(#meName),
   body.rolconsulta .tabs, body.rolconsulta #q, body.rolconsulta #fProc,
   body.rolconsulta #btnPrint{display:none}
-  /* rol supervisor (aseguradora con edición): tablero completo, pero sin controles internos */
-  body.rolsupervisor #stats, body.rolsupervisor #btnBell, body.rolsupervisor #tabTareas,
+  /* rol supervisor (aseguradora con edición): tablero completo con indicadores, sin controles internos */
+  body.rolsupervisor #btnBell, body.rolsupervisor #tabTareas,
   body.rolsupervisor #meName, body.rolsupervisor label:has(#meName),
   body.rolsupervisor #btnMine, body.rolsupervisor #btnAdd,
   body.rolsupervisor #btnImport, body.rolsupervisor #btnSyncNow{display:none}
@@ -865,6 +865,22 @@ function respChips(resp){
 }
 
 function renderStats(){
+  // Supervisor (aseguradora): indicadores propios y clic = filtro por estatus
+  if(me.rol==="supervisor"){
+    const total=orders.length;
+    const pend=orders.filter(x=>(x.estatus||"pendiente")==="pendiente").length;
+    const proc=orders.filter(x=>x.estatus==="proceso").length;
+    const hecho=orders.filter(x=>x.estatus==="hecho").length;
+    const entrega=orders.filter(x=>x.proceso==="Listo para entrega").length;
+    const aseg=(me.aseguradora||"SURA").toUpperCase();
+    $("#stats").innerHTML=`
+      <div class="card clic" data-card="todas"><div class="n">${total}</div><div class="l">📋 Total ${esc(aseg)}</div></div>
+      <div class="card warn clic" data-card="est-pendiente"><div class="n">${pend}</div><div class="l">Tareas pendientes</div></div>
+      <div class="card clic" data-card="est-proceso"><div class="n">${proc}</div><div class="l">En proceso</div></div>
+      <div class="card ok clic" data-card="est-hecho"><div class="n">${hecho}</div><div class="l">Hechas</div></div>
+      <div class="card ok clic" data-card="entrega"><div class="n">${entrega}</div><div class="l">Listas para entrega</div></div>`;
+    return;
+  }
   const sinResp=orders.filter(x=>!(x.responsables||[]).length).length;
   const atras=orders.filter(x=>+x.dias>=45).length;
   const pend=orders.filter(x=>(x.estatus||"pendiente")!=="hecho").length;
@@ -1027,6 +1043,9 @@ function aplicarTarjeta(tipo){
   else if(tipo==="atrasadas") cardFiltro="atrasadas";
   else if(tipo==="sinresp") $("#fResp").value="__none__";
   else if(tipo==="entrega") $("#fProc").value="Listo para entrega";
+  else if(tipo==="est-pendiente") $("#fEst").value="pendiente";
+  else if(tipo==="est-proceso") $("#fEst").value="proceso";
+  else if(tipo==="est-hecho") $("#fEst").value="hecho";
   $("#btnMine").classList.toggle("active",onlyMine);
   render();
 }
