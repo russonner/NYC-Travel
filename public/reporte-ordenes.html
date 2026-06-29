@@ -546,7 +546,8 @@ function aplicarRol(){
   if(supervisor){
     // Tablero completo (Acción/Responsable/Tarea/Comentarios) pero filtrado por su aseguradora vía RLS
     sortKey="no"; sortDir=1;
-    const h=document.querySelector("header.top h1"); if(h) h.textContent=`REPORTE DE ÓRDENES — ${(me.aseguradora||"SURA").toUpperCase()} · AUTO PLUS UNIVERSIDAD`;
+    const nombre=(me.nombre||"").trim().split(/\s+/)[0]||"Bienvenido";
+    const h=document.querySelector("header.top h1"); if(h) h.textContent=`${nombre}, bienvenido al Reporte de Estatus de Órdenes de Auto Plus`;
   }
 }
 
