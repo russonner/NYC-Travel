@@ -1071,20 +1071,29 @@ function updateSortUI(){
 $("#btnMine").onclick=()=>{ onlyMine=!onlyMine; $("#btnMine").classList.toggle("active",onlyMine); render(); };
 $("#btnPrint").onclick=()=>window.print();
 
-// Botón "Actualizar": jala de Radar (robot) y recarga — disponible para TODOS los roles
+// Botón "Actualizar":
+//  - Roles internos (admin/miembro): lanza el robot de Radar y recarga.
+//  - Roles externos (consulta/supervisor, p. ej. AXA/SURA): SOLO recarga los datos
+//    actuales (no deben disparar el robot; además evita el 404 fuera de este dominio).
 async function dispararRadar(b){
-  const orig=b.textContent; b.disabled=true; b.textContent="🔄 Solicitando…";
+  const orig=b.textContent; b.disabled=true;
+  const soloRecarga = (me.rol==="consulta" || me.rol==="supervisor");
   try{
-    const r=await fetch("/api/radar-sync",{method:"POST"});
-    const d=await r.json().catch(()=>({}));
-    if(r.ok && d.ok){
-      b.textContent="🔄 Actualizando desde Radar…";
-      alert("✅ Listo, se está trayendo la información de Radar.\nEl tablero se actualizará solo en ~1 minuto (deja esta página abierta).");
-    }else{
+    if(!soloRecarga){
+      b.textContent="🔄 Solicitando…";
+      const r=await fetch("/api/radar-sync",{method:"POST"});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok && d.ok){
+        b.textContent="🔄 Actualizando desde Radar…";
+        alert("✅ Listo, se está trayendo la información de Radar.\nEl tablero se actualizará solo en ~1 minuto (deja esta página abierta).");
+      }else{
+        b.textContent="🔄 Recargando…";
+        alert("No se pudo lanzar la sincronización con Radar:\n"+(d.error||("error "+r.status))+"\n\nMientras tanto recargo la información actual.");
+      }
+    } else {
       b.textContent="🔄 Recargando…";
-      alert("No se pudo lanzar la sincronización con Radar:\n"+(d.error||("error "+r.status))+"\n\nMientras tanto recargo la información actual.");
     }
-  }catch(e){ alert("Error de conexión: "+e); }
+  }catch(e){ if(!soloRecarga) alert("Error de conexión: "+e); }
   try{ await loadOrders(); if(me.rol!=="consulta"){ await loadMenciones(); loadTareas(); } }catch(e){ console.error(e); }
   b.textContent="✅ Actualizado";
   setTimeout(()=>{ b.disabled=false; b.textContent=orig; }, 3000);
