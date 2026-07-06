@@ -145,6 +145,15 @@
   .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
   .rowdel:hover{background:#fee2e2;border-radius:6px}
   body.rolmember .rowdel{display:none}  /* miembros no eliminan órdenes */
+  /* Orden bloqueada (p. ej. por Valuación): fila roja, nadie puede trabajarla */
+  tr.bloqueada{opacity:1 !important}
+  tr.bloqueada > td{background:#fee2e2 !important}
+  tr.bloqueada > td.no{box-shadow:inset 4px 0 0 #dc2626}
+  tr.bloqueada td.accion-cell{background:#fecaca !important}
+  .lockbtn{border:none;background:none;cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;filter:grayscale(.2)}
+  .lockbtn:hover{filter:none}
+  .lockbtn.on{filter:none}
+  body.rolsupervisor .lockbtn, body.rolconsulta .lockbtn{display:none}  /* externos no bloquean */
   /* rol consulta (aseguradora): solo lectura, vista reducida — solo título, tabla y Exportar */
   body.rolconsulta #stats, body.rolconsulta #fResp, body.rolconsulta #fEst,
   body.rolconsulta #btnMine, body.rolconsulta #btnBell, body.rolconsulta #tabTareas,
@@ -646,7 +655,7 @@ async function loadOrders(){
   // El rol consulta (aseguradora) solo recibe las columnas permitidas; nunca se le
   // envían días, acción, responsables, estatus ni notas.
   const sel = me.rol==="consulta"
-    ? "id,no,modelo,color,ordenante,proceso,refacc,num_siniestro,placas,num_serie,fecha_ingreso,ubicacion,subproceso,actualizado_radar"
+    ? "id,no,modelo,color,ordenante,proceso,refacc,num_siniestro,placas,num_serie,fecha_ingreso,ubicacion,subproceso,actualizado_radar,bloqueada"
     : "*";
   const tasks = [ sb.from(TABLE).select(sel).order("no",{ascending:true}) ];
   if(me.rol!=="consulta") tasks.push(loadComments());
@@ -811,8 +820,8 @@ function render(resort=false){
       <div class="card"><div class="n">${enProceso}</div><div class="l">🔧 Unidades en proceso</div></div>
       <div class="card"><div class="n" style="color:#16a34a">${listas}</div><div class="l">✅ Listas para entrega</div></div>
       <div class="card"><div class="n">${total}</div><div class="l">📋 Total de unidades ${esc(aseg)}</div></div>`;
-    $("#tbody").innerHTML = rows.map(o=>`<tr data-id="${o.id}">
-      <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+    $("#tbody").innerHTML = rows.map(o=>`<tr data-id="${o.id}" class="${o.bloqueada?'bloqueada':''}">
+      <td class="no">${o.bloqueada?'🔒 ':''}${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span></td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td>${esc(o.num_siniestro||"")}</td>
@@ -835,19 +844,24 @@ function render(resort=false){
     const estOpts=Object.keys(EST).map(k=>`<option value="${k}" ${k===est?"selected":""}>${EST[k].l}</option>`).join("");
     const mine=resp.includes(me.nombre);
     const nCom=(comentarios[o.id]||[]).length;
-    return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''}">
-      <td class="no">${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+    const bloq=!!o.bloqueada;
+    const editAccion = puedeAccion && !bloq;
+    const tLock = bloq
+      ? `Bloqueada por ${o.bloqueada_por||"Valuación"}${o.bloqueada_at?(" · "+new Date(o.bloqueada_at).toLocaleString("es-MX")):""} — clic para desbloquear`
+      : "Bloquear orden (Valuación): nadie podrá trabajarla";
+    return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${bloq?'bloqueada':''}">
+      <td class="no">${bloq?'🔒 ':''}${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td>${esc(o.num_siniestro||"")}</td>
       <td>${esc(o.placas||"")}</td>
       <td>${esc(o.num_serie||"")}</td>
       <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
-      <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" ${puedeAccion?'':'readonly'} placeholder="${puedeAccion?'Clic para escribir…':''}">${esc(o.accion)}</textarea></td>
-      <td>${respChips(resp)}</td>
-      <td><select class="est" data-f="estatus" style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
+      <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" ${editAccion?'':'readonly'} placeholder="${editAccion?'Clic para escribir…':''}">${esc(o.accion)}</textarea></td>
+      <td>${respChips(resp, bloq)}</td>
+      <td><select class="est" data-f="estatus" ${bloq?'disabled':''} style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
       <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
-      <td><button class="rowdel" title="Eliminar">✕</button></td></tr>`;
+      <td><button class="lockbtn ${bloq?'on':''}" title="${esc(tLock)}">${bloq?'🔓':'🔒'}</button><button class="rowdel" title="Eliminar">✕</button></td></tr>`;
   }).join("");
   $("#empty").style.display=rows.length?"none":"block";
   $("#meta").textContent=`Total: ${orders.length}`+(rows.length!==orders.length?` · Mostrando ${rows.length}`:"");
@@ -858,8 +872,10 @@ function render(resort=false){
 }
 
 // chips de responsables (editable) para una orden
-function respChips(resp){
-  const chips=resp.map(r=>`<span class="rchip">${esc(r)}<a class="rx" data-rm="${esc(r)}" title="Quitar">×</a></span>`).join("");
+function respChips(resp, bloq){
+  // Si la orden está bloqueada, solo se muestran los responsables (sin quitar ni agregar)
+  const chips=resp.map(r=>`<span class="rchip">${esc(r)}${bloq?"":`<a class="rx" data-rm="${esc(r)}" title="Quitar">×</a>`}</span>`).join("");
+  if(bloq) return `<div class="resps ${resp.length?"":"none"}">${chips||'<span class="hint">—</span>'}</div>`;
   const avail=RESPONSABLES.filter(r=>!resp.includes(r));
   const add=`<select class="addresp"><option value="">+ asignar…</option>${avail.map(r=>`<option>${esc(r)}</option>`).join("")}</select>`;
   return `<div class="resps ${resp.length?"":"none"}">${chips}${add}</div>`;
@@ -923,12 +939,24 @@ $("#tbody").addEventListener("click", async e=>{
     setResponsables(id,(o.responsables||[]).filter(r=>r!==name)); return;
   }
   if(e.target.classList.contains("combtn")){ abrirComentarios("orden", id); return; }
+  if(e.target.classList.contains("lockbtn")){ toggleBloqueo(id); return; }
   if(e.target.classList.contains("rowdel")){
     const o=orders.find(x=>x.id===id);
     if(confirm(`¿Eliminar la orden ${o.no} (${o.modelo})?`)){ const {error}=await sb.from(TABLE).delete().eq("id",id);
       if(error) alert("No se pudo eliminar: "+error.message); else { orders=orders.filter(x=>x.id!==id); render(); } }
   }
 });
+
+// Bloquear/desbloquear una orden (solo personal interno). Marca la fila en rojo
+// y deshabilita la edición para todo el equipo mientras esté bloqueada.
+async function toggleBloqueo(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  const nuevo=!o.bloqueada;
+  if(nuevo && !confirm(`¿Bloquear la orden ${o.no} (${o.modelo})?\nNadie podrá trabajarla hasta desbloquearla.`)) return;
+  o.bloqueada=nuevo; o.bloqueada_por=nuevo?(me.nombre||me.email):null; o.bloqueada_at=nuevo?new Date().toISOString():null; render(); // optimista
+  const {error}=await sb.rpc("seg_set_bloqueo",{p_id:id,p_bloquear:nuevo});
+  if(error){ alert("No se pudo cambiar el bloqueo: "+error.message); loadOrders(); }
+}
 
 async function setResponsables(id, arr){
   const o=orders.find(x=>x.id===id); if(o) o.responsables=arr;   // optimista
