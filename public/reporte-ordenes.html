@@ -154,6 +154,9 @@
   .lockbtn:hover{filter:none}
   .lockbtn.on{filter:none}
   .lockind{font-size:14px;padding:2px 6px;cursor:not-allowed;opacity:.85}
+  td.no{white-space:nowrap}
+  td.no .lockbtn, td.no .lockind{font-size:15px;padding:0 4px 0 0;vertical-align:middle}
+  td.no .nonum{vertical-align:middle}
   body.rolsupervisor .lockbtn, body.rolconsulta .lockbtn,
   body.rolsupervisor .lockind, body.rolconsulta .lockind{display:none}  /* externos no bloquean */
   /* rol consulta (aseguradora): solo lectura, vista reducida — solo título, tabla y Exportar */
@@ -823,7 +826,7 @@ function render(resort=false){
       <div class="card"><div class="n" style="color:#16a34a">${listas}</div><div class="l">✅ Listas para entrega</div></div>
       <div class="card"><div class="n">${total}</div><div class="l">📋 Total de unidades ${esc(aseg)}</div></div>`;
     $("#tbody").innerHTML = rows.map(o=>`<tr data-id="${o.id}" class="${o.bloqueada?'bloqueada':''}">
-      <td class="no">${o.bloqueada?'🔒 ':''}${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+      <td class="no">${o.bloqueada?'🛠️ ':''}${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span></td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td>${esc(o.num_siniestro||"")}</td>
@@ -852,12 +855,12 @@ function render(resort=false){
     const puedeDesbloquear = me.rol==="admin" || soyLocker;
     const cuando = o.bloqueada_at ? (" · "+new Date(o.bloqueada_at).toLocaleString("es-MX")) : "";
     const lockHtml = !bloq
-      ? `<button class="lockbtn" title="Bloquear orden (Valuación): nadie podrá trabajarla">🔒</button>`
+      ? `<button class="lockbtn" title="Bloquear orden (Valuación): nadie podrá trabajarla">🛠️</button>`
       : (puedeDesbloquear
-          ? `<button class="lockbtn on" title="Desbloquear — bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)}">🔓</button>`
-          : `<span class="lockind" title="Bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)} — solo esa persona o un admin puede desbloquear">🔒</span>`);
+          ? `<button class="lockbtn on" title="Desbloquear — bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)}">🛠️</button>`
+          : `<span class="lockind" title="Bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)} — solo esa persona o un admin puede desbloquear">🛠️</span>`);
     return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${bloq?'bloqueada':''}">
-      <td class="no">${bloq?`🔒 ${esc(o.no)}<div class="hint" style="color:#b91c1c;font-weight:700;white-space:nowrap">Bloq: ${esc(o.bloqueada_por||'—')}</div>`:esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+      <td class="no"><span class="lockwrap">${lockHtml}</span>${bloq?`<span class="nonum">${esc(o.no)}</span><div class="hint" style="color:#b91c1c;font-weight:700;white-space:nowrap">Bloq: ${esc(o.bloqueada_por||'—')}</div>`:`<span class="nonum">${esc(o.no)}</span>`}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td>${esc(o.num_siniestro||"")}</td>
@@ -868,7 +871,7 @@ function render(resort=false){
       <td>${respChips(resp, bloq)}</td>
       <td><select class="est" data-f="estatus" ${bloq?'disabled':''} style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
       <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
-      <td>${lockHtml}<button class="rowdel" title="Eliminar">✕</button></td></tr>`;
+      <td><button class="rowdel" title="Eliminar">✕</button></td></tr>`;
   }).join("");
   $("#empty").style.display=rows.length?"none":"block";
   $("#meta").textContent=`Total: ${orders.length}`+(rows.length!==orders.length?` · Mostrando ${rows.length}`:"");
