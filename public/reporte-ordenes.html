@@ -783,6 +783,7 @@ function render(resort=false){
     if(fe && (o.estatus||"pendiente")!==fe) return false;
     if(cardFiltro==="abiertas" && o.estatus==="hecho") return false;
     if(cardFiltro==="atrasadas" && +o.dias<45) return false;
+    if(cardFiltro==="bloqueadas" && !o.bloqueada) return false;
     if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,o.placas,o.num_serie,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
@@ -912,6 +913,7 @@ function renderStats(){
   const atras=orders.filter(x=>+x.dias>=45).length;
   const pend=orders.filter(x=>(x.estatus||"pendiente")!=="hecho").length;
   const entrega=orders.filter(x=>x.proceso==="Listo para entrega").length;
+  const bloqueadas=orders.filter(x=>x.bloqueada).length;
   const mias=orders.filter(x=>(x.responsables||[]).includes(me.nombre) && x.estatus!=="hecho").length;
   const porResp={}; orders.forEach(x=>{ if(x.estatus!=="hecho") (x.responsables||[]).forEach(r=>{ porResp[r]=(porResp[r]||0)+1; }); });
   const respHtml=Object.entries(porResp).sort((a,b)=>b[1]-a[1]).map(([r,n])=>`<span class="badge clic" data-resp="${esc(r)}">${esc(r)}: ${n}</span>`).join(" ")||'<span class="hint">—</span>';
@@ -922,6 +924,7 @@ function renderStats(){
     <div class="card bad clic" data-card="sinresp"><div class="n">${sinResp}</div><div class="l">Sin responsable</div></div>
     <div class="card bad clic" data-card="atrasadas"><div class="n">${atras}</div><div class="l">Atrasadas (≥45 días)</div></div>
     <div class="card ok clic" data-card="entrega"><div class="n">${entrega}</div><div class="l">Listas para entrega</div></div>
+    <div class="card clic" data-card="bloqueadas" style="border-color:#dc2626;background:#fef2f2"><div class="n" style="color:#dc2626">${bloqueadas}</div><div class="l">🛠️ Órdenes bloqueadas</div></div>
     <div class="card" style="grid-column:1/-1"><div class="l">Carga por responsable (tareas abiertas) — clic para filtrar</div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${respHtml}</div></div>`;
 }
 function autosize(t){ t.style.height="auto"; t.style.height=Math.max(34,t.scrollHeight)+"px"; }
@@ -1085,6 +1088,7 @@ function aplicarTarjeta(tipo){
   else if(tipo==="est-pendiente") $("#fEst").value="pendiente";
   else if(tipo==="est-proceso") $("#fEst").value="proceso";
   else if(tipo==="est-hecho") $("#fEst").value="hecho";
+  else if(tipo==="bloqueadas") cardFiltro="bloqueadas";
   $("#btnMine").classList.toggle("active",onlyMine);
   render();
 }
