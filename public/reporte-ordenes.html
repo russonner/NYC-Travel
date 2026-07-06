@@ -153,7 +153,9 @@
   .lockbtn{border:none;background:none;cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;filter:grayscale(.2)}
   .lockbtn:hover{filter:none}
   .lockbtn.on{filter:none}
-  body.rolsupervisor .lockbtn, body.rolconsulta .lockbtn{display:none}  /* externos no bloquean */
+  .lockind{font-size:14px;padding:2px 6px;cursor:not-allowed;opacity:.85}
+  body.rolsupervisor .lockbtn, body.rolconsulta .lockbtn,
+  body.rolsupervisor .lockind, body.rolconsulta .lockind{display:none}  /* externos no bloquean */
   /* rol consulta (aseguradora): solo lectura, vista reducida — solo título, tabla y Exportar */
   body.rolconsulta #stats, body.rolconsulta #fResp, body.rolconsulta #fEst,
   body.rolconsulta #btnMine, body.rolconsulta #btnBell, body.rolconsulta #tabTareas,
@@ -846,11 +848,16 @@ function render(resort=false){
     const nCom=(comentarios[o.id]||[]).length;
     const bloq=!!o.bloqueada;
     const editAccion = puedeAccion && !bloq;
-    const tLock = bloq
-      ? `Bloqueada por ${o.bloqueada_por||"Valuación"}${o.bloqueada_at?(" · "+new Date(o.bloqueada_at).toLocaleString("es-MX")):""} — clic para desbloquear`
-      : "Bloquear orden (Valuación): nadie podrá trabajarla";
+    const soyLocker = !!(o.bloqueada_por && me.nombre && o.bloqueada_por===me.nombre);
+    const puedeDesbloquear = me.rol==="admin" || soyLocker;
+    const cuando = o.bloqueada_at ? (" · "+new Date(o.bloqueada_at).toLocaleString("es-MX")) : "";
+    const lockHtml = !bloq
+      ? `<button class="lockbtn" title="Bloquear orden (Valuación): nadie podrá trabajarla">🔒</button>`
+      : (puedeDesbloquear
+          ? `<button class="lockbtn on" title="Desbloquear — bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)}">🔓</button>`
+          : `<span class="lockind" title="Bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)} — solo esa persona o un admin puede desbloquear">🔒</span>`);
     return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${bloq?'bloqueada':''}">
-      <td class="no">${bloq?'🔒 ':''}${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+      <td class="no">${bloq?`🔒 ${esc(o.no)}<div class="hint" style="color:#b91c1c;font-weight:700;white-space:nowrap">Bloq: ${esc(o.bloqueada_por||'—')}</div>`:esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td>${esc(o.num_siniestro||"")}</td>
@@ -861,7 +868,7 @@ function render(resort=false){
       <td>${respChips(resp, bloq)}</td>
       <td><select class="est" data-f="estatus" ${bloq?'disabled':''} style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
       <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
-      <td><button class="lockbtn ${bloq?'on':''}" title="${esc(tLock)}">${bloq?'🔓':'🔒'}</button><button class="rowdel" title="Eliminar">✕</button></td></tr>`;
+      <td>${lockHtml}<button class="rowdel" title="Eliminar">✕</button></td></tr>`;
   }).join("");
   $("#empty").style.display=rows.length?"none":"block";
   $("#meta").textContent=`Total: ${orders.length}`+(rows.length!==orders.length?` · Mostrando ${rows.length}`:"");
