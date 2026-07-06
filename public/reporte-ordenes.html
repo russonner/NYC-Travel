@@ -900,13 +900,15 @@ function renderStats(){
     const proc=orders.filter(x=>x.estatus==="proceso").length;
     const hecho=orders.filter(x=>x.estatus==="hecho").length;
     const entrega=orders.filter(x=>x.proceso==="Listo para entrega").length;
+    const bloqueadas=orders.filter(x=>x.bloqueada).length;
     const aseg=(me.aseguradora||"SURA").toUpperCase();
     $("#stats").innerHTML=`
       <div class="card clic" data-card="todas"><div class="n">${total}</div><div class="l">📋 Total ${esc(aseg)}</div></div>
       <div class="card warn clic" data-card="est-pendiente"><div class="n">${pend}</div><div class="l">Tareas pendientes</div></div>
       <div class="card clic" data-card="est-proceso"><div class="n">${proc}</div><div class="l">En proceso</div></div>
       <div class="card ok clic" data-card="est-hecho"><div class="n">${hecho}</div><div class="l">Hechas</div></div>
-      <div class="card ok clic" data-card="entrega"><div class="n">${entrega}</div><div class="l">Listas para entrega</div></div>`;
+      <div class="card ok clic" data-card="entrega"><div class="n">${entrega}</div><div class="l">Listas para entrega</div></div>
+      <div class="card clic" data-card="bloqueadas" style="border-color:#dc2626;background:#fef2f2"><div class="n" style="color:#dc2626">${bloqueadas}</div><div class="l">🛠️ Órdenes bloqueadas</div></div>`;
     return;
   }
   const sinResp=orders.filter(x=>!(x.responsables||[]).length).length;
