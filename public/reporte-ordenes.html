@@ -406,6 +406,13 @@ const PORTAL_DOMAIN = "portal.autoplusmx.com";   // dominio interno para usuario
 })();
 const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function diasClass(d){ return d>=45?"hi":d>=20?"mid":"lo"; }
+// Días en sistema: se calculan desde fecha_ingreso (dd/mm/aaaa) para que se
+// actualicen solos cada día; si no hay fecha, usa el valor guardado.
+function diasDe(o){
+  const m=String(o&&o.fecha_ingreso||"").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(m){ const ing=Date.UTC(+m[3],+m[2]-1,+m[1]); const d=Math.floor((Date.now()-ing)/86400000); if(d>=0) return d; }
+  return +((o&&o.dias)||0)||0;
+}
 
 //// ——— Estado ———
 let orders = [];
@@ -782,7 +789,7 @@ function render(resort=false){
     if(fr==="__none__"){ if(resp.length) return false; } else if(fr && !resp.includes(fr)) return false;
     if(fe && (o.estatus||"pendiente")!==fe) return false;
     if(cardFiltro==="abiertas" && o.estatus==="hecho") return false;
-    if(cardFiltro==="atrasadas" && +o.dias<45) return false;
+    if(cardFiltro==="atrasadas" && diasDe(o)<45) return false;
     if(cardFiltro==="bloqueadas" && !o.bloqueada) return false;
     if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,o.placas,o.num_serie,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
@@ -790,7 +797,7 @@ function render(resort=false){
   const ESTORD={pendiente:0,proceso:1,hecho:2};
   const sortVal=o=>{
     switch(sortKey){
-      case "dias": return +o.dias||0;
+      case "dias": return diasDe(o);
       case "no": return +o.no||0;
       case "refacc": return parseInt(o.refacc)||0;
       case "responsables": return (o.responsables||[]).join(", ").toLowerCase();
@@ -867,7 +874,7 @@ function render(resort=false){
       <td>${esc(o.num_siniestro||"")}</td>
       <td>${esc(o.placas||"")}</td>
       <td>${esc(o.num_serie||"")}</td>
-      <td class="num"><span class="dias ${diasClass(+o.dias)}">${esc(o.dias)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
+      <td class="num"><span class="dias ${diasClass(diasDe(o))}">${diasDe(o)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
       <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" ${editAccion?'':'readonly'} placeholder="${editAccion?'Clic para escribir…':''}">${esc(o.accion)}</textarea></td>
       <td>${respChips(resp, bloq)}</td>
       <td><select class="est" data-f="estatus" ${bloq?'disabled':''} style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
@@ -912,7 +919,7 @@ function renderStats(){
     return;
   }
   const sinResp=orders.filter(x=>!(x.responsables||[]).length).length;
-  const atras=orders.filter(x=>+x.dias>=45).length;
+  const atras=orders.filter(x=>diasDe(x)>=45).length;
   const pend=orders.filter(x=>(x.estatus||"pendiente")!=="hecho").length;
   const entrega=orders.filter(x=>x.proceso==="Listo para entrega").length;
   const bloqueadas=orders.filter(x=>x.bloqueada).length;

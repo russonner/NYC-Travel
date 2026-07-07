@@ -175,6 +175,17 @@ try {
         if (r.ok()) {
           const j = await r.json();
           row.num_siniestro = String(j.sinisterNumber ?? "").trim();
+          // Radar dejó de entregar estas columnas en la lista: se toman del detalle (confiable)
+          if (j.entryDate) {
+            row.fecha_ingreso = String(j.entryDate).trim();
+            const m = row.fecha_ingreso.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); // dd/mm/aaaa
+            if (m) {
+              const ing = Date.UTC(+m[3], +m[2] - 1, +m[1]);
+              const dias = Math.floor((Date.now() - ing) / 86400000);
+              if (dias >= 0) row.dias = dias;
+            }
+          }
+          if (j.promiseWorkshopDate) row.fecha_promesa = String(j.promiseWorkshopDate).trim();
         }
       } catch {}
     };
