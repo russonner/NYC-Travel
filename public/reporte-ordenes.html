@@ -92,6 +92,15 @@
   thead th.sortable{cursor:pointer} thead th.sortable:hover{background:#3a4357}
   thead th.sortable::after{content:"⇅";opacity:.35;margin-left:5px;font-size:10px}
   thead th.sortable.asc::after{content:"▲";opacity:1} thead th.sortable.desc::after{content:"▼";opacity:1}
+  /* Columnas fijas (No., Modelo, Color, Ordenante, Proceso) al hacer scroll horizontal */
+  #ordTable th, #ordTable td{box-sizing:border-box}
+  #ordTable th:nth-child(1),#ordTable td:nth-child(1){position:sticky;left:0;width:100px;min-width:100px;background:var(--panel);z-index:2}
+  #ordTable th:nth-child(2),#ordTable td:nth-child(2){position:sticky;left:100px;width:88px;min-width:88px;background:var(--panel);z-index:2}
+  #ordTable th:nth-child(3),#ordTable td:nth-child(3){position:sticky;left:188px;width:90px;min-width:90px;background:var(--panel);z-index:2}
+  #ordTable th:nth-child(4),#ordTable td:nth-child(4){position:sticky;left:278px;width:130px;min-width:130px;background:var(--panel);z-index:2}
+  #ordTable th:nth-child(5),#ordTable td:nth-child(5){position:sticky;left:408px;width:150px;min-width:150px;background:var(--panel);z-index:2;box-shadow:3px 0 6px -3px rgba(0,0,0,.25)}
+  #ordTable thead th:nth-child(-n+5){background:var(--head);z-index:5}
+  @media (max-width:760px){ #ordTable th,#ordTable td{position:static!important;width:auto;min-width:0;box-shadow:none} }
   tbody tr:hover{background:#fafbfc}
   td.no{font-weight:700;white-space:nowrap}
   td.num{text-align:center;white-space:nowrap}
@@ -263,7 +272,7 @@
     </div>
 
     <div class="tablewrap">
-      <table>
+      <table id="ordTable">
         <thead><tr id="theadRow">
           <th class="sortable" data-k="no">No.</th>
           <th class="sortable" data-k="modelo">Modelo</th>
@@ -868,7 +877,7 @@ function render(resort=false){
           ? `<button class="lockbtn on" title="Desbloquear — bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)}">🛠️</button>`
           : `<span class="lockind" title="Bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)} — solo esa persona o un admin puede desbloquear">🛠️</span>`);
     return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${bloq?'bloqueada':''}">
-      <td class="no"><span class="lockwrap">${lockHtml}</span>${bloq?`<span class="nonum">${esc(o.no)}</span><div class="hint" style="color:#b91c1c;font-weight:700;white-space:nowrap">Bloq: ${esc(o.bloqueada_por||'—')}</div>`:`<span class="nonum">${esc(o.no)}</span>`}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+      <td class="no"><span class="lockwrap">${lockHtml}</span>${bloq?`<span class="nonum">${esc(o.no)}</span><div class="hint" style="color:#b91c1c;font-weight:700;line-height:1.15">Bloq: ${esc(o.bloqueada_por||'—')}</div>`:`<span class="nonum">${esc(o.no)}</span>`}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td>${esc(o.num_siniestro||"")}</td>
