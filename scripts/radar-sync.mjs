@@ -168,6 +168,10 @@ try {
           const j = await r.json();
           row.placas = String(j.platesNumber ?? "").trim();
           row.num_serie = String(j.vin ?? "").trim();
+          // Radar dejó de entregar bien "proceso actual" en la lista: se toma del detalle (confiable)
+          if (j.currentProcess) row.proceso = String(j.currentProcess).trim();
+          if (j.subprocess) row.subproceso = String(j.subprocess).trim();
+          if (j.location) row.ubicacion = String(j.location).trim();
         }
       } catch {}
       try {
