@@ -1195,27 +1195,38 @@ $("#compList").addEventListener("click",e=>{
   $("#compModal").classList.remove("open"); render();
 });
 
-// Hoja imprimible de compromisos, dividida por semana (para entregar en físico)
+// Hoja imprimible de compromisos para la junta (miércoles), agrupada por DÍA.
+// Ventana: desde lo vencido hasta el VIERNES de la semana siguiente (miércoles + 9 días).
 function imprimirCompromisos(){
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const dow=hoy.getDay();                                                          // 0=Dom..3=Mié..6=Sáb
+  const miercoles=new Date(hoy); miercoles.setDate(hoy.getDate()+((3-dow+7)%7));   // próximo miércoles (o hoy)
+  const finV=new Date(miercoles); finV.setDate(miercoles.getDate()+9);             // viernes de la semana siguiente
+  const toISO=d=>{ const z=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); return z.toISOString().slice(0,10); };
+  const finISO=toISO(finV), hoyISO=toISO(hoy), miercISO=toISO(miercoles);
+
   const map={};
-  orders.forEach(o=>{ const wk=lunesISO(o.fecha_compromiso); if(wk) (map[wk]=map[wk]||[]).push(o); });
-  const weeks=Object.keys(map).sort();
-  if(!weeks.length){ alert("No hay unidades con fecha compromiso para imprimir. Ponles fecha en la columna “Fecha compromiso”."); return; }
-  const hoyISO=new Date().toISOString().slice(0,10), hoyLun=lunesISO(hoyISO);
-  const totalU=weeks.reduce((s,w)=>s+map[w].length,0);
-  const secciones=weeks.map(wk=>{
-    const fin=finSemanaISO(wk), past=wk<hoyLun, esta=wk===hoyLun;
-    const badge=esta?'<span class="bdg">ESTA SEMANA</span>':past?'<span class="bdg">ATRASADA</span>':'';
-    const list=map[wk].slice().sort((a,b)=>diasDe(b)-diasDe(a));
+  orders.forEach(o=>{ const f=String(o.fecha_compromiso||'').slice(0,10); if(f && f<=finISO) (map[f]=map[f]||[]).push(o); });
+  const dias=Object.keys(map).sort();
+  if(!dias.length){ alert("No hay unidades con fecha compromiso hasta el viernes "+fmtDM(finISO)+"."); return; }
+  const totalU=dias.reduce((s,d)=>s+map[d].length,0);
+
+  const NDIA=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  const NMES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const diaLargo=iso=>{ const p=iso.split('-'); const d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])); return `${NDIA[d.getUTCDay()]} ${+p[2]} ${NMES[+p[1]-1]}`; };
+
+  const secciones=dias.map(f=>{
+    const venc=f<hoyISO, esHoy=f===hoyISO;
+    const badge=esHoy?'<span class="bdg">HOY</span>':venc?'<span class="bdg">VENCIDA</span>':'';
+    const list=map[f].slice().sort((a,b)=>diasDe(b)-diasDe(a));
     const filas=list.map(o=>{
-      const venc=o.fecha_compromiso<hoyISO && !['Listo para entrega','Unidad entregada'].includes(o.proceso);
       const resp=(o.responsables||[]).join(", ")||"—";
       return `<tr class="${venc?'venc':''}"><td class="chk">☐</td><td class="no">${esc(o.no)}</td>`
         +`<td>${esc([o.modelo,o.color].filter(Boolean).join(' '))}</td><td>${esc(o.ordenante||'')}</td>`
         +`<td>${esc(o.proceso||'')}</td><td class="c">${diasDe(o)}</td><td>${esc(resp)}</td>`
         +`<td class="acc">${esc(o.accion||'')}</td></tr>`;
     }).join("");
-    return `<section class="wk ${past?'late':esta?'now':''}"><div class="wkh"><h2>Semana ${fmtDM(wk)} – ${fmtDM(fin)}</h2>${badge}<span class="cnt">${list.length} unidad${list.length===1?'':'es'}</span></div>`
+    return `<section class="wk ${venc?'late':esHoy?'now':''}"><div class="wkh"><h2>${diaLargo(f)}</h2>${badge}<span class="cnt">${list.length} unidad${list.length===1?'':'es'}</span></div>`
       +`<table><thead><tr><th class="chk">✔</th><th>No.</th><th>Vehículo</th><th>Ordenante</th><th>Proceso</th><th class="c">Días</th><th>Responsable(s)</th><th>Acción a tomar</th></tr></thead><tbody>${filas}</tbody></table></section>`;
   }).join("");
   const css=`*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:0;padding:22px;background:#fff}`
@@ -1234,7 +1245,7 @@ function imprimirCompromisos(){
     +`button.noprint{background:#1e3a8a;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer}`
     +`footer.doc{margin-top:14px;color:#666;font-size:11px}@media print{.noprint{display:none!important}}`;
   const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Compromisos — Auto Plus</title><style>${css}</style></head>`
-    +`<body><header class="doc"><div><h1>Compromisos de entrega</h1><div class="sub">Auto Plus Universidad · ${totalU} unidades comprometidas · generado ${new Date().toLocaleString('es-MX')}</div></div>`
+    +`<body><header class="doc"><div><h1>Compromisos de entrega — Junta miércoles ${fmtDM(miercISO)}</h1><div class="sub">Auto Plus Universidad · ${totalU} unidades · desde vencidas hasta viernes ${fmtDM(finISO)} · generado ${new Date().toLocaleString('es-MX')}</div></div>`
     +`<button class="noprint" onclick="window.print()">🖨️ Imprimir</button></header>${secciones}`
     +`<footer class="doc">Marca la casilla ✔ para dar seguimiento en físico. Rojo = compromiso vencido.</footer>`
     +`<scr`+`ipt>window.onload=function(){setTimeout(function(){window.print();},350);};<\/scr`+`ipt></body></html>`;
