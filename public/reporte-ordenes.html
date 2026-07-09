@@ -176,10 +176,11 @@
   body.rolconsulta #meName, body.rolconsulta label:has(#meName),
   body.rolconsulta .tabs, body.rolconsulta #q, body.rolconsulta #fProc,
   body.rolconsulta #btnPrint{display:none}
-  /* rol supervisor (aseguradora con edición): tablero completo con indicadores, sin controles internos */
-  body.rolsupervisor #btnBell, body.rolsupervisor #tabTareas,
+  /* rol supervisor (aseguradora con edición): tablero completo con indicadores y alertas,
+     pero sin controles internos. Se dejan visibles la campana (🔔) y "Mis pendientes". */
+  body.rolsupervisor #tabTareas,
   body.rolsupervisor #meName, body.rolsupervisor label:has(#meName),
-  body.rolsupervisor #btnMine, body.rolsupervisor #btnAdd,
+  body.rolsupervisor #btnAdd,
   body.rolsupervisor #btnImport, body.rolsupervisor #btnSyncNow{display:none}
   .empty{padding:40px;text-align:center;color:var(--muted)}
 
@@ -400,7 +401,7 @@ const SUPABASE_KEY = "sb_publishable_GEx_IHCzA-EKuJy1iyAv2A_K5oTl0j3";
 const INVITE_CODE  = "AUTOPLUS2026";          // código para registrarse (cámbialo si quieres)
 const TABLE = "seguimiento_ordenes";
 const COM_TABLE = "seguimiento_comentarios";
-const RESPONSABLES = ["Gloria","Adrian","Alejandro Martinez","Javier","Devany","Jesus Alejandro","Ashley Coronado","Fidel Cortes"];
+const RESPONSABLES = ["Gloria","Adrian","Alejandro Martinez","Javier","Devany","Jesus Alejandro","Ashley Coronado","Fidel Cortes","Netzel SURA"];
 const PROCESOS = ["Diagnóstico","Valuación","En proceso","Listo para proceso","Espera de refacciones","En reparación","Listo para entrega","Unidad entregada"];
 const EST = {pendiente:{l:"Pendiente",bg:"#fef9c3",fg:"#854d0e"},proceso:{l:"En proceso",bg:"#dbeafe",fg:"#1e40af"},hecho:{l:"Hecho",bg:"#dcfce7",fg:"#166534"}};
 
