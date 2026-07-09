@@ -165,6 +165,13 @@
   .lockbtn:hover{filter:none}
   .lockbtn.on{filter:none}
   .lockind{font-size:14px;padding:2px 6px;cursor:not-allowed;opacity:.85}
+  .fcomp{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:inherit;font-size:12.5px;background:#fff;color:var(--ink)}
+  .fcomp:disabled{border-color:transparent;background:transparent;opacity:.9}
+  .fcomp.venc{border-color:#dc2626;color:#b91c1c;font-weight:700;background:#fef2f2}
+  .wkitem{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer}
+  .wkitem:hover{background:var(--accent-soft);border-color:var(--accent)}
+  .wkitem .wkn{font-weight:700;font-size:18px;color:var(--accent)}
+  .wkitem.wkpast .wkn{color:#b91c1c}
   td.no{white-space:nowrap}
   td.no .lockbtn, td.no .lockind{font-size:15px;padding:0 4px 0 0;vertical-align:middle}
   td.no .nonum{vertical-align:middle}
@@ -175,7 +182,7 @@
   body.rolconsulta #btnMine, body.rolconsulta #btnBell, body.rolconsulta #tabTareas,
   body.rolconsulta #meName, body.rolconsulta label:has(#meName),
   body.rolconsulta .tabs, body.rolconsulta #q, body.rolconsulta #fProc,
-  body.rolconsulta #btnPrint{display:none}
+  body.rolconsulta #btnPrint, body.rolconsulta #btnCompromisos{display:none}
   /* rol supervisor (aseguradora con edición): tablero completo con indicadores y alertas,
      pero sin controles internos. Se dejan visibles la campana (🔔) y "Mis pendientes". */
   body.rolsupervisor #tabTareas,
@@ -265,6 +272,7 @@
       <select id="fResp"><option value="">Todos los responsables</option><option value="__none__">⚠ Sin responsable</option></select>
       <select id="fEst"><option value="">Toda tarea</option><option value="pendiente">Pendiente</option><option value="proceso">En proceso</option><option value="hecho">Hecho</option></select>
       <button id="btnMine">★ Mis pendientes</button>
+      <button id="btnCompromisos" title="Unidades comprometidas por semana">📅 Compromisos</button>
       <span class="spacer"></span>
       <button id="btnRefresh" title="Recargar las órdenes con la información más reciente">🔄 Actualizar</button>
       <button id="btnAdd">+ Orden</button>
@@ -288,6 +296,7 @@
           <th class="sortable" data-k="num_serie">No. Serie</th>
           <th class="sortable" data-k="dias">Días</th>
           <th class="sortable" data-k="accion">Acción a Tomar</th>
+          <th class="sortable" data-k="fecha_compromiso">Fecha compromiso</th>
           <th class="sortable" data-k="responsables">Responsable(s)</th>
           <th class="sortable" data-k="estatus">Tarea</th>
           <th class="sortable" data-k="coments">💬</th><th></th>
@@ -376,6 +385,16 @@
   <div class="foot"><button id="comClose">Cerrar</button></div>
 </div></div>
 
+<!-- Compromisos por semana -->
+<div class="modal-bg" id="compModal"><div class="modal" style="max-width:560px">
+  <h2>📅 Unidades comprometidas por semana</h2>
+  <div class="body">
+    <div class="hint" style="margin-bottom:10px">Clic en una semana para ver esas unidades en el tablero.</div>
+    <div id="compList"></div>
+  </div>
+  <div class="foot"><button id="compClose">Cerrar</button></div>
+</div></div>
+
 <!-- Nueva tarea modal -->
 <div class="modal-bg" id="tareaModal"><div class="modal" style="max-width:560px">
   <h2 id="tareaModalTitle">Nueva tarea / pendiente</h2>
@@ -425,6 +444,15 @@ function diasDe(o){
   if(m){ const ing=Date.UTC(+m[3],+m[2]-1,+m[1]); const d=Math.floor((Date.now()-ing)/86400000); if(d>=0) return d; }
   return +((o&&o.dias)||0)||0;
 }
+// Lunes (YYYY-MM-DD) de la semana de una fecha 'YYYY-MM-DD'; "" si no hay
+function lunesISO(iso){
+  const p=String(iso||"").slice(0,10).split("-"); if(p.length!==3) return "";
+  const dt=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])); if(isNaN(dt)) return "";
+  const dow=(dt.getUTCDay()+6)%7; dt.setUTCDate(dt.getUTCDate()-dow);
+  return dt.toISOString().slice(0,10);
+}
+function fmtDM(iso){ const p=String(iso||"").split("-"); return p.length===3?`${p[2]}/${p[1]}`:iso; }
+function finSemanaISO(lun){ const p=lun.split("-"); const d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])); d.setUTCDate(d.getUTCDate()+6); return d.toISOString().slice(0,10); }
 
 //// ——— Estado ———
 let orders = [];
@@ -439,6 +467,7 @@ const TAR_TABLE = "seguimiento_tareas";
 let me = {nombre:"", email:"", id:null, rol:"miembro", aseguradora:""};
 let sortKey="no", sortDir=1, onlyMine=false, editing=false, pendingReload=false, cardFiltro=null;
 let displayOrder=[];   // ids en el orden mostrado; solo se recalcula al ordenar/cargar, nunca al actualizar
+let weekFilter=null;   // lunes 'YYYY-MM-DD' de la semana de compromiso filtrada, o null
 
 //// ====================== AUTH ======================
 function authMsg(t,kind){ const m=$("#authMsg"); m.textContent=t||""; m.className=t?("authmsg "+(kind||"info")):"authmsg"; }
@@ -769,10 +798,12 @@ function subscribeRealtime(){
 
 const saveTimers={};
 function editField(id, field, value){
-  const o = orders.find(x=>x.id===id); if(o) o[field]=value;     // optimista
+  // Fechas vacías → null (evita error de tipo date en Postgres)
+  const val = (field==="fecha_compromiso" && !value) ? null : value;
+  const o = orders.find(x=>x.id===id); if(o) o[field]=val;     // optimista
   clearTimeout(saveTimers[id+field]);
   saveTimers[id+field]=setTimeout(async()=>{
-    const {error}=await sb.from(TABLE).update({[field]:value}).eq("id",id);
+    const {error}=await sb.from(TABLE).update({[field]:val}).eq("id",id);
     if(error){ alert("No se pudo guardar: "+error.message); loadOrders(); }
   }, ["accion","placas","num_serie","num_siniestro","fecha_ingreso"].includes(field)?600:0);
 }
@@ -803,6 +834,7 @@ function render(resort=false){
     if(cardFiltro==="abiertas" && o.estatus==="hecho") return false;
     if(cardFiltro==="atrasadas" && diasDe(o)<45) return false;
     if(cardFiltro==="bloqueadas" && !o.bloqueada) return false;
+    if(weekFilter && lunesISO(o.fecha_compromiso)!==weekFilter) return false;
     if(q){ const hay=[o.no,o.modelo,o.color,o.ordenante,o.proceso,o.accion,o.placas,o.num_serie,resp.join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
   });
@@ -863,6 +895,7 @@ function render(resort=false){
 
   // "Acción a Tomar" la pueden editar Adrian, Alejandro Martinez o los supervisores (p. ej. SURA)
   const puedeAccion = me.rol==="supervisor" || ["adrian","adrián","alejandro martinez","alejandro martínez"].includes((me.nombre||"").trim().toLowerCase());
+  const hoyISO = new Date().toISOString().slice(0,10);
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
     const resp=o.responsables||[];
@@ -888,15 +921,25 @@ function render(resort=false){
       <td>${esc(o.num_serie||"")}</td>
       <td class="num"><span class="dias ${diasClass(diasDe(o))}">${diasDe(o)}</span>${o.fecha_promesa?`<div class="hint" style="margin-top:3px;white-space:nowrap">prom. ${esc(o.fecha_promesa)}</div>`:""}</td>
       <td class="accion-cell"><textarea class="accion" data-f="accion" rows="1" ${editAccion?'':'readonly'} placeholder="${editAccion?'Clic para escribir…':''}">${esc(o.accion)}</textarea></td>
+      <td class="num"><input type="date" class="fcomp ${(o.fecha_compromiso && o.fecha_compromiso<hoyISO && !['Listo para entrega','Unidad entregada'].includes(o.proceso))?'venc':''}" data-f="fecha_compromiso" value="${esc(o.fecha_compromiso||'')}" ${editAccion?'':'disabled'} title="Fecha compromiso"/></td>
       <td>${respChips(resp, bloq)}</td>
       <td><select class="est" data-f="estatus" ${bloq?'disabled':''} style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
       <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
       <td><button class="rowdel" title="Eliminar">✕</button></td></tr>`;
   }).join("");
   $("#empty").style.display=rows.length?"none":"block";
-  $("#meta").textContent=`Total: ${orders.length}`+(rows.length!==orders.length?` · Mostrando ${rows.length}`:"");
+  $("#meta").textContent=`Total: ${orders.length}`
+    +(rows.length!==orders.length?` · Mostrando ${rows.length}`:"")
+    +(weekFilter?` · Comprometidas semana ${fmtDM(weekFilter)}–${fmtDM(finSemanaISO(weekFilter))}`:"");
   const last = orders.map(o=>o.actualizado_radar).filter(Boolean).sort().pop();
   $("#updated").textContent = last? `Última actualización Radar: ${new Date(last).toLocaleString("es-MX")}` : "Sin importación de Radar todavía";
+  // Etiqueta del botón: cuántas unidades comprometidas para ESTA semana
+  const bcomp=$("#btnCompromisos");
+  if(bcomp){ const hoyLun=lunesISO(new Date().toISOString().slice(0,10));
+    const n=orders.filter(o=>lunesISO(o.fecha_compromiso)===hoyLun).length;
+    bcomp.textContent=`📅 Compromisos (sem: ${n})`;
+    bcomp.classList.toggle("active", !!weekFilter);
+  }
   renderStats();
   $("#tbody").querySelectorAll(".accion").forEach(autosize);
 }
@@ -965,7 +1008,7 @@ $("#tbody").addEventListener("change", e=>{
   }
   const f=e.target.dataset.f; if(!f) return;
   const id=+e.target.closest("tr").dataset.id; editField(id,f,e.target.value);
-  if(f==="estatus") render(); });
+  if(f==="estatus"||f==="fecha_compromiso") render(); });
 $("#tbody").addEventListener("click", async e=>{
   const tr=e.target.closest("tr"); if(!tr) return; const id=+tr.dataset.id;
   if(e.target.classList.contains("rx")){                // quitar responsable
@@ -1095,12 +1138,12 @@ $("#comMentions").addEventListener("mousedown",e=>{ const d=e.target.closest("di
 $("#comClose").onclick=()=>{ comModal.classList.remove("open"); comCtx=null; };
 comModal.addEventListener("click", e=>{ if(e.target===comModal){ comModal.classList.remove("open"); comCtx=null; } });
 
-["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input",()=>{ cardFiltro=null; render(); }));
+["#q","#fProc","#fResp","#fEst"].forEach(s=>$(s).addEventListener("input",()=>{ cardFiltro=null; weekFilter=null; render(); }));
 
 // Tarjetas y badges del tablero = filtros rápidos
 function aplicarTarjeta(tipo){
   $("#q").value=""; $("#fProc").value=""; $("#fResp").value=""; $("#fEst").value="";
-  onlyMine=false; cardFiltro=null;
+  onlyMine=false; cardFiltro=null; weekFilter=null;
   if(tipo==="mias") onlyMine=true;
   else if(tipo==="abiertas") cardFiltro="abiertas";
   else if(tipo==="atrasadas") cardFiltro="atrasadas";
@@ -1117,8 +1160,39 @@ $("#stats").addEventListener("click",e=>{
   const card=e.target.closest("[data-card]");
   if(card){ aplicarTarjeta(card.dataset.card); return; }
   const b=e.target.closest("[data-resp]");
-  if(b){ $("#q").value=""; $("#fProc").value=""; $("#fEst").value=""; onlyMine=false; cardFiltro=null;
+  if(b){ $("#q").value=""; $("#fProc").value=""; $("#fEst").value=""; onlyMine=false; cardFiltro=null; weekFilter=null;
     $("#btnMine").classList.remove("active"); $("#fResp").value=b.dataset.resp; render(); }
+});
+
+// ——— Compromisos por semana ———
+function abrirCompromisos(){
+  const map={};
+  orders.forEach(o=>{ const wk=lunesISO(o.fecha_compromiso); if(wk) (map[wk]=map[wk]||[]).push(o); });
+  const hoyLun=lunesISO(new Date().toISOString().slice(0,10));
+  const weeks=Object.keys(map).sort();
+  const cont=$("#compList");
+  if(!weeks.length){
+    cont.innerHTML='<div class="hint">Aún no hay unidades con fecha compromiso. Ponla en la columna “Fecha compromiso”.</div>';
+  } else {
+    const todas=`<div class="wkitem" data-wk="__all"><div><div style="font-weight:600">Ver todas</div><div class="hint">quitar filtro de semana</div></div></div>`;
+    cont.innerHTML = todas + weeks.map(wk=>{
+      const fin=finSemanaISO(wk), past=wk<hoyLun, esta=wk===hoyLun;
+      const nos=map[wk].map(o=>o.no).slice(0,8).join(", ")+(map[wk].length>8?"…":"");
+      return `<div class="wkitem ${past?'wkpast':''}" data-wk="${wk}">
+        <div><div style="font-weight:600">Semana ${fmtDM(wk)}–${fmtDM(fin)}${esta?' · (esta semana)':past?' · (vencida)':''}</div>
+        <div class="hint">${esc(nos)}</div></div>
+        <div class="wkn">${map[wk].length}</div></div>`;
+    }).join("");
+  }
+  $("#compModal").classList.add("open");
+}
+$("#btnCompromisos").onclick=abrirCompromisos;
+$("#compClose").onclick=()=>$("#compModal").classList.remove("open");
+$("#compModal").addEventListener("click",e=>{ if(e.target.id==="compModal") e.currentTarget.classList.remove("open"); });
+$("#compList").addEventListener("click",e=>{
+  const it=e.target.closest(".wkitem"); if(!it) return;
+  weekFilter = it.dataset.wk==="__all" ? null : it.dataset.wk;
+  $("#compModal").classList.remove("open"); render();
 });
 // delegación: el encabezado se reconstruye para el rol consulta, así que escuchamos en <thead>
 document.querySelector("thead").addEventListener("click",e=>{
