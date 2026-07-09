@@ -392,7 +392,7 @@
     <div class="hint" style="margin-bottom:10px">Clic en una semana para ver esas unidades en el tablero.</div>
     <div id="compList"></div>
   </div>
-  <div class="foot"><button id="compClose">Cerrar</button></div>
+  <div class="foot"><button id="compPrint" class="primary">🖨️ Imprimir por semana</button><button id="compClose">Cerrar</button></div>
 </div></div>
 
 <!-- Nueva tarea modal -->
@@ -1194,6 +1194,55 @@ $("#compList").addEventListener("click",e=>{
   weekFilter = it.dataset.wk==="__all" ? null : it.dataset.wk;
   $("#compModal").classList.remove("open"); render();
 });
+
+// Hoja imprimible de compromisos, dividida por semana (para entregar en físico)
+function imprimirCompromisos(){
+  const map={};
+  orders.forEach(o=>{ const wk=lunesISO(o.fecha_compromiso); if(wk) (map[wk]=map[wk]||[]).push(o); });
+  const weeks=Object.keys(map).sort();
+  if(!weeks.length){ alert("No hay unidades con fecha compromiso para imprimir. Ponles fecha en la columna “Fecha compromiso”."); return; }
+  const hoyISO=new Date().toISOString().slice(0,10), hoyLun=lunesISO(hoyISO);
+  const totalU=weeks.reduce((s,w)=>s+map[w].length,0);
+  const secciones=weeks.map(wk=>{
+    const fin=finSemanaISO(wk), past=wk<hoyLun, esta=wk===hoyLun;
+    const badge=esta?'<span class="bdg">ESTA SEMANA</span>':past?'<span class="bdg">ATRASADA</span>':'';
+    const list=map[wk].slice().sort((a,b)=>diasDe(b)-diasDe(a));
+    const filas=list.map(o=>{
+      const venc=o.fecha_compromiso<hoyISO && !['Listo para entrega','Unidad entregada'].includes(o.proceso);
+      const resp=(o.responsables||[]).join(", ")||"—";
+      return `<tr class="${venc?'venc':''}"><td class="chk">☐</td><td class="no">${esc(o.no)}</td>`
+        +`<td>${esc([o.modelo,o.color].filter(Boolean).join(' '))}</td><td>${esc(o.ordenante||'')}</td>`
+        +`<td>${esc(o.proceso||'')}</td><td class="c">${diasDe(o)}</td><td>${esc(resp)}</td>`
+        +`<td class="acc">${esc(o.accion||'')}</td></tr>`;
+    }).join("");
+    return `<section class="wk ${past?'late':esta?'now':''}"><div class="wkh"><h2>Semana ${fmtDM(wk)} – ${fmtDM(fin)}</h2>${badge}<span class="cnt">${list.length} unidad${list.length===1?'':'es'}</span></div>`
+      +`<table><thead><tr><th class="chk">✔</th><th>No.</th><th>Vehículo</th><th>Ordenante</th><th>Proceso</th><th class="c">Días</th><th>Responsable(s)</th><th>Acción a tomar</th></tr></thead><tbody>${filas}</tbody></table></section>`;
+  }).join("");
+  const css=`*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:0;padding:22px;background:#fff}`
+    +`@page{size:landscape;margin:11mm}`
+    +`header.doc{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1e3a8a;padding-bottom:10px;margin-bottom:16px}`
+    +`header.doc h1{margin:0;font-size:22px;color:#1e3a8a}.sub{color:#555;font-size:12px;margin-top:4px}`
+    +`.wk{margin:0 0 16px;break-inside:avoid;page-break-inside:avoid}`
+    +`.wkh{display:flex;align-items:center;gap:10px;background:#1e3a8a;color:#fff;padding:8px 12px;border-radius:6px 6px 0 0}`
+    +`.wk.now .wkh{background:#047857}.wk.late .wkh{background:#b91c1c}.wkh h2{margin:0;font-size:15px}`
+    +`.cnt{margin-left:auto;font-size:12px}.bdg{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.28)}`
+    +`table{width:100%;border-collapse:collapse;font-size:11.5px}th,td{border:1px solid #cbd5e1;padding:5px 7px;text-align:left;vertical-align:top}`
+    +`thead th{background:#eef2ff;color:#1e3a8a;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}`
+    +`tbody tr:nth-child(even){background:#f8fafc}td.no{font-weight:700}td.c,th.c{text-align:center}`
+    +`td.chk,th.chk{text-align:center;width:26px;font-size:14px}td.acc{max-width:300px}`
+    +`tr.venc td{background:#fef2f2}tr.venc td.no{color:#b91c1c}`
+    +`button.noprint{background:#1e3a8a;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer}`
+    +`footer.doc{margin-top:14px;color:#666;font-size:11px}@media print{.noprint{display:none!important}}`;
+  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Compromisos — Auto Plus</title><style>${css}</style></head>`
+    +`<body><header class="doc"><div><h1>Compromisos de entrega</h1><div class="sub">Auto Plus Universidad · ${totalU} unidades comprometidas · generado ${new Date().toLocaleString('es-MX')}</div></div>`
+    +`<button class="noprint" onclick="window.print()">🖨️ Imprimir</button></header>${secciones}`
+    +`<footer class="doc">Marca la casilla ✔ para dar seguimiento en físico. Rojo = compromiso vencido.</footer>`
+    +`<scr`+`ipt>window.onload=function(){setTimeout(function(){window.print();},350);};<\/scr`+`ipt></body></html>`;
+  const w=window.open("","_blank");
+  if(!w){ alert("Permite las ventanas emergentes para poder imprimir."); return; }
+  w.document.write(html); w.document.close();
+}
+$("#compPrint").onclick=imprimirCompromisos;
 // delegación: el encabezado se reconstruye para el rol consulta, así que escuchamos en <thead>
 document.querySelector("thead").addEventListener("click",e=>{
   const th=e.target.closest("th.sortable"); if(!th) return;
