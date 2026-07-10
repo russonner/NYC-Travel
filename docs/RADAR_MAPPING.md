@@ -23,7 +23,10 @@ Base API: `https://radar-api.azurewebsites.net/api`. Requiere Bearer token
 | `val` | `GET /valuations/{IdValue}` | Cabecera de valuación (días, pérdida total) |
 | `sp` | `GET /valuations/{IdValue}/spare-parts` | **Refacciones con costos** |
 | `bin` | `GET /binnacle/orders/{id}/logs` | Bitácora completa |
-| `docs` | `GET /orders/{id}/documents` | Contenedor de documentos (⏳ estructura de fotos/PDF pendiente) |
+| `pics` | `GET /blobs/{id}/pictures` | **FOTOS**: `[{url, urlThumbnail, processKey, processName}]` |
+| `docs` | `GET /documents/record/order/{id}` | **PDFs/documentos**: `[{fileName, fileTypeExtension, urlFile, fileClassificationByWorkshopId}]` |
+| `odc` | `GET /documents/odc-documents/{id}` | Órdenes de compra (PDF): `[{folio, provider, total, url}]` |
+| `spRec` | `GET /warehouse/orders/{id}/spareparts-received` | Refacciones RECIBIDAS (proveedor+factura+costo) |
 | `aseg` | `GET /customers/ASEGURADORA` | Catálogo de aseguradoras (RFC, régimen) |
 
 ## Mapeo → objeto `data` de `handleNewOrder`

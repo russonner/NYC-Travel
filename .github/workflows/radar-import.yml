@@ -1,0 +1,44 @@
+name: Radar · Import orders
+
+# Trae órdenes COMPLETAS de Radar (datos + fotos + PDFs) y las deja en staging de
+# AP360 para vista previa en Panel Admin → Importar de Radar.
+# 100% manual: escribes los números de orden a importar.
+on:
+  workflow_dispatch:
+    inputs:
+      order_numbers:
+        description: "Números de orden visibles en Radar, separados por coma (ej. 591,283)."
+        required: true
+        default: ""
+      branch:
+        description: "Sucursal a seleccionar en Radar."
+        required: false
+        default: "UNIVERSIDAD"
+
+concurrency:
+  group: radar-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar Playwright
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm install playwright@1.47.2
+          npx playwright install --with-deps chromium
+      - name: Importar de Radar
+        run: node scripts/radar-import.mjs
+        env:
+          RADAR_USER: ${{ secrets.RADAR_USER }}
+          RADAR_PASS: ${{ secrets.RADAR_PASS }}
+          RADAR_INGEST_TOKEN: ${{ secrets.RADAR_INGEST_TOKEN }}
+          RADAR_ORDER_NUMBERS: ${{ github.event.inputs.order_numbers }}
+          RADAR_BRANCH: ${{ github.event.inputs.branch }}
+          SUPABASE_IMPORT_FN_URL: "https://rrxakcjuykyoxzdfgthg.supabase.co/functions/v1/radar-import-orden"
+          SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeGFrY2p1eWt5b3h6ZGZndGhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMjA4NjUsImV4cCI6MjA5MzY5Njg2NX0.K5TPot2ATsFqL3jkYPODbXwr8i9OQmjgD5lNi-l5CyI"
