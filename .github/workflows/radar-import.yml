@@ -1,19 +1,28 @@
 name: Radar · Import orders
 
-# Trae órdenes COMPLETAS de Radar (datos + fotos + PDFs) y las deja en staging de
-# AP360 para vista previa en Panel Admin → Importar de Radar.
-# 100% manual: escribes los números de orden a importar.
+# Trae órdenes COMPLETAS de Radar (activas o históricas) → staging de AP360.
+# Se dispara desde AP360 (repository_dispatch [radar-import]) o manual.
 on:
   workflow_dispatch:
     inputs:
       order_numbers:
-        description: "Números de orden visibles en Radar, separados por coma (ej. 591,283)."
-        required: true
+        description: "Números de orden (coma). Activas o históricas por número. Ej. 591,404"
+        required: false
+        default: ""
+      criterion:
+        description: "Histórico por criterio: ORDERNUMBER|PLATES|VIN|SINISTERNUMBER|INVOICE"
+        required: false
+        default: ""
+      search:
+        description: "Valor a buscar en histórico (con criterion)."
+        required: false
         default: ""
       branch:
-        description: "Sucursal a seleccionar en Radar."
+        description: "Sucursal."
         required: false
         default: "UNIVERSIDAD"
+  repository_dispatch:
+    types: [radar-import]
 
 concurrency:
   group: radar-import
@@ -38,7 +47,9 @@ jobs:
           RADAR_USER: ${{ secrets.RADAR_USER }}
           RADAR_PASS: ${{ secrets.RADAR_PASS }}
           RADAR_INGEST_TOKEN: ${{ secrets.RADAR_INGEST_TOKEN }}
-          RADAR_ORDER_NUMBERS: ${{ github.event.inputs.order_numbers }}
-          RADAR_BRANCH: ${{ github.event.inputs.branch }}
+          RADAR_ORDER_NUMBERS: ${{ github.event.inputs.order_numbers || github.event.client_payload.order_numbers }}
+          RADAR_CRITERION: ${{ github.event.inputs.criterion || github.event.client_payload.criterion }}
+          RADAR_SEARCH: ${{ github.event.inputs.search || github.event.client_payload.search }}
+          RADAR_BRANCH: ${{ github.event.inputs.branch || github.event.client_payload.branch || 'UNIVERSIDAD' }}
           SUPABASE_IMPORT_FN_URL: "https://rrxakcjuykyoxzdfgthg.supabase.co/functions/v1/radar-import-orden"
           SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeGFrY2p1eWt5b3h6ZGZndGhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMjA4NjUsImV4cCI6MjA5MzY5Njg2NX0.K5TPot2ATsFqL3jkYPODbXwr8i9OQmjgD5lNi-l5CyI"

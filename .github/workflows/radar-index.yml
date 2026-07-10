@@ -1,0 +1,34 @@
+name: Radar · Sync catalog
+
+# Sincroniza el catálogo de órdenes ACTIVAS de Radar hacia AP360.
+# Se dispara desde AP360 (repository_dispatch [radar-index]) o manual.
+on:
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [radar-index]
+
+concurrency:
+  group: radar-index
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar Playwright
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm install playwright@1.47.2
+          npx playwright install --with-deps chromium
+      - name: Sincronizar catálogo
+        run: node scripts/radar-index.mjs
+        env:
+          RADAR_USER: ${{ secrets.RADAR_USER }}
+          RADAR_PASS: ${{ secrets.RADAR_PASS }}
+          RADAR_INGEST_TOKEN: ${{ secrets.RADAR_INGEST_TOKEN }}
+          SUPABASE_INDEX_FN_URL: "https://rrxakcjuykyoxzdfgthg.supabase.co/functions/v1/radar-index-ingest"
+          SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeGFrY2p1eWt5b3h6ZGZndGhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMjA4NjUsImV4cCI6MjA5MzY5Njg2NX0.K5TPot2ATsFqL3jkYPODbXwr8i9OQmjgD5lNi-l5CyI"
