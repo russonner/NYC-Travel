@@ -1,14 +1,14 @@
-// FASE 0 · Inspector de la pantalla de la orden (iter. 5).
+// FASE 0 · Cazador de FOTOS y DOCUMENTOS (PDF) de una orden en Radar (iter. 6).
 //
-// Ya tenemos: orden, vehículo, siniestro, bitácora, y el shell de valuación
-// (/api/valuations/{IdValue}). Faltan las LÍNEAS de valuación (refacciones+montos)
-// y las FOTOS/DOCUMENTOS. En vez de adivinar nombres de endpoints, este script
-// INSPECCIONA la pantalla de la orden:
-//   - lista enlaces (<a href>), imágenes (blob/radardata) y botones,
-//   - hace clic en secciones (Documentos/Fotos/Valuación/Refacciones) y reporta
-//     qué endpoint NUEVO de radar-api dispara cada clic (correlación clic→API),
-//   - prueba rutas MVC del panel (/Valuacion, /Documentos, etc.) grabando XHR,
-//   - sondea variantes de endpoints derivadas de los campos vistos.
+// Objetivo único: hallar de dónde salen las fotos y los PDFs de una orden.
+// Estrategia: abrir el panel de la orden y hacer clic EN CADA PESTAÑA del panel
+// (Documentos, Fotografías, Refacciones, Valuación) REABRIENDO la orden antes de
+// cada clic (para no salirnos por el menú lateral). Tras cada clic captura:
+//   - los endpoints NUEVOS de radar-api que se dispararon,
+//   - TODAS las URLs de blobs (imágenes y PDF: img/a/iframe/embed/object).
+//
+// ⚠ IMPORTANTE: córrelo sobre una orden que SÍ tenga fotos/PDF cargados.
+//   Pasa su NÚMERO visible en RADAR_ORDER_ID (ej. 283).
 //
 // Variables (Secrets): RADAR_USER, RADAR_PASS. Opcional: RADAR_BRANCH, RADAR_ORDER_ID.
 import { chromium } from "playwright";
@@ -28,12 +28,19 @@ const ctx = await browser.newContext({
 const page = await ctx.newPage();
 page.setDefaultTimeout(45000);
 
-const vistos = new Set();     // "METHOD path" de radar-api ya observados
-const eventos = [];           // {etiqueta, method, url, muestra}
+const vistos = new Set();
+const eventos = [];
 let radarAuth = null;
+let etiquetaActual = "carga";
 
 function pathDe(url) { try { return new URL(url).pathname; } catch { return url; } }
-async function registrarResp(resp, etiqueta) {
+page.on("request", (req) => {
+  if (!radarAuth && req.url().includes(API_HOST)) {
+    const a = req.headers()["authorization"];
+    if (a && /bearer/i.test(a)) radarAuth = a;
+  }
+});
+page.on("response", async (resp) => {
   const url = resp.url();
   if (!url.includes(API_HOST)) return;
   const key = `${resp.request().method()} ${pathDe(url)}`;
@@ -42,32 +49,40 @@ async function registrarResp(resp, etiqueta) {
   let muestra = "";
   try {
     const ct = (resp.headers()["content-type"] || "").toLowerCase();
-    if (ct.includes("json")) muestra = (await resp.text()).slice(0, 700);
+    if (ct.includes("json")) muestra = (await resp.text()).slice(0, 800);
   } catch {}
-  eventos.push({ etiqueta, method: resp.request().method(), url, muestra });
-}
-page.on("request", (req) => {
-  if (!radarAuth && req.url().includes(API_HOST)) {
-    const a = req.headers()["authorization"];
-    if (a && /bearer/i.test(a)) radarAuth = a;
-  }
+  eventos.push({ etiqueta: etiquetaActual, method: resp.request().method(), status: resp.status(), url, muestra });
 });
-let etiquetaActual = "carga";
-page.on("response", (resp) => { registrarResp(resp, etiquetaActual).catch(() => {}); });
 
 const API = `https://${API_HOST}/api`;
 const authHeaders = () => ({ authorization: radarAuth, accept: "application/json, text/plain, */*", referer: BASE + "/" });
-async function getJson(ruta, etiqueta = "sondeo") {
+async function getJson(ruta) {
   try {
     const r = await ctx.request.get(API + ruta, { headers: authHeaders(), timeout: 15000 });
-    const status = r.status();
     let body = ""; try { body = await r.text(); } catch {}
-    const key = `GET ${pathDe(API + ruta)}`;
-    if (!vistos.has(key)) { vistos.add(key); eventos.push({ etiqueta, method: "GET", url: API + ruta, status, muestra: body.slice(0, 700) }); }
-    console.log(`   ${status}  GET ${ruta}`);
     let json = null; try { json = JSON.parse(body); } catch {}
-    return { status, json, body };
-  } catch (e) { return { status: 0, json: null, body: String(e && e.message ? e.message : e) }; }
+    return { status: r.status(), json, body };
+  } catch { return { status: 0, json: null, body: "" }; }
+}
+
+// Recoge todas las URLs de blobs (imágenes y PDF) actualmente en el DOM.
+async function blobsEnPagina() {
+  return await page.evaluate(() => {
+    const out = new Set();
+    const push = (s) => { if (s && (s.includes("blob.core.windows.net") || s.includes("radardata"))) out.add(s); };
+    document.querySelectorAll("img").forEach((e) => push(e.src));
+    document.querySelectorAll("a[href]").forEach((e) => push(e.href));
+    document.querySelectorAll("iframe,embed,object").forEach((e) => push(e.src || e.data));
+    // atributos data-* que a veces guardan la URL
+    document.querySelectorAll("[data-src],[data-url],[data-file]").forEach((e) => { push(e.getAttribute("data-src")); push(e.getAttribute("data-url")); push(e.getAttribute("data-file")); });
+    return [...out];
+  });
+}
+
+async function abrirPanel(orderId) {
+  etiquetaActual = "panel:carga";
+  await page.goto(`${BASE}/MasterPanel/Order/${orderId}`, { waitUntil: "networkidle", timeout: 60000 }).catch(() => {});
+  await page.waitForTimeout(3500);
 }
 
 try {
@@ -91,90 +106,57 @@ try {
   console.log("   Token:", radarAuth ? "sí" : "no");
   if (!radarAuth) { console.error("✗ Sin token."); process.exit(1); }
 
-  const { json: lista } = await getJson(`/orders/list?catListKey=Recepcion`, "lista");
+  const { json: lista } = await getJson(`/orders/list?catListKey=Recepcion`);
   const filas = lista && Array.isArray(lista.data) ? lista.data : [];
   let elegido = null;
-  if (ORDER_INPUT) elegido = filas.find((r) => String(r.orderNumber) === ORDER_INPUT) || (/^\d{5,}$/.test(ORDER_INPUT) ? { orderId: Number(ORDER_INPUT) } : null);
+  if (ORDER_INPUT) elegido = filas.find((r) => String(r.orderNumber) === ORDER_INPUT) || (/^\d{5,}$/.test(ORDER_INPUT) ? { orderId: Number(ORDER_INPUT), orderNumber: "?" } : null);
   if (!elegido) elegido = filas.find((r) => r.inWorkshop === true && r.processSequence > 1 && r.processSequence < 7) || filas.find((r) => r.inWorkshop === true) || filas[0];
   const orderId = elegido && elegido.orderId;
   if (!orderId) { console.error("✗ Sin orderId."); process.exit(1); }
-  console.log(`→ Orden: #${elegido.orderNumber || "?"} (id ${orderId}, proceso "${elegido.process || "?"}")`);
+  console.log(`→ Orden: #${elegido.orderNumber} (id ${orderId})`);
 
-  // Abrir el panel maestro y dejar cargar.
-  etiquetaActual = "panel:carga";
-  console.log("→ Abriendo panel y esperando…");
-  await page.goto(`${BASE}/MasterPanel/Order/${orderId}`, { waitUntil: "networkidle", timeout: 60000 }).catch(() => {});
-  await page.waitForTimeout(5000);
+  // Pestañas del panel a explorar (NO son enlaces del menú lateral).
+  const pestanas = ["Documentos", "Fotografías", "Fotografias", "Fotos", "Refacciones", "Valuación", "Valuacion", "Diagnóstico", "Evidencias", "Archivos"];
+  const blobsPorPestana = {};
 
-  // Inventario de la página: enlaces, imágenes (blob), botones/tabs con texto.
-  const inv = await page.evaluate(() => {
-    const txt = (e) => (e.innerText || e.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40);
-    const links = Array.from(document.querySelectorAll("a[href]")).map((a) => ({ t: txt(a), href: a.getAttribute("href") })).filter((x) => x.href && !x.href.startsWith("javascript"));
-    const imgs = Array.from(document.querySelectorAll("img")).map((i) => i.src).filter((s) => s && (s.includes("blob.core.windows.net") || s.includes("radardata")));
-    const iframes = Array.from(document.querySelectorAll("iframe")).map((f) => f.src).filter(Boolean);
-    const clickables = Array.from(document.querySelectorAll('a, button, [role="tab"], .nav-link, li, [onclick]'))
-      .map((e) => txt(e)).filter((t) => /document|foto|evidenc|valuaci|refacci|imagen|archivo|galer|presupuesto|adjunt/i.test(t));
-    return { links: links.slice(0, 60), imgs: [...new Set(imgs)].slice(0, 40), iframes: iframes.slice(0, 10), clickables: [...new Set(clickables)].slice(0, 40) };
-  });
-  console.log("\n--- ENLACES en la página (texto → href) ---");
-  inv.links.forEach((l) => console.log(`   [${l.t}] → ${l.href}`));
-  console.log("\n--- IMÁGENES blob/radardata (posibles fotos del vehículo) ---");
-  inv.imgs.forEach((s) => console.log(`   ${s}`));
-  console.log("\n--- IFRAMES ---");
-  inv.iframes.forEach((s) => console.log(`   ${s}`));
-  console.log("\n--- Botones/tabs con texto relevante ---");
-  inv.clickables.forEach((t) => console.log(`   "${t}"`));
-
-  // Clic en secciones relevantes, correlacionando cada clic con su API nueva.
-  console.log("\n→ Haciendo clic en secciones y correlacionando…");
-  for (const nombre of inv.clickables) {
+  for (const nombre of pestanas) {
+    await abrirPanel(orderId); // reabrir SIEMPRE para no quedar fuera del panel
+    const antes = new Set(await blobsEnPagina());
     etiquetaActual = `clic:${nombre}`;
+    let clicOk = false;
     try {
-      const loc = page.locator(`a, button, [role="tab"], .nav-link, li`).filter({ hasText: nombre }).first();
-      if (await loc.count()) { await loc.click({ timeout: 5000 }); await page.waitForTimeout(1800); }
+      // Buscar la pestaña por texto, EXCLUYENDO enlaces del menú (a[href^="/"]).
+      const cand = page.locator(`button, [role="tab"], .nav-link, li, span, div`).filter({ hasText: new RegExp(`^\\s*${nombre}\\s*$`, "i") });
+      const n = Math.min(await cand.count(), 6);
+      for (let i = 0; i < n; i++) {
+        const el = cand.nth(i);
+        const tag = await el.evaluate((e) => e.tagName + "|" + (e.getAttribute("href") || "")).catch(() => "");
+        if (tag.startsWith("A|/")) continue; // es enlace del menú lateral
+        try { await el.click({ timeout: 4000 }); clicOk = true; await page.waitForTimeout(2200); break; } catch {}
+      }
     } catch {}
-  }
-  // Tras los clics, capturar imágenes blob nuevas que hayan aparecido.
-  const imgs2 = await page.evaluate(() => Array.from(document.querySelectorAll("img")).map((i) => i.src).filter((s) => s && (s.includes("blob.core.windows.net") || s.includes("radardata"))));
-  const nuevasImgs = [...new Set(imgs2)].filter((s) => !inv.imgs.includes(s)).slice(0, 40);
-  if (nuevasImgs.length) { console.log("\n--- IMÁGENES blob que aparecieron tras los clics ---"); nuevasImgs.forEach((s) => console.log(`   ${s}`)); }
-
-  // Probar rutas MVC del panel (por si Documentos/Valuación abren otra página).
-  console.log("\n→ Probando rutas MVC del panel…");
-  for (const ruta of [
-    `/Valuacion/Order/${orderId}`, `/Valuacion/${orderId}`, `/Documentos/Order/${orderId}`, `/Documentos/${orderId}`,
-    `/Documents/Order/${orderId}`, `/Order/${orderId}`, `/MasterPanel/Documents/${orderId}`, `/MasterPanel/Valuacion/${orderId}`,
-  ]) {
-    etiquetaActual = `mvc:${ruta}`;
-    try {
-      await page.goto(BASE + ruta, { waitUntil: "networkidle", timeout: 30000 });
-      await page.waitForTimeout(2500);
-      console.log(`   ${page.url() === BASE + ruta ? "OK " : "→→ "} ${ruta}  (URL final: ${page.url()})`);
-    } catch { console.log(`   ERR ${ruta}`); }
+    const despues = await blobsEnPagina();
+    const nuevos = despues.filter((s) => !antes.has(s));
+    blobsPorPestana[nombre] = { clicOk, nuevos };
+    console.log(`   [${nombre}] clic=${clicOk} blobsNuevos=${nuevos.length}`);
   }
 
-  // Sondeo extra derivado de los campos de la valuación.
-  const { json: val } = await getJson(`/orders/${orderId}/valuation`, "sondeo");
-  const idValue = val && (val.IdValue ?? val.idValue);
-  if (idValue) {
-    console.log(`\n→ Sondeo extra de valuación (IdValue=${idValue})…`);
-    for (const ruta of [
-      `/valuations/${idValue}/spareparts`, `/valuations/${idValue}/spare-parts`, `/spare-parts-valuation/${idValue}`,
-      `/sparepartsvaluation/${idValue}`, `/valuations/${idValue}/services`, `/valuations/${idValue}/external-work`,
-      `/valuations/${idValue}/additional`, `/valuations/${idValue}/labor`, `/valuations/${idValue}/manoobra`,
-      `/valuations/${idValue}/full`, `/valuations/order/${orderId}`,
-    ]) await getJson(ruta);
+  // Reporte.
+  console.log("\n==================== FOTOS / DOCUMENTOS ====================");
+  for (const nombre of pestanas) {
+    const r = blobsPorPestana[nombre];
+    if (!r) continue;
+    console.log(`\n● Pestaña "${nombre}" (clic=${r.clicOk}, ${r.nuevos.length} blobs)`);
+    r.nuevos.forEach((s) => console.log(`   ${s}`));
   }
 
-  // Reporte de correlación clic→API.
-  console.log("\n==================== EVENTOS (clic/carga → endpoint) ====================");
-  console.log(`orderId=${orderId} vehicleId=${elegido && elegido.vehicleId || "?"} valuation.IdValue=${idValue || "?"}`);
+  console.log("\n==================== ENDPOINTS radar-api (por sección) ====================");
   for (const e of eventos) {
-    console.log(`\n● [${e.etiqueta}] ${e.method} ${e.status || ""}`);
+    console.log(`\n● [${e.etiqueta}] ${e.method} ${e.status}`);
     console.log(`  URL: ${e.url}`);
-    if (e.muestra) console.log(`  Muestra: ${e.muestra.replace(/\s+/g, " ").slice(0, 600)}`);
+    if (e.muestra) console.log(`  Muestra: ${e.muestra.replace(/\s+/g, " ").slice(0, 650)}`);
   }
-  console.log("\n=========== FIN — copia TODO esto (incluye las secciones ENLACES/IMÁGENES) ===========");
+  console.log("\n=========== FIN — copia TODO esto ===========");
 } catch (e) {
   console.error("✗ Error:", e && e.message ? e.message : e);
   try { console.error("  URL:", page.url()); } catch {}
