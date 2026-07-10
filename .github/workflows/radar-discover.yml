@@ -38,9 +38,19 @@ jobs:
           npm install playwright@1.47.2
           npx playwright install --with-deps chromium
       - name: Descubrir endpoints de Radar
-        run: node scripts/radar-discover.mjs
+        run: |
+          set -o pipefail
+          node scripts/radar-discover.mjs 2>&1 | tee discovery-output.txt
         env:
           RADAR_USER: ${{ secrets.RADAR_USER }}
           RADAR_PASS: ${{ secrets.RADAR_PASS }}
           RADAR_ORDER_ID: ${{ github.event.inputs.order_id }}
           RADAR_BRANCH: ${{ github.event.inputs.branch }}
+      # Sube el resultado como archivo descargable (por si el log de la web no carga).
+      - name: Subir resultado como artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-endpoints
+          path: discovery-output.txt
+          retention-days: 7
