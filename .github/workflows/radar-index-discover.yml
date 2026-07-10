@@ -1,0 +1,44 @@
+name: Radar · Discover order lists
+
+# Descubre cómo Radar lista TODAS las órdenes (activas e históricas/cerradas),
+# para construir el catálogo navegable de importación. Solo registra en el log.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Sucursal a seleccionar en Radar."
+        required: false
+        default: "UNIVERSIDAD"
+
+concurrency:
+  group: radar-index-discover
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar Playwright
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm install playwright@1.47.2
+          npx playwright install --with-deps chromium
+      - name: Descubrir listas de órdenes
+        run: |
+          set -o pipefail
+          node scripts/radar-index-discover.mjs 2>&1 | tee index-discover.txt
+        env:
+          RADAR_USER: ${{ secrets.RADAR_USER }}
+          RADAR_PASS: ${{ secrets.RADAR_PASS }}
+          RADAR_BRANCH: ${{ github.event.inputs.branch }}
+      - name: Subir resultado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-index-discover
+          path: index-discover.txt
+          retention-days: 7
