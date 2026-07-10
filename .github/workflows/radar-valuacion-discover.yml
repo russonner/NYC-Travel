@@ -1,0 +1,37 @@
+name: Radar · Discovery valuación/factura
+
+# Pasada de DESCUBRIMIENTO: sniffea la UI de Radar y prueba rutas candidatas
+# para encontrar los endpoints de montos autorizados de valuación (mano de
+# obra, trabajos externos, deducible, total autorizado) y de facturación
+# (folio/UUID/total). Solo imprime a los logs del job; no escribe en Supabase.
+on:
+  workflow_dispatch:
+    inputs:
+      order_ids:
+        description: "orderIds INTERNOS de Radar, separados por coma (default: 854532,592059 = órdenes #591 y #404, cerradas)"
+        required: false
+        default: "854532,592059"
+
+concurrency:
+  group: radar-valuacion-discover
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar Playwright
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm install playwright@1.47.2
+          npx playwright install --with-deps chromium
+      - name: Discovery valuación/factura
+        run: node scripts/radar-valuacion-discover.mjs
+        env:
+          RADAR_USER: ${{ secrets.RADAR_USER }}
+          RADAR_PASS: ${{ secrets.RADAR_PASS }}
+          RADAR_ORDER_IDS: ${{ github.event.inputs.order_ids || '854532,592059' }}
