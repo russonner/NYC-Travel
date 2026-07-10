@@ -1,22 +1,26 @@
 // FASE 0 · Descubrimiento de endpoints de Radar Control Total.
 //
-// No envía nada a ningún tablero: solo cataloga qué endpoints REST expone Radar
-// para una orden (cliente, aseguradora, valuación, refacciones, montos,
-// documentos/fotos, bitácora), imprimiendo método, URL, status, campos y una
-// muestra del cuerpo. Con eso se arma el mapeo Radar→AP360.
+// No envía nada a ningún tablero: cataloga qué endpoints REST usa Radar para una
+// orden (cliente, aseguradora, valuación, refacciones, montos, documentos/fotos,
+// bitácora) para armar el mapeo Radar→AP360.
 //
-// Camino PROBADO (igual que radar-sync.mjs): login → sucursal → /Orders (aquí
-// Radar entrega el token Bearer) → sondeo de endpoints REST de la orden.
+// Estrategia:
+//   1) login → sucursal → /Orders (Radar entrega el token Bearer aquí).
+//   2) leer la LISTA de órdenes para obtener un orderId INTERNO real
+//      (¡ojo! el "556" visible es orderNumber, la API pide el orderId interno,
+//       p.ej. 390871). Si pasas RADAR_ORDER_ID, primero se busca por orderNumber.
+//   3) abrir el PANEL de esa orden en el navegador y GRABAR todas las llamadas
+//      reales que la app dispara (el mejor catálogo, con datos reales).
+//   4) sondear endpoints REST candidatos con el id interno correcto.
 //
-// Variables de entorno (Secrets del repo): RADAR_USER, RADAR_PASS
-// Opcional: RADAR_BRANCH (default UNIVERSIDAD), RADAR_ORDER_ID
+// Variables (Secrets): RADAR_USER, RADAR_PASS. Opcional: RADAR_BRANCH, RADAR_ORDER_ID.
 import { chromium } from "playwright";
 
 const USER = process.env.RADAR_USER;
 const PASS = process.env.RADAR_PASS;
 const BASE = "https://app.radarcontroltotal.com";
 const API_HOST = "radar-api.azurewebsites.net";
-const ORDER_ID = (process.env.RADAR_ORDER_ID || "").trim();
+const ORDER_INPUT = (process.env.RADAR_ORDER_ID || "").trim();
 
 if (!USER || !PASS) {
   console.error("Faltan variables: RADAR_USER / RADAR_PASS");
@@ -31,7 +35,6 @@ const ctx = await browser.newContext({
 const page = await ctx.newPage();
 page.setDefaultTimeout(45000);
 
-// Catálogo de endpoints observados. Clave = "METHOD path" (sin querystring).
 const catalogo = new Map();
 let radarAuth = null;
 
@@ -50,18 +53,17 @@ function registrar(method, url, status, body, extra = {}) {
   let campos = [];
   let muestra = "";
   if (typeof body === "string") {
-    muestra = body.slice(0, 800);
+    muestra = body.slice(0, 900);
     try {
       const j = JSON.parse(body);
       const obj = Array.isArray(j) ? j[0] : j;
-      if (obj && typeof obj === "object") campos = Object.keys(obj).slice(0, 80);
+      if (obj && typeof obj === "object") campos = Object.keys(obj).slice(0, 90);
       if (Array.isArray(j)) extra.esArreglo = true;
     } catch {}
   }
   catalogo.set(key, { method, url, status, campos, muestra, ...extra });
 }
 
-// Atrapa el token Bearer de cualquier request a la API (como radar-sync).
 page.on("request", (req) => {
   if (!radarAuth && req.url().includes(API_HOST)) {
     const a = req.headers()["authorization"];
@@ -69,18 +71,37 @@ page.on("request", (req) => {
   }
 });
 
-// Registra TODA respuesta del navegador contra la API de Radar.
 page.on("response", async (resp) => {
   const url = resp.url();
   if (!url.includes(API_HOST)) return;
   try {
     const ct = (resp.headers()["content-type"] || "").toLowerCase();
     const body = ct.includes("json") ? await resp.text() : `(${ct || "sin content-type"})`;
-    registrar(resp.request().method(), url, resp.status(), body, { origen: "navegador" });
+    registrar(resp.request().method(), url, resp.status(), body, { origen: "app" });
   } catch {
-    registrar(resp.request().method(), url, resp.status(), null, { origen: "navegador" });
+    registrar(resp.request().method(), url, resp.status(), null, { origen: "app" });
   }
 });
+
+const API = `https://${API_HOST}/api`;
+function authHeaders() {
+  return { authorization: radarAuth, accept: "application/json, text/plain, */*", referer: BASE + "/" };
+}
+
+async function getJson(ruta) {
+  try {
+    const r = await ctx.request.get(API + ruta, { headers: authHeaders(), timeout: 15000 });
+    const status = r.status();
+    let body = "";
+    try { body = await r.text(); } catch {}
+    registrar("GET", API + ruta, status, body, { sondeo: true });
+    let json = null;
+    try { json = JSON.parse(body); } catch {}
+    return { status, json, body };
+  } catch (e) {
+    return { status: 0, json: null, body: String(e && e.message ? e.message : e) };
+  }
+}
 
 try {
   console.log("→ Login…");
@@ -97,9 +118,7 @@ try {
       'button[type="submit"], input[type="submit"], button:has-text("Iniciar"), button:has-text("Entrar"), button:has-text("Acceder")'
     ),
   ]);
-  console.log("   URL tras login:", page.url());
 
-  // Selección de sucursal.
   if (page.url().toLowerCase().includes("workshopbranch")) {
     const branchName = process.env.RADAR_BRANCH || "UNIVERSIDAD";
     const target = page.locator(`text=/${branchName}/i`).first();
@@ -109,121 +128,119 @@ try {
     console.log(`   Sucursal "${branchName}" → URL:`, page.url());
   }
 
-  // /Orders: aquí Radar entrega el token Bearer (camino probado por radar-sync).
   console.log("→ Abriendo /Orders para capturar el token…");
   await page.goto(BASE + "/Orders", { waitUntil: "networkidle" });
   await page.waitForSelector("#mftable", { timeout: 45000 }).catch(() => {});
   await page.waitForTimeout(4000);
-
-  // Resolver el order_id a explorar.
-  let orderId = ORDER_ID;
-  if (!orderId) {
-    orderId = await page.evaluate(() => {
-      const el = document.querySelector("[data-order-id]");
-      return el ? el.getAttribute("data-order-id") : "";
-    });
-  }
-  console.log("   order_id a explorar:", orderId || "(ninguno)");
-
-  // Si aún no hay token, abrir el panel maestro fuerza una llamada autenticada.
-  if (!radarAuth && orderId) {
-    console.log("→ Abriendo panel maestro para forzar el token…");
-    await page
-      .goto(`${BASE}/MasterPanel/Order/${orderId}`, { waitUntil: "networkidle", timeout: 60000 })
-      .catch(() => {});
-    await page.waitForTimeout(3500);
-  }
-  console.log("   Token Bearer capturado:", radarAuth ? "sí" : "no");
-
-  if (!orderId) {
-    console.error("✗ No hay order_id para explorar. Pasa uno en el input del workflow.");
+  console.log("   Token Bearer:", radarAuth ? "sí" : "no");
+  if (!radarAuth) {
+    console.error("✗ No se capturó el token. Aborto.");
     process.exit(1);
   }
 
-  // Sondeo de endpoints REST candidatos con el token (GET, solo lectura).
-  if (radarAuth) {
-    const API = `https://${API_HOST}/api`;
-    const headers = { authorization: radarAuth, accept: "application/json, text/plain, */*", referer: BASE + "/" };
-    const rutas = [
-      // Conocidos-buenos (radar-sync)
-      `/vehicles/orders/${orderId}/vehicle-detail`,
-      `/orders/${orderId}/order-detail-binnacle`,
-      // Detalle general de la orden
-      `/orders/${orderId}`,
-      `/orders/${orderId}/detail`,
-      `/orders/${orderId}/order-detail`,
-      `/orders/${orderId}/general`,
-      `/orders/${orderId}/summary`,
-      `/orders/${orderId}/header`,
-      // Cliente / ordenante
-      `/orders/${orderId}/client`,
-      `/orders/${orderId}/customer`,
-      `/orders/${orderId}/owner`,
-      `/orders/${orderId}/contact`,
-      // Aseguradora / seguro
-      `/orders/${orderId}/insurance`,
-      `/orders/${orderId}/insurer`,
-      `/orders/${orderId}/insurance-detail`,
-      `/orders/${orderId}/policy`,
-      // Valuación / presupuesto / refacciones / mano de obra
-      `/orders/${orderId}/valuation`,
-      `/orders/${orderId}/valuations`,
-      `/orders/${orderId}/budget`,
-      `/orders/${orderId}/quotation`,
-      `/orders/${orderId}/estimate`,
-      `/orders/${orderId}/spare-parts`,
-      `/orders/${orderId}/parts`,
-      `/orders/${orderId}/refactions`,
-      `/orders/${orderId}/labor`,
-      `/orders/${orderId}/operations`,
-      `/orders/${orderId}/amounts`,
-      `/orders/${orderId}/totals`,
-      // Documentos / archivos / fotos
-      `/orders/${orderId}/documents`,
-      `/orders/${orderId}/files`,
-      `/orders/${orderId}/attachments`,
-      `/orders/${orderId}/photos`,
-      `/orders/${orderId}/images`,
-      `/orders/${orderId}/gallery`,
-      `/orders/${orderId}/pictures`,
-      `/vehicles/orders/${orderId}`,
-      `/vehicles/orders/${orderId}/photos`,
-      `/vehicles/orders/${orderId}/documents`,
-      `/vehicles/orders/${orderId}/images`,
-      `/documents/orders/${orderId}`,
-      `/documents/order/${orderId}`,
-      `/files/orders/${orderId}`,
-      `/photos/orders/${orderId}`,
-      // Bitácora / procesos / historial
-      `/orders/${orderId}/binnacle`,
-      `/orders/${orderId}/logs`,
-      `/orders/${orderId}/processes`,
-      `/orders/${orderId}/process`,
-      `/orders/${orderId}/timeline`,
-      `/orders/${orderId}/history`,
-    ];
-    console.log(`→ Sondeando ${rutas.length} rutas REST de la orden ${orderId}…`);
-    for (const ruta of rutas) {
-      const key = claveEndpoint("GET", API + ruta);
-      if (catalogo.has(key)) continue;
-      try {
-        const r = await ctx.request.get(API + ruta, { headers, timeout: 15000 });
-        const status = r.status();
-        let body = "";
-        try { body = await r.text(); } catch {}
-        registrar("GET", API + ruta, status, body, { sondeo: true });
-        console.log(`   ${status}  GET ${ruta}`);
-      } catch (e) {
-        console.log(`   ERR  GET ${ruta} — ${e && e.message ? e.message : e}`);
+  // --- Resolver un orderId INTERNO real ---
+  // Probamos varias listas por proceso (catListKey) para juntar órdenes reales.
+  const claves = [
+    "Recepcion", "Valuacion", "Autorizacion", "Refacciones", "Refaccionamiento",
+    "Reparacion", "ControlCalidad", "Entrega", "Facturacion", "Terminadas", "Todas",
+  ];
+  const porNumero = new Map(); // orderNumber -> orderId
+  let primeraReal = null;
+  console.log("→ Leyendo listas de órdenes (para obtener ids internos)…");
+  for (const k of claves) {
+    const { status, json } = await getJson(`/orders/list?catListKey=${encodeURIComponent(k)}`);
+    const data = json && Array.isArray(json.data) ? json.data : [];
+    if (data.length) {
+      console.log(`   ${status}  catListKey=${k}: ${data.length} órdenes`);
+      for (const row of data) {
+        if (row && row.orderId != null) {
+          if (row.orderNumber != null) porNumero.set(String(row.orderNumber), row.orderId);
+          if (primeraReal == null) primeraReal = row.orderId;
+        }
       }
+    } else {
+      console.log(`   ${status}  catListKey=${k}: (vacío o no aplica)`);
     }
-  } else {
-    console.warn("⚠ No se capturó el token; solo quedan los endpoints observados por el navegador.");
   }
 
-  // Reporte final.
+  let orderId = null;
+  if (ORDER_INPUT) {
+    if (porNumero.has(ORDER_INPUT)) {
+      orderId = porNumero.get(ORDER_INPUT);
+      console.log(`→ orderNumber ${ORDER_INPUT} → orderId interno ${orderId}`);
+    } else if (/^\d{5,}$/.test(ORDER_INPUT)) {
+      orderId = Number(ORDER_INPUT); // ya parece id interno
+      console.log(`→ Uso RADAR_ORDER_ID como id interno: ${orderId}`);
+    } else {
+      console.warn(`⚠ No encontré orderNumber ${ORDER_INPUT} en las listas; uso la primera real.`);
+    }
+  }
+  if (orderId == null) orderId = primeraReal;
+  if (orderId == null) {
+    console.error("✗ No pude obtener ningún orderId interno de las listas.");
+    process.exit(1);
+  }
+  console.log("→ Orden a explorar (id interno):", orderId);
+
+  // --- GRABAR lo que la app carga al abrir el panel de la orden ---
+  console.log("→ Abriendo el panel de la orden y grabando sus llamadas…");
+  await page
+    .goto(`${BASE}/MasterPanel/Order/${orderId}`, { waitUntil: "networkidle", timeout: 60000 })
+    .catch(() => {});
+  await page.waitForTimeout(4000);
+
+  // Clic genérico en cualquier tab/nav para disparar secciones perezosas (docs/fotos).
+  try {
+    const tabs = page.locator(
+      '[role="tab"], .nav-link, a[data-toggle="tab"], a[data-bs-toggle="tab"], ul.nav a, .nav-tabs a, .mat-tab-label, .tab'
+    );
+    const n = Math.min(await tabs.count(), 25);
+    console.log(`   ${n} elementos tipo pestaña encontrados; haciendo clic…`);
+    for (let i = 0; i < n; i++) {
+      try {
+        await tabs.nth(i).click({ timeout: 4000 });
+        await page.waitForTimeout(900);
+      } catch {}
+    }
+    await page.waitForTimeout(1500);
+  } catch {}
+
+  // --- Sondeo dirigido de endpoints REST con el id correcto ---
+  console.log("→ Sondeando endpoints REST con el id correcto…");
+  const rutas = [
+    `/orders/${orderId}`,
+    `/orders/${orderId}/order-detail-binnacle`,
+    `/orders/${orderId}/valuation`,
+    `/orders/${orderId}/documents`,
+    `/orders/${orderId}/document`,
+    `/orders/${orderId}/files`,
+    `/orders/${orderId}/photos`,
+    `/orders/${orderId}/images`,
+    `/orders/${orderId}/gallery`,
+    `/orders/${orderId}/client`,
+    `/orders/${orderId}/customer`,
+    `/orders/${orderId}/insurance`,
+    `/orders/${orderId}/spare-parts`,
+    `/orders/${orderId}/parts`,
+    `/orders/${orderId}/labor`,
+    `/orders/${orderId}/processes`,
+    `/orders/${orderId}/binnacle`,
+    `/orders/${orderId}/history`,
+    `/vehicles/orders/${orderId}/vehicle-detail`,
+    `/vehicles/orders/${orderId}/photos`,
+    `/vehicles/orders/${orderId}/documents`,
+    `/documents/order/${orderId}`,
+    `/document/order/${orderId}`,
+  ];
+  for (const ruta of rutas) {
+    if (catalogo.has(claveEndpoint("GET", API + ruta))) continue;
+    const { status } = await getJson(ruta);
+    console.log(`   ${status}  GET ${ruta}`);
+  }
+
+  // --- Reporte final ---
   console.log("\n==================== CATÁLOGO DE ENDPOINTS DE RADAR ====================");
-  console.log(`Token Bearer capturado: ${radarAuth ? "sí" : "no"}`);
+  console.log(`orderId interno explorado: ${orderId}`);
   console.log(`Endpoints en el catálogo: ${catalogo.size}\n`);
   const entradas = [...catalogo.values()].sort((a, b) => a.url.localeCompare(b.url));
   for (const e of entradas) {
@@ -231,7 +248,7 @@ try {
     console.log(`● ${e.method} ${e.status}${tag}${e.esArreglo ? " [arreglo]" : ""}`);
     console.log(`  URL: ${e.url}`);
     if (e.campos && e.campos.length) console.log(`  Campos: ${e.campos.join(", ")}`);
-    if (e.muestra) console.log(`  Muestra: ${e.muestra.replace(/\s+/g, " ").slice(0, 500)}`);
+    if (e.muestra) console.log(`  Muestra: ${e.muestra.replace(/\s+/g, " ").slice(0, 600)}`);
     console.log("");
   }
   console.log("=========== FIN DEL CATÁLOGO — copia TODO esto y pégalo en el chat ===========");
