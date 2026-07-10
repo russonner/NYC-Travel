@@ -1,0 +1,46 @@
+name: Radar · Discover endpoints
+
+# FASE 0 · Solo para descubrir qué endpoints expone Radar al abrir una orden.
+# NO envía nada a ningún tablero: únicamente registra en el log las llamadas a
+# la API de Radar (método, URL, campos, muestra) para catalogarlas.
+#
+# Uso: pestaña Actions → "Radar · Discover endpoints" → Run workflow →
+#      escribe el order_id (el data-order-id interno de Radar) o déjalo vacío
+#      para tomar el primero de la lista → pega el log completo en el chat.
+on:
+  workflow_dispatch:
+    inputs:
+      order_id:
+        description: "ID interno de la orden en Radar (data-order-id). Vacío = toma la primera de /Orders."
+        required: false
+        default: ""
+      branch:
+        description: "Sucursal a seleccionar en Radar."
+        required: false
+        default: "UNIVERSIDAD"
+
+# Nunca corre sola: es 100% manual. No toca la sincronización periódica.
+concurrency:
+  group: radar-discover
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar Playwright
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm install playwright@1.47.2
+          npx playwright install --with-deps chromium
+      - name: Descubrir endpoints de Radar
+        run: node scripts/radar-discover.mjs
+        env:
+          RADAR_USER: ${{ secrets.RADAR_USER }}
+          RADAR_PASS: ${{ secrets.RADAR_PASS }}
+          RADAR_ORDER_ID: ${{ github.event.inputs.order_id }}
+          RADAR_BRANCH: ${{ github.event.inputs.branch }}
