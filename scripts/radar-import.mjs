@@ -66,17 +66,21 @@ try {
   // Construir la lista de orderIds internos a importar.
   const objetivos = []; // {orderId, etiqueta}
   if (CRITERION && SEARCH) {
-    const res = await buscarHistorico(CRITERION, SEARCH);
-    if (!res.length) console.error(`✗ Histórico: sin resultados para ${CRITERION}="${SEARCH}"`);
+    let res = await buscarHistorico(CRITERION, SEARCH);
+    // La búsqueda por número en Radar es tipo "contiene" (202 puede traer 200,
+    // 2020, 1202…). Para ORDERNUMBER exigimos coincidencia EXACTA.
+    if (CRITERION === "ORDERNUMBER") res = res.filter((o) => String(o.OrderNumber) === String(SEARCH));
+    if (!res.length) console.error(`✗ Histórico: sin resultados exactos para ${CRITERION}="${SEARCH}"`);
     for (const o of res) if (o.OrderId) objetivos.push({ orderId: o.OrderId, etiqueta: `#${o.OrderNumber} (histórica)` });
   } else {
     for (const num of NUMEROS) {
       if (porNumero.has(num)) { objetivos.push({ orderId: porNumero.get(num), etiqueta: `#${num}` }); continue; }
       if (/^\d{5,}$/.test(num)) { objetivos.push({ orderId: Number(num), etiqueta: `id ${num}` }); continue; }
-      // no está activa → buscar en histórico por número de orden
+      // no está activa → buscar en histórico por número de orden (match EXACTO)
       const res = await buscarHistorico("ORDERNUMBER", num);
-      if (res[0] && res[0].OrderId) objetivos.push({ orderId: res[0].OrderId, etiqueta: `#${num} (histórica)` });
-      else console.error(`✗ #${num}: no está en activas ni en histórico.`);
+      const exact = res.find((o) => String(o.OrderNumber) === String(num));
+      if (exact && exact.OrderId) objetivos.push({ orderId: exact.OrderId, etiqueta: `#${num} (histórica)` });
+      else console.error(`✗ #${num}: no está en activas ni en histórico (búsqueda exacta).`);
     }
   }
   if (!objetivos.length) { console.error("✗ Nada que importar."); process.exit(1); }
