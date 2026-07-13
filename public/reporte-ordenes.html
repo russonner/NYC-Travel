@@ -367,7 +367,7 @@
 
 <!-- Comments modal -->
 <div class="modal-bg" id="comModal"><div class="modal">
-  <h2 id="comTitle">Comentarios</h2>
+  <h2 id="comTitle">Conversaciones</h2>
   <div class="body">
     <div id="comBar"></div>
     <div id="comList"></div>
@@ -1058,7 +1058,7 @@ async function setResp(ctx, arr){
 function renderCommentsModal(){
   const ctx=comCtx; if(!ctx) return; const o=comObj(); if(!o) return;
   const esT = ctx.kind==='tarea';
-  $("#comTitle").textContent = esT ? `Tarea — ${o.titulo}` : `Comentarios — Orden ${o.no} (${o.modelo||""})`;
+  $("#comTitle").textContent = esT ? `Tarea — ${o.titulo}` : `Conversaciones — Orden ${o.no} (${o.modelo||""})`;
   const resp=o.responsables||[]; const soyResp=resp.includes(me.nombre), puedoTomar=me.nombre && !soyResp;
   const cabT = esT ? "📝 Pendiente / Descripción" : "📌 Acción a tomar / Tarea";
   const cabTx = esT ? (o.descripcion||"") : (o.accion||"");
