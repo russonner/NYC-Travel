@@ -249,7 +249,7 @@
       <div class="avatar" id="avatar">?</div>
       <label style="display:flex;align-items:center;gap:6px;color:var(--muted)">Soy: <select id="meName" style="border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12.5px;background:#fff"></select></label>
       <div style="position:relative">
-        <button class="ghost" id="btnBell" title="Menciones" style="position:relative;font-size:16px">🔔<span id="bellCount" class="bellbadge" style="display:none">0</span></button>
+        <button class="ghost" id="btnBell" title="Conversaciones" style="position:relative;font-size:16px">💬<span id="bellCount" class="bellbadge" style="display:none">0</span></button>
         <div id="bellPanel" class="bellpanel"></div>
       </div>
       <button class="ghost" id="btnLogout">Salir</button>
@@ -756,13 +756,13 @@ function renderBell(){
   const n=menciones.length, c=$("#bellCount");
   if(c){ c.textContent=n; c.style.display=n?"inline-block":"none"; }
   const p=$("#bellPanel"); if(!p) return;
-  p.innerHTML = `<div class="mh"><b>Menciones</b>${n?`<a id="bellAll" style="cursor:pointer;color:var(--accent)">Marcar todas leídas</a>`:""}</div>`+
+  p.innerHTML = `<div class="mh"><b>Conversaciones</b>${n?`<a id="bellAll" style="cursor:pointer;color:var(--accent)">Marcar todas leídas</a>`:""}</div>`+
     (n? menciones.map(m=>{
       let etiq;
       if(m.tarea_id){ const t=tareas.find(x=>x.id===m.tarea_id); etiq="Tarea: "+esc(t?t.titulo:("#"+m.tarea_id)); }
       else { const o=orders.find(x=>x.id===m.orden_id); etiq="Orden "+esc(o?o.no:m.orden_id); }
       return `<div class="bellitem" data-id="${m.id}" data-orden="${m.orden_id||''}" data-tarea="${m.tarea_id||''}"><div class="de">${esc(m.de||"")} · ${etiq}</div><div class="tx">${resaltarMenciones(m.texto||"")}</div></div>`;
-    }).join("") : '<div class="hint" style="padding:8px">Sin menciones pendientes 🎉</div>');
+    }).join("") : '<div class="hint" style="padding:8px">Sin conversaciones pendientes 🎉</div>');
   const all=$("#bellAll"); if(all) all.onclick=marcarTodasLeidas;
 }
 async function marcarLeido(ids){
@@ -894,7 +894,7 @@ function render(resort=false){
   }
 
   // "Acción a Tomar" la pueden editar Adrian, Alejandro Martinez o los supervisores (p. ej. SURA)
-  const puedeAccion = me.rol==="supervisor" || ["adrian","adrián","alejandro martinez","alejandro martínez"].includes((me.nombre||"").trim().toLowerCase());
+  const puedeAccion = me.rol==="supervisor" || ["adrian","adrián","alejandro martinez","alejandro martínez","fidel cortes","fidel cortés","fidel"].includes((me.nombre||"").trim().toLowerCase());
   const hoyISO = new Date().toISOString().slice(0,10);
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
