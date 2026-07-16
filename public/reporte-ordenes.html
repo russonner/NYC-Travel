@@ -895,6 +895,8 @@ function render(resort=false){
 
   // "Acción a Tomar" la pueden editar Adrian, Alejandro Martinez o los supervisores (p. ej. SURA)
   const puedeAccion = me.rol==="supervisor" || ["adrian","adrián","alejandro martinez","alejandro martínez","fidel cortes","fidel cortés","fidel"].includes((me.nombre||"").trim().toLowerCase());
+  // Gestores de bloqueo: pueden bloquear y desbloquear CUALQUIER orden (como un admin, solo para esta función)
+  const puedeGestionarBloqueo = me.rol==="admin" || ["devany"].includes((me.nombre||"").trim().toLowerCase());
   const hoyISO = new Date().toISOString().slice(0,10);
   $("#tbody").innerHTML = rows.map(o=>{
     const est=o.estatus||"pendiente";
@@ -905,7 +907,7 @@ function render(resort=false){
     const bloq=!!o.bloqueada;
     const editAccion = puedeAccion && !bloq;
     const soyLocker = !!(o.bloqueada_por && me.nombre && o.bloqueada_por===me.nombre);
-    const puedeDesbloquear = me.rol==="admin" || soyLocker;
+    const puedeDesbloquear = puedeGestionarBloqueo || soyLocker;
     const cuando = o.bloqueada_at ? (" · "+new Date(o.bloqueada_at).toLocaleString("es-MX")) : "";
     const lockHtml = !bloq
       ? `<button class="lockbtn" title="Bloquear orden (Valuación): nadie podrá trabajarla">🛠️</button>`
