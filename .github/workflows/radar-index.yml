@@ -1,8 +1,12 @@
 name: Radar · Sync catalog
 
 # Sincroniza el catálogo de órdenes ACTIVAS de Radar hacia AP360.
-# Se dispara desde AP360 (repository_dispatch [radar-index]) o manual.
+# Se dispara solo (schedule), desde AP360 (repository_dispatch [radar-index]) o manual.
+# El schedule mantiene el catálogo VIVO sin depender del dispatch de la app (que
+# exige GITHUB_PAT): mismo patrón que "Radar Sync" (seguimiento), que ya corre solo.
 on:
+  schedule:
+    - cron: "23 * * * *"   # cada hora (catálogo = 1 sola llamada, ligero)
   workflow_dispatch: {}
   repository_dispatch:
     types: [radar-index]

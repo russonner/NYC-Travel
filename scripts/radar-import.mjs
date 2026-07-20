@@ -72,6 +72,12 @@ try {
     if (CRITERION === "ORDERNUMBER") res = res.filter((o) => String(o.OrderNumber) === String(SEARCH));
     if (!res.length) console.error(`✗ Histórico: sin resultados exactos para ${CRITERION}="${SEARCH}"`);
     for (const o of res) if (o.OrderId) objetivos.push({ orderId: o.OrderId, etiqueta: `#${o.OrderNumber} (histórica)` });
+  } else if (NUMEROS.length === 1 && NUMEROS[0].toUpperCase() === "ALL") {
+    // Modo "todas las activas" (keep-alive programado): importa el detalle
+    // COMPLETO de cada orden activa del catálogo de Radar → staging siempre
+    // fresco, sin depender del dispatch de la app (que exige GITHUB_PAT).
+    for (const [num, orderId] of porNumero) objetivos.push({ orderId, etiqueta: `#${num}` });
+    console.log(`→ Modo ALL: ${objetivos.length} órdenes activas a importar.`);
   } else {
     for (const num of NUMEROS) {
       if (porNumero.has(num)) { objetivos.push({ orderId: porNumero.get(num), etiqueta: `#${num}` }); continue; }
