@@ -156,11 +156,13 @@
   .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
   .rowdel:hover{background:#fee2e2;border-radius:6px}
   body.rolmember .rowdel{display:none}  /* miembros no eliminan órdenes */
-  /* Orden bloqueada (p. ej. por Valuación): fila roja, nadie puede trabajarla */
+  /* Orden bloqueada (p. ej. por Valuación): fila roja, nadie puede trabajarla ni comprarle piezas */
   tr.bloqueada{opacity:1 !important}
-  tr.bloqueada > td{background:#fee2e2 !important}
-  tr.bloqueada > td.no{box-shadow:inset 4px 0 0 #dc2626}
+  tr.bloqueada > td{background:#fde0e0 !important;color:#7f1d1d}
+  tr.bloqueada > td.no{box-shadow:inset 5px 0 0 #dc2626}
   tr.bloqueada td.accion-cell{background:#fecaca !important}
+  /* Etiqueta clara para el comprador: NO comprar piezas de una orden bloqueada */
+  .nocomprar{display:inline-block;background:#dc2626;color:#fff;font-weight:800;font-size:10px;letter-spacing:.03em;padding:2px 6px;border-radius:6px;white-space:nowrap;margin-top:3px}
   .lockbtn{border:none;background:none;cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;filter:grayscale(.2)}
   .lockbtn:hover{filter:none}
   .lockbtn.on{filter:none}
@@ -878,7 +880,7 @@ function render(resort=false){
       <div class="card"><div class="n" style="color:#16a34a">${listas}</div><div class="l">✅ Listas para entrega</div></div>
       <div class="card"><div class="n">${total}</div><div class="l">📋 Total de unidades ${esc(aseg)}</div></div>`;
     $("#tbody").innerHTML = rows.map(o=>`<tr data-id="${o.id}" class="${o.bloqueada?'bloqueada':''}">
-      <td class="no">${o.bloqueada?'🛠️ ':''}${esc(o.no)}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+      <td class="no">${o.bloqueada?'🛠️ ':''}${esc(o.no)}${o.bloqueada?' <span class="nocomprar">🚫 NO COMPRAR</span>':''}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span></td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td>${esc(o.num_siniestro||"")}</td>
@@ -915,7 +917,7 @@ function render(resort=false){
           ? `<button class="lockbtn on" title="Desbloquear — bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)}">🛠️</button>`
           : `<span class="lockind" title="Bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)} — solo esa persona o un admin puede desbloquear">🛠️</span>`);
     return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${bloq?'bloqueada':''}">
-      <td class="no"><span class="lockwrap">${lockHtml}</span>${bloq?`<span class="nonum">${esc(o.no)}</span><div class="hint" style="color:#b91c1c;font-weight:700;line-height:1.15">Bloq: ${esc(o.bloqueada_por||'—')}</div>`:`<span class="nonum">${esc(o.no)}</span>`}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
+      <td class="no"><span class="lockwrap">${lockHtml}</span>${bloq?`<span class="nonum">${esc(o.no)}</span><div class="hint" style="color:#b91c1c;font-weight:700;line-height:1.15">Bloq: ${esc(o.bloqueada_por||'—')}</div><span class="nocomprar">🚫 NO COMPRAR</span>`:`<span class="nonum">${esc(o.no)}</span>`}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
       <td>${esc(o.num_siniestro||"")}</td>
