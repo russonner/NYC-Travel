@@ -3,9 +3,15 @@
 // staging para vista previa). Se dispara desde AP360 (repository_dispatch) o manual.
 //
 // Secrets: RADAR_USER, RADAR_PASS, RADAR_INGEST_TOKEN. Público: SUPABASE_IMPORT_FN_URL, SUPABASE_ANON.
-// Inputs (uno de los dos):
+// Inputs (uno de estos):
 //   RADAR_ORDER_NUMBERS = "591,404"   (# visibles; activas o históricas por número)
 //   RADAR_CRITERION + RADAR_SEARCH    (histórico por PLATES/VIN/SINISTERNUMBER/INVOICE)
+//   RADAR_ORDER_FROM + RADAR_ORDER_TO (BACKFILL por rango de folios: enumera cada
+//                                      número y lo resuelve por activa o histórico)
+// Modo LITE (base de conocimiento de COMPRAS):
+//   RADAR_SOLO_PIEZAS = 1  → NO baja fotos/PDF/OC ni bitácora (arrays vacíos → la
+//   Edge no descarga blobs). Trae solo vehículo + encabezado + refacciones
+//   (valuación/recibidas). Mucho más rápido y sin inflar Storage.
 import { chromium } from "playwright";
 
 const USER = process.env.RADAR_USER;
@@ -19,9 +25,14 @@ const API = `https://${API_HOST}/api`;
 const NUMEROS = (process.env.RADAR_ORDER_NUMBERS || "").split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
 const CRITERION = (process.env.RADAR_CRITERION || "").trim().toUpperCase();
 const SEARCH = (process.env.RADAR_SEARCH || "").trim();
+const FROM = parseInt(process.env.RADAR_ORDER_FROM || "", 10);
+const TO = parseInt(process.env.RADAR_ORDER_TO || "", 10);
+const RANGO = Number.isFinite(FROM) && Number.isFinite(TO);
+const SOLO_PIEZAS = /^(1|true|si|s[ií]|yes)$/i.test(String(process.env.RADAR_SOLO_PIEZAS || "").trim());
 
 if (!USER || !PASS || !FN_TOKEN || !FN_URL) { console.error("Faltan variables"); process.exit(1); }
-if (!NUMEROS.length && !(CRITERION && SEARCH)) { console.error("Falta RADAR_ORDER_NUMBERS o (RADAR_CRITERION + RADAR_SEARCH)"); process.exit(1); }
+if (!NUMEROS.length && !(CRITERION && SEARCH) && !RANGO) { console.error("Falta RADAR_ORDER_NUMBERS, (RADAR_CRITERION + RADAR_SEARCH) o (RADAR_ORDER_FROM + RADAR_ORDER_TO)"); process.exit(1); }
+if (SOLO_PIEZAS) console.log("→ Modo SOLO-PIEZAS: no se bajan fotos/PDF/OC (base de conocimiento de compras).");
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" });
@@ -65,7 +76,21 @@ try {
 
   // Construir la lista de orderIds internos a importar.
   const objetivos = []; // {orderId, etiqueta}
-  if (CRITERION && SEARCH) {
+  if (RANGO) {
+    // BACKFILL por rango de folios: por cada número, resolver su orderId por la
+    // lista activa o por búsqueda histórica exacta. Los huecos (folio inexistente)
+    // se saltan en silencio.
+    const lo = Math.min(FROM, TO), hi = Math.max(FROM, TO);
+    console.log(`→ Rango ${lo}–${hi}: resolviendo orderIds…`);
+    for (let num = lo; num <= hi; num++) {
+      const s = String(num);
+      if (porNumero.has(s)) { objetivos.push({ orderId: porNumero.get(s), etiqueta: `#${s}` }); continue; }
+      const res = await buscarHistorico("ORDERNUMBER", s);
+      const exact = res.find((o) => String(o.OrderNumber) === s);
+      if (exact && exact.OrderId) objetivos.push({ orderId: exact.OrderId, etiqueta: `#${s} (histórica)` });
+    }
+    console.log(`→ Rango: ${objetivos.length} órdenes encontradas de ${hi - lo + 1} folios.`);
+  } else if (CRITERION && SEARCH) {
     let res = await buscarHistorico(CRITERION, SEARCH);
     // La búsqueda por número en Radar es tipo "contiene" (202 puede traer 200,
     // 2020, 1202…). Para ORDERNUMBER exigimos coincidencia EXACTA.
@@ -103,10 +128,13 @@ try {
     const val = idValue ? await getJson(`/valuations/${idValue}`) : null;
     const spValuation = idValue ? (await getJson(`/valuations/${idValue}/spare-parts`)) || [] : [];
     const spReceived = (await getJson(`/warehouse/orders/${orderId}/spareparts-received`)) || [];
-    const bin = (await getJson(`/binnacle/orders/${orderId}/logs`)) || [];
-    const pics = (await getJson(`/blobs/${orderId}/pictures`)) || [];
-    const docs = (await getJson(`/documents/record/order/${orderId}`)) || [];
-    const odc = (await getJson(`/documents/odc-documents/${orderId}`)) || [];
+    // En modo SOLO-PIEZAS omitimos bitácora/fotos/PDF/OC: la Edge recibe arrays
+    // vacíos y NO descarga blobs (rápido, sin inflar Storage). Las piezas salen
+    // de valuación/recibidas, que sí traemos siempre.
+    const bin = SOLO_PIEZAS ? [] : (await getJson(`/binnacle/orders/${orderId}/logs`)) || [];
+    const pics = SOLO_PIEZAS ? [] : (await getJson(`/blobs/${orderId}/pictures`)) || [];
+    const docs = SOLO_PIEZAS ? [] : (await getJson(`/documents/record/order/${orderId}`)) || [];
+    const odc = SOLO_PIEZAS ? [] : (await getJson(`/documents/odc-documents/${orderId}`)) || [];
     const radar = { orderId, ord, odb, vd, valHdr, val, spValuation, spReceived, bin, pics, docs, odc };
     console.log(`   fotos=${pics.filter((p) => p && p.url && !/_thumbnail/i.test(p.url)).length} docs=${docs.length} refacc=${spValuation.length}/${spReceived.length}`);
 
