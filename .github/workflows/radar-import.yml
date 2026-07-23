@@ -38,6 +38,10 @@ on:
         description: "1 = solo refacciones (sin fotos/PDF), para la base de conocimiento de compras."
         required: false
         default: ""
+      backfill_historico:
+        description: "1 = trae TODO el histórico (activas + buscador de Radar) en una corrida. Úsalo con solo_piezas=1."
+        required: false
+        default: ""
   repository_dispatch:
     types: [radar-import]
 
@@ -71,5 +75,6 @@ jobs:
           RADAR_ORDER_FROM: ${{ github.event.inputs.order_from || github.event.client_payload.order_from }}
           RADAR_ORDER_TO: ${{ github.event.inputs.order_to || github.event.client_payload.order_to }}
           RADAR_SOLO_PIEZAS: ${{ github.event.inputs.solo_piezas || github.event.client_payload.solo_piezas }}
+          RADAR_BACKFILL_HISTORICO: ${{ github.event.inputs.backfill_historico || github.event.client_payload.backfill_historico }}
           SUPABASE_IMPORT_FN_URL: "https://rrxakcjuykyoxzdfgthg.supabase.co/functions/v1/radar-import-orden"
           SUPABASE_ANON: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeGFrY2p1eWt5b3h6ZGZndGhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMjA4NjUsImV4cCI6MjA5MzY5Njg2NX0.K5TPot2ATsFqL3jkYPODbXwr8i9OQmjgD5lNi-l5CyI"

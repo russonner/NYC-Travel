@@ -29,9 +29,15 @@ const FROM = parseInt(process.env.RADAR_ORDER_FROM || "", 10);
 const TO = parseInt(process.env.RADAR_ORDER_TO || "", 10);
 const RANGO = Number.isFinite(FROM) && Number.isFinite(TO);
 const SOLO_PIEZAS = /^(1|true|si|s[ií]|yes)$/i.test(String(process.env.RADAR_SOLO_PIEZAS || "").trim());
+// Backfill de TODO el HISTÓRICO usando el buscador de Radar (/Historical). El
+// buscador por ORDERNUMBER es tipo "contiene", así que unir las búsquedas de los
+// dígitos 0–9 (o las semillas de RADAR_HIST_SEEDS) cubre todas las órdenes en
+// pocas llamadas, sin iterar folio por folio.
+const BACKFILL_HIST = /^(1|true|si|s[ií]|yes)$/i.test(String(process.env.RADAR_BACKFILL_HISTORICO || "").trim());
+const HIST_SEEDS = (process.env.RADAR_HIST_SEEDS || "0,1,2,3,4,5,6,7,8,9").split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
 
 if (!USER || !PASS || !FN_TOKEN || !FN_URL) { console.error("Faltan variables"); process.exit(1); }
-if (!NUMEROS.length && !(CRITERION && SEARCH) && !RANGO) { console.error("Falta RADAR_ORDER_NUMBERS, (RADAR_CRITERION + RADAR_SEARCH) o (RADAR_ORDER_FROM + RADAR_ORDER_TO)"); process.exit(1); }
+if (!NUMEROS.length && !(CRITERION && SEARCH) && !RANGO && !BACKFILL_HIST) { console.error("Falta RADAR_ORDER_NUMBERS, (RADAR_CRITERION + RADAR_SEARCH), (RADAR_ORDER_FROM + RADAR_ORDER_TO) o RADAR_BACKFILL_HISTORICO=1"); process.exit(1); }
 if (SOLO_PIEZAS) console.log("→ Modo SOLO-PIEZAS: no se bajan fotos/PDF/OC (base de conocimiento de compras).");
 
 const browser = await chromium.launch();
@@ -74,9 +80,28 @@ try {
     return Array.isArray(h) ? h : [];
   }
 
+  // Enumera TODO el histórico uniendo búsquedas por dígito (match "contiene").
+  async function enumerarHistorico() {
+    const vistos = new Map(); // OrderId(str) → OrderNumber(str)
+    for (const q of HIST_SEEDS) {
+      const res = await buscarHistorico("ORDERNUMBER", q);
+      for (const o of res) if (o.OrderId != null) vistos.set(String(o.OrderId), String(o.OrderNumber ?? ""));
+      console.log(`   histórico "${q}": ${res.length} filas · únicas acumuladas ${vistos.size}`);
+    }
+    return vistos;
+  }
+
   // Construir la lista de orderIds internos a importar.
   const objetivos = []; // {orderId, etiqueta}
-  if (RANGO) {
+  if (BACKFILL_HIST) {
+    // Backfill COMPLETO: activas del catálogo + todo el histórico del buscador.
+    console.log("→ Backfill HISTÓRICO completo (activas + buscador de Radar)…");
+    const idsActivos = new Set();
+    for (const [num, orderId] of porNumero) { objetivos.push({ orderId, etiqueta: `#${num}` }); idsActivos.add(String(orderId)); }
+    const hist = await enumerarHistorico();
+    for (const [orderId, num] of hist) if (!idsActivos.has(String(orderId))) objetivos.push({ orderId: Number(orderId), etiqueta: `#${num} (histórica)` });
+    console.log(`→ Backfill: ${objetivos.length} órdenes (${idsActivos.size} activas + ${objetivos.length - idsActivos.size} históricas).`);
+  } else if (RANGO) {
     // BACKFILL por rango de folios: por cada número, resolver su orderId por la
     // lista activa o por búsqueda histórica exacta. Los huecos (folio inexistente)
     // se saltan en silencio.
