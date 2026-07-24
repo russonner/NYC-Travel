@@ -156,17 +156,25 @@
   .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
   .rowdel:hover{background:#fee2e2;border-radius:6px}
   body.rolmember .rowdel{display:none}  /* miembros no eliminan órdenes */
+  /* Orden "Comprar YA": fila verde (el rojo de bloqueada tiene prioridad) */
+  tr.comprar > td{background:#dcfce7}
+  tr.comprar > td.no{box-shadow:inset 4px 0 0 #16a34a}
   /* Orden bloqueada (p. ej. por Valuación): fila roja, nadie puede trabajarla ni comprarle piezas */
   tr.bloqueada{opacity:1 !important}
   tr.bloqueada > td{background:#fde0e0 !important;color:#7f1d1d}
-  tr.bloqueada > td.no{box-shadow:inset 5px 0 0 #dc2626}
+  tr.bloqueada > td.no{box-shadow:inset 5px 0 0 #dc2626 !important}
   tr.bloqueada td.accion-cell{background:#fecaca !important}
   /* Etiqueta clara para el comprador: NO comprar piezas de una orden bloqueada */
   .nocomprar{display:inline-block;background:#dc2626;color:#fff;font-weight:800;font-size:10px;letter-spacing:.03em;padding:2px 6px;border-radius:6px;white-space:nowrap;margin-top:3px}
-  .lockbtn{border:none;background:none;cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;filter:grayscale(.2)}
-  .lockbtn:hover{filter:none}
-  .lockbtn.on{filter:none}
-  .lockind{font-size:14px;padding:2px 6px;cursor:not-allowed;opacity:.85}
+  /* Botón de bloqueo: botón rojo con texto, sin icono */
+  .lockbtn{border:1px solid #dc2626;background:#fff;color:#dc2626;cursor:pointer;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;line-height:1.1;white-space:nowrap}
+  .lockbtn:hover{background:#fef2f2}
+  .lockbtn.on{background:#dc2626;color:#fff}
+  .lockind{font-size:11px;font-weight:700;color:#b91c1c;padding:3px 8px;cursor:not-allowed;opacity:.85;white-space:nowrap}
+  /* Botón "Comprar YA": botón verde */
+  .comprarbtn{border:1px solid #16a34a;background:#fff;color:#15803d;cursor:pointer;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;line-height:1.1;white-space:nowrap}
+  .comprarbtn:hover{background:#f0fdf4}
+  .comprarbtn.on{background:#16a34a;color:#fff}
   .fcomp{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:inherit;font-size:12.5px;background:#fff;color:var(--ink)}
   .fcomp:disabled{border-color:transparent;background:transparent;opacity:.9}
   .fcomp.venc{border-color:#dc2626;color:#b91c1c;font-weight:700;background:#fef2f2}
@@ -175,10 +183,11 @@
   .wkitem .wkn{font-weight:700;font-size:18px;color:var(--accent)}
   .wkitem.wkpast .wkn{color:#b91c1c}
   td.no{white-space:nowrap}
-  td.no .lockbtn, td.no .lockind{font-size:15px;padding:0 4px 0 0;vertical-align:middle}
+  td.no .lockbtn, td.no .lockind{vertical-align:middle}
   td.no .nonum{vertical-align:middle}
   body.rolsupervisor .lockbtn, body.rolconsulta .lockbtn,
-  body.rolsupervisor .lockind, body.rolconsulta .lockind{display:none}  /* externos no bloquean */
+  body.rolsupervisor .lockind, body.rolconsulta .lockind,
+  body.rolsupervisor .comprarbtn, body.rolconsulta .comprarbtn{display:none}  /* externos no bloquean ni marcan compra */
   /* rol consulta (aseguradora): solo lectura, vista reducida — solo título, tabla y Exportar */
   body.rolconsulta #stats, body.rolconsulta #fResp, body.rolconsulta #fEst,
   body.rolconsulta #btnMine, body.rolconsulta #btnBell, body.rolconsulta #tabTareas,
@@ -912,11 +921,14 @@ function render(resort=false){
     const puedeDesbloquear = puedeGestionarBloqueo || soyLocker;
     const cuando = o.bloqueada_at ? (" · "+new Date(o.bloqueada_at).toLocaleString("es-MX")) : "";
     const lockHtml = !bloq
-      ? `<button class="lockbtn" title="Bloquear orden (Valuación): nadie podrá trabajarla">🛠️</button>`
+      ? `<button class="lockbtn" title="Bloquear orden (Valuación): nadie podrá trabajarla">Bloquear</button>`
       : (puedeDesbloquear
-          ? `<button class="lockbtn on" title="Desbloquear — bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)}">🛠️</button>`
-          : `<span class="lockind" title="Bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)} — solo esa persona o un admin puede desbloquear">🛠️</span>`);
-    return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${bloq?'bloqueada':''}">
+          ? `<button class="lockbtn on" title="Desbloquear — bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)}">Desbloquear</button>`
+          : `<span class="lockind" title="Bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)} — solo esa persona o un admin puede desbloquear">Bloqueada</span>`);
+    const comprarYa=!!o.comprar_ya;
+    // No se ofrece "Comprar YA" en órdenes bloqueadas (esas llevan la etiqueta NO COMPRAR)
+    const comprarHtml=bloq?"":`<button class="comprarbtn ${comprarYa?'on':''}" title="${comprarYa?'Quitar marca de compra':'Marcar: comprar refacciones YA'}">Comprar YA</button>`;
+    return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${comprarYa?'comprar':''} ${bloq?'bloqueada':''}">
       <td class="no"><span class="lockwrap">${lockHtml}</span>${bloq?`<span class="nonum">${esc(o.no)}</span><div class="hint" style="color:#b91c1c;font-weight:700;line-height:1.15">Bloq: ${esc(o.bloqueada_por||'—')}</div><span class="nocomprar">🚫 NO COMPRAR</span>`:`<span class="nonum">${esc(o.no)}</span>`}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
@@ -929,7 +941,7 @@ function render(resort=false){
       <td>${respChips(resp, bloq)}</td>
       <td><select class="est" data-f="estatus" ${bloq?'disabled':''} style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
       <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
-      <td><button class="rowdel" title="Eliminar">✕</button></td></tr>`;
+      <td style="white-space:nowrap">${comprarHtml} <button class="rowdel" title="Eliminar">✕</button></td></tr>`;
   }).join("");
   $("#empty").style.display=rows.length?"none":"block";
   $("#meta").textContent=`Total: ${orders.length}`
@@ -1021,6 +1033,7 @@ $("#tbody").addEventListener("click", async e=>{
   }
   if(e.target.classList.contains("combtn")){ abrirComentarios("orden", id); return; }
   if(e.target.classList.contains("lockbtn")){ toggleBloqueo(id); return; }
+  if(e.target.classList.contains("comprarbtn")){ toggleComprar(id); return; }
   if(e.target.classList.contains("rowdel")){
     const o=orders.find(x=>x.id===id);
     if(confirm(`¿Eliminar la orden ${o.no} (${o.modelo})?`)){ const {error}=await sb.from(TABLE).delete().eq("id",id);
@@ -1037,6 +1050,15 @@ async function toggleBloqueo(id){
   o.bloqueada=nuevo; o.bloqueada_por=nuevo?(me.nombre||me.email):null; o.bloqueada_at=nuevo?new Date().toISOString():null; render(); // optimista
   const {error}=await sb.rpc("seg_set_bloqueo",{p_id:id,p_bloquear:nuevo});
   if(error){ alert("No se pudo cambiar el bloqueo: "+error.message); loadOrders(); }
+}
+
+// "Comprar YA": marca la fila en verde para señalar que hay que comprar refacciones de inmediato.
+async function toggleComprar(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  const nuevo=!o.comprar_ya;
+  o.comprar_ya=nuevo; render(); // optimista
+  const {error}=await sb.from(TABLE).update({comprar_ya:nuevo}).eq("id",id);
+  if(error){ alert("No se pudo cambiar 'Comprar YA': "+error.message); loadOrders(); }
 }
 
 async function setResponsables(id, arr){
