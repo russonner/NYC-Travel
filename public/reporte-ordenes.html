@@ -156,6 +156,9 @@
   .rowdel{color:#b91c1c;cursor:pointer;border:none;background:none;font-size:15px;padding:2px 6px}
   .rowdel:hover{background:#fee2e2;border-radius:6px}
   body.rolmember .rowdel{display:none}  /* miembros no eliminan órdenes */
+  /* Orden "Se puede comprar": fila azul (verde y rojo tienen prioridad sobre este) */
+  tr.puede > td{background:#dbeafe}
+  tr.puede > td.no{box-shadow:inset 4px 0 0 #2563eb}
   /* Orden "Comprar YA": fila verde (el rojo de bloqueada tiene prioridad) */
   tr.comprar > td{background:#dcfce7}
   tr.comprar > td.no{box-shadow:inset 4px 0 0 #16a34a}
@@ -175,6 +178,10 @@
   .comprarbtn{border:1px solid #16a34a;background:#fff;color:#15803d;cursor:pointer;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;line-height:1.1;white-space:nowrap}
   .comprarbtn:hover{background:#f0fdf4}
   .comprarbtn.on{background:#16a34a;color:#fff}
+  /* Botón "Se puede comprar": botón azul */
+  .puedebtn{border:1px solid #2563eb;background:#fff;color:#1d4ed8;cursor:pointer;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;line-height:1.1;white-space:nowrap}
+  .puedebtn:hover{background:#eff6ff}
+  .puedebtn.on{background:#2563eb;color:#fff}
   .fcomp{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-family:inherit;font-size:12.5px;background:#fff;color:var(--ink)}
   .fcomp:disabled{border-color:transparent;background:transparent;opacity:.9}
   .fcomp.venc{border-color:#dc2626;color:#b91c1c;font-weight:700;background:#fef2f2}
@@ -187,7 +194,8 @@
   td.no .nonum{vertical-align:middle}
   body.rolsupervisor .lockbtn, body.rolconsulta .lockbtn,
   body.rolsupervisor .lockind, body.rolconsulta .lockind,
-  body.rolsupervisor .comprarbtn, body.rolconsulta .comprarbtn{display:none}  /* externos no bloquean ni marcan compra */
+  body.rolsupervisor .comprarbtn, body.rolconsulta .comprarbtn,
+  body.rolsupervisor .puedebtn, body.rolconsulta .puedebtn{display:none}  /* externos no bloquean ni marcan compra */
   /* rol consulta (aseguradora): solo lectura, vista reducida — solo título, tabla y Exportar */
   body.rolconsulta #stats, body.rolconsulta #fResp, body.rolconsulta #fEst,
   body.rolconsulta #btnMine, body.rolconsulta #btnBell, body.rolconsulta #tabTareas,
@@ -926,9 +934,13 @@ function render(resort=false){
           ? `<button class="lockbtn on" title="Desbloquear — bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)}">Desbloquear</button>`
           : `<span class="lockind" title="Bloqueada por ${esc(o.bloqueada_por||'—')}${esc(cuando)} — solo esa persona o un admin puede desbloquear">Bloqueada</span>`);
     const comprarYa=!!o.comprar_ya;
-    // No se ofrece "Comprar YA" en órdenes bloqueadas (esas llevan la etiqueta NO COMPRAR)
+    const puedeComprar=!!o.puede_comprar;
+    // En órdenes bloqueadas no se ofrecen botones de compra (llevan la etiqueta NO COMPRAR)
+    const puedeHtml=bloq?"":`<button class="puedebtn ${puedeComprar?'on':''}" title="${puedeComprar?'Quitar: ya se puede comprar':'Marcar: la unidad ya se puede comprar piezas'}">Se puede comprar</button>`;
     const comprarHtml=bloq?"":`<button class="comprarbtn ${comprarYa?'on':''}" title="${comprarYa?'Quitar marca de compra':'Marcar: comprar refacciones YA'}">Comprar YA</button>`;
-    return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${comprarYa?'comprar':''} ${bloq?'bloqueada':''}">
+    // Color de fila: rojo (bloqueada) > verde (comprar ya) > azul (se puede comprar)
+    const filaCompra = comprarYa ? "comprar" : (puedeComprar ? "puede" : "");
+    return `<tr data-id="${o.id}" class="${est==='hecho'?'done':''} ${mine?'mine':''} ${filaCompra} ${bloq?'bloqueada':''}">
       <td class="no"><span class="lockwrap">${lockHtml}</span>${bloq?`<span class="nonum">${esc(o.no)}</span><div class="hint" style="color:#b91c1c;font-weight:700;line-height:1.15">Bloq: ${esc(o.bloqueada_por||'—')}</div><span class="nocomprar">🚫 NO COMPRAR</span>`:`<span class="nonum">${esc(o.no)}</span>`}</td><td>${esc(o.modelo)}</td><td>${esc(o.color)}</td><td>${esc(o.ordenante)}</td>
       <td><span class="proctag">${esc(o.proceso||"")}</span>${(o.subproceso||o.ubicacion)?`<div class="hint" style="margin-top:3px">${esc([o.subproceso,o.ubicacion].filter(Boolean).join(" · "))}</div>`:""}</td>
       <td class="num">${esc(o.refacc||"")}</td>
@@ -941,7 +953,7 @@ function render(resort=false){
       <td>${respChips(resp, bloq)}</td>
       <td><select class="est" data-f="estatus" ${bloq?'disabled':''} style="background:${EST[est].bg};color:${EST[est].fg}">${estOpts}</select></td>
       <td class="num"><button class="combtn ${nCom?'has':''}" title="Ver comentarios">💬 ${nCom}</button></td>
-      <td style="white-space:nowrap">${comprarHtml} <button class="rowdel" title="Eliminar">✕</button></td></tr>`;
+      <td style="white-space:nowrap">${puedeHtml} ${comprarHtml} <button class="rowdel" title="Eliminar">✕</button></td></tr>`;
   }).join("");
   $("#empty").style.display=rows.length?"none":"block";
   $("#meta").textContent=`Total: ${orders.length}`
@@ -1034,6 +1046,7 @@ $("#tbody").addEventListener("click", async e=>{
   if(e.target.classList.contains("combtn")){ abrirComentarios("orden", id); return; }
   if(e.target.classList.contains("lockbtn")){ toggleBloqueo(id); return; }
   if(e.target.classList.contains("comprarbtn")){ toggleComprar(id); return; }
+  if(e.target.classList.contains("puedebtn")){ togglePuede(id); return; }
   if(e.target.classList.contains("rowdel")){
     const o=orders.find(x=>x.id===id);
     if(confirm(`¿Eliminar la orden ${o.no} (${o.modelo})?`)){ const {error}=await sb.from(TABLE).delete().eq("id",id);
@@ -1059,6 +1072,15 @@ async function toggleComprar(id){
   o.comprar_ya=nuevo; render(); // optimista
   const {error}=await sb.from(TABLE).update({comprar_ya:nuevo}).eq("id",id);
   if(error){ alert("No se pudo cambiar 'Comprar YA': "+error.message); loadOrders(); }
+}
+
+// "Se puede comprar": marca la fila en azul para señalar que la unidad ya se puede comprar piezas.
+async function togglePuede(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  const nuevo=!o.puede_comprar;
+  o.puede_comprar=nuevo; render(); // optimista
+  const {error}=await sb.from(TABLE).update({puede_comprar:nuevo}).eq("id",id);
+  if(error){ alert("No se pudo cambiar 'Se puede comprar': "+error.message); loadOrders(); }
 }
 
 async function setResponsables(id, arr){
