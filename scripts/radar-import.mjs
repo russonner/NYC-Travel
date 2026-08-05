@@ -141,6 +141,19 @@ try {
   }
   if (!objetivos.length) { console.error("✗ Nada que importar."); process.exit(1); }
 
+  // ── PREFACTURA (mano de obra + refacciones VENTA, IVA, total, facturado) ──
+  // ⚠ /invoice/orders/{orderId} IGNORA el orderId de la ruta: devuelve el arreglo
+  // de TODAS las órdenes del taller. Por eso se pide UNA vez y se indexa por
+  // orderId, en vez de llamarlo por orden (serían N llamadas para el mismo JSON).
+  // De aquí salen los montos de VENTA reales; el importador de AP360 venía
+  // armando la valuación con el COSTO de las piezas, que es otra cosa.
+  const prefacturas = new Map();
+  {
+    const lista = (await getJson(`/invoice/orders/${objetivos[0].orderId}`)) || [];
+    for (const f of Array.isArray(lista) ? lista : []) if (f && f.orderId != null) prefacturas.set(String(f.orderId), f);
+    console.log(`→ Prefactura: ${prefacturas.size} órdenes en el catálogo de facturación del taller.`);
+  }
+
   let ok = 0, fail = 0;
   for (const t of objetivos) {
     const orderId = t.orderId;
@@ -160,8 +173,11 @@ try {
     const pics = SOLO_PIEZAS ? [] : (await getJson(`/blobs/${orderId}/pictures`)) || [];
     const docs = SOLO_PIEZAS ? [] : (await getJson(`/documents/record/order/${orderId}`)) || [];
     const odc = SOLO_PIEZAS ? [] : (await getJson(`/documents/odc-documents/${orderId}`)) || [];
-    const radar = { orderId, ord, odb, vd, valHdr, val, spValuation, spReceived, bin, pics, docs, odc };
-    console.log(`   fotos=${pics.filter((p) => p && p.url && !/_thumbnail/i.test(p.url)).length} docs=${docs.length} refacc=${spValuation.length}/${spReceived.length}`);
+    // La prefactura SÍ se manda en modo SOLO-PIEZAS: no es un blob, ya está en
+    // memoria y es justo el dato de venta que Compras necesita para el margen.
+    const prefactura = prefacturas.get(String(orderId)) || null;
+    const radar = { orderId, ord, odb, vd, valHdr, val, spValuation, spReceived, bin, pics, docs, odc, prefactura };
+    console.log(`   fotos=${pics.filter((p) => p && p.url && !/_thumbnail/i.test(p.url)).length} docs=${docs.length} refacc=${spValuation.length}/${spReceived.length} prefactura=${prefactura ? `$${prefactura.total}` : "—"}`);
 
     const res = await fetch(FN_URL, { method: "POST", headers: { "Content-Type": "application/json", apikey: ANON }, body: JSON.stringify({ token: FN_TOKEN, radar }) });
     const txt = await res.text();
