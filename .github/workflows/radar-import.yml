@@ -52,6 +52,13 @@ concurrency:
 jobs:
   import:
     runs-on: ubuntu-latest
+    # ⚠️ Red de seguridad para la COLA, no para la corrida.
+    # Sin esto, un job colgado (Radar que no responde, Playwright trabado) retiene
+    # el grupo de concurrencia hasta el límite de GitHub — 6 HORAS — y en ese rato
+    # no entra ni el barrido programado ni ningún disparo de la app.
+    # El valor va POR ENCIMA de lo que tarda un barrido ALL real (medido el
+    # 2026-08-06: 13, 15 y 29 min) para no matar corridas legítimas.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
