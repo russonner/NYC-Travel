@@ -372,7 +372,7 @@ function AgendaDay({ day }) {
   const routeUrl = dayRouteUrl(day);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
         <div>
           <div className="text-emerald-600 font-bold text-sm">{day.full}</div>
@@ -502,7 +502,7 @@ function DayColumn({ day, editTheme, setEditTheme, setTheme, onTime, onDur, onRe
   const { setNodeRef, isOver } = useDroppable({ id: day.id });
   const routeUrl = dayRouteUrl(day);
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col">
       <div className="p-3 border-b border-gray-100">
         <div className="text-emerald-600 font-bold text-sm">{day.full}</div>
         {editTheme === day.id ? (
@@ -820,7 +820,7 @@ export default function App() {
                 const c = catOf(idea.cat);
                 const key = `${idea.name}-${i}`;
                 return (
-                  <div key={key} className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+                  <div key={key} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-2">
                         <span className="text-xl">{idea.emoji}</span>
@@ -872,7 +872,7 @@ export default function App() {
                 const c = catOf(s.cat);
                 const key = `ai-${i}`;
                 return (
-                  <div key={key} className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+                  <div key={key} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-3">
                     <div className="flex items-start gap-2">
                       <span className="text-xl">{s.emoji}</span>
                       <div className="flex-1">
@@ -895,7 +895,7 @@ export default function App() {
 
         {tab === "presupuesto" && (
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
               <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-200">
                 <div className="col-span-6">Categoría</div>
                 <div className="col-span-3 text-right">Estimado</div>
@@ -923,7 +923,7 @@ export default function App() {
                 <div className="col-span-3 text-right text-gray-900">${totalReal.toLocaleString()}</div>
               </div>
             </div>
-            <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex items-center justify-between flex-wrap gap-2">
+            <div className="mt-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-3 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 Tipo de cambio MXN:
                 <input type="number" value={rate} onChange={(e) => setRate(e.target.value)}
@@ -967,7 +967,7 @@ export default function App() {
           <div className="max-w-3xl mx-auto space-y-4">
             <p className="text-sm text-gray-500">Enlaces oficiales para reservar y comprar boletos. Se abren en una pestaña nueva.</p>
             {RESERVAS.map((g) => (
-              <div key={g.title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <div key={g.title} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">{g.emoji} {g.title}</h3>
                 <div className="grid sm:grid-cols-2 gap-2">
                   {g.items.map((it) => (
@@ -991,7 +991,7 @@ export default function App() {
             <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-sm text-rose-700 flex items-center gap-2">
               <Siren size={16} className="shrink-0" /> En una emergencia grave marca <a href="tel:911" className="font-bold underline">911</a> (policía, ambulancia, bomberos).
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4">
               <h3 className="font-semibold text-gray-900 mb-2">📞 Teléfonos importantes</h3>
               <div className="space-y-2">
                 {EMERGENCIA_TELS.map((t) => (
@@ -1006,7 +1006,7 @@ export default function App() {
                 ))}
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4">
               <h3 className="font-semibold text-gray-900 mb-2">🏥 Clínicas y hospitales cerca del depa</h3>
               <div className="space-y-2">
                 {EMERGENCIA_LUGARES.map((l) => (
@@ -1032,7 +1032,7 @@ export default function App() {
               const all = RESERVAR.flatMap((g) => g.items);
               const done = all.filter((i) => reservado[i.id]).length;
               return (
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium text-gray-800">Progreso de reservas</span>
                     <span className="text-gray-500">{done}/{all.length}</span>
@@ -1044,7 +1044,7 @@ export default function App() {
               );
             })()}
             {RESERVAR.map((g) => (
-              <div key={g.group} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <div key={g.group} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">{g.group}</h3>
                 <div className="space-y-2">
                   {g.items.map((it) => {
