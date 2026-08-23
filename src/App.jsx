@@ -37,9 +37,9 @@ const wxEmoji = (code) => {
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
-    { id: "v1", name: "Vuelo VB 686 · Monterrey → JFK (sale 6:10 PM)", emoji: "✈️", cat: "noche", time: "18:10" },
-    { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20" },
-    { id: "v3", name: "Check-in en el depa · 113 Eldridge St 4B (Lower East Side)", emoji: "🏨", cat: "noche", time: "01:30" },
+    { id: "v1", name: "Vuelo VB 686 · Monterrey → JFK (sale 6:10 PM)", emoji: "✈️", cat: "noche", time: "18:10", booked: true },
+    { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20", booked: true },
+    { id: "v3", name: "Check-in en el depa · 113 Eldridge St 4B (Lower East Side)", emoji: "🏨", cat: "noche", time: "01:30", booked: true },
   ]},
   { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio con calma (Federer de noche, opcional)", acts: [
     { id: "s1", name: "Brunch tardío cerca del depa (llegan cansados)", emoji: "🥯", cat: "comida", time: "12:00" },
@@ -48,12 +48,12 @@ const DAYS_SEED = [
     { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:30" },
     { id: "e2", name: "(Opcional) US Open · Federer — Arthur Ashe, Flushing", emoji: "🎾", cat: "noche", time: "19:00" },
   ]},
-  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Harry Styles (MSG)", acts: [
+  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Wicked (Gershwin)", acts: [
     { id: "s5", name: "Top of the Rock", emoji: "🏙️", cat: "cultura", time: "10:00" },
     { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "13:00" },
-    { id: "s7", name: "Bryant Park", emoji: "🌳", cat: "aire", time: "16:00" },
-    { id: "s8", name: "Times Square", emoji: "🌃", cat: "noche", time: "17:30" },
-    { id: "e3", name: "Harry Styles — Madison Square Garden (confirma hora)", emoji: "🎤", cat: "noche", time: "20:00" },
+    { id: "s7", name: "Bryant Park", emoji: "🌳", cat: "aire", time: "15:30" },
+    { id: "s8", name: "Times Square + cena temprana", emoji: "🌃", cat: "noche", time: "17:00" },
+    { id: "e3", name: "Wicked — Gershwin Theatre · Orquesta fila U", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
   ]},
   { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
     { id: "s9", name: "MoMA", emoji: "🎨", cat: "cultura", time: "10:00" },
@@ -76,13 +76,13 @@ const DAYS_SEED = [
   { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día + salida a JFK", acts: [
     { id: "s18", name: "Central Park (bici)", emoji: "🚲", cat: "aire", time: "09:30" },
     { id: "s19", name: "The High Line", emoji: "🌳", cat: "aire", time: "11:30" },
-    { id: "s20", name: "Wicked (Broadway, matiné — confirma horario ~2/3 pm)", emoji: "🎭", cat: "noche", time: "15:00" },
-    { id: "s21", name: "Cena temprana + últimas compras", emoji: "🍝", cat: "comida", time: "18:30" },
+    { id: "s20", name: "Tarde libre: últimas compras / pendientes del viaje", emoji: "🛍️", cat: "ninas", time: "14:30" },
+    { id: "s21", name: "Cena de despedida (tranquila, cerca del depa)", emoji: "🍝", cat: "comida", time: "18:30" },
     { id: "v4", name: "Recoger maletas del depa (113 Eldridge St) + traslado a JFK", emoji: "🚕", cat: "noche", time: "22:00" },
   ]},
   { id: "d7", label: "Lun 31", full: "Lunes 31 Ago", theme: "Vuelo de regreso (madrugada)", acts: [
-    { id: "v5", name: "Vuelo VB 687 · JFK → Monterrey (sale 1:30 AM)", emoji: "✈️", cat: "noche", time: "01:30" },
-    { id: "v6", name: "Llegada a Monterrey 4:15 AM", emoji: "🛬", cat: "noche", time: "04:15" },
+    { id: "v5", name: "Vuelo VB 687 · JFK → Monterrey (sale 1:30 AM)", emoji: "✈️", cat: "noche", time: "01:30", booked: true },
+    { id: "v6", name: "Llegada a Monterrey 4:15 AM", emoji: "🛬", cat: "noche", time: "04:15", booked: true },
   ]},
 ];
 
@@ -387,7 +387,7 @@ function AgendaDay({ day, weather, addActivity }) {
   const slots = meals
     ? MEAL_SLOTS.filter((s) => meals[s.key]).map((s) => ({ type: "meal", key: s.key, label: s.label, emoji: s.emoji, time: s.time, t: toMin(s.time), dur: 60, options: meals[s.key] }))
     : [];
-  const acts = day.acts.map((a) => ({ type: "act", id: a.id, name: a.name, emoji: a.emoji, time: a.time, t: toMin(a.time), dur: a.dur ?? 90, cat: a.cat, logi: isLogistics(a.name) }));
+  const acts = day.acts.map((a) => ({ type: "act", id: a.id, name: a.name, emoji: a.emoji, time: a.time, t: toMin(a.time), dur: a.dur ?? 90, cat: a.cat, logi: isLogistics(a.name), booked: a.booked }));
   const all = [...acts, ...slots];
   const timed = all.filter((i) => i.t != null).sort((a, b) => sortKey(a.t) - sortKey(b.t) || (a.type === "meal" ? -1 : 1));
   const untimed = all.filter((i) => i.t == null);
@@ -442,13 +442,14 @@ function AgendaDay({ day, weather, addActivity }) {
                           <MealOptions options={it.options} />
                         </>
                       ) : (
-                        <>
+                        <div className={it.booked ? "bg-violet-50 border border-violet-200 rounded-lg px-2 py-1.5 -mx-1" : ""}>
                           <div className="text-sm text-gray-900 leading-tight">{it.name}</div>
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
+                            {it.booked && <span className="text-[10px] px-1.5 py-0.5 rounded-full border bg-violet-100 text-violet-700 border-violet-300 font-semibold">✓ Reservado</span>}
                             {c && <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${c.chip}`}>{c.label}</span>}
                             {!it.logi && <span className="inline-flex items-center gap-1 text-[11px] text-gray-500"><Clock size={10} /> visita ~{durLabel(it.dur)}</span>}
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -501,7 +502,7 @@ function SortableActivity({ act, dayId, onTime, onDur, onRemove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: act.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
   return (
-    <div ref={setNodeRef} style={style} className="group bg-gray-50 rounded-lg p-2 border border-gray-200">
+    <div ref={setNodeRef} style={style} className={`group rounded-lg p-2 border ${act.booked ? "bg-violet-50 border-violet-200" : "bg-gray-50 border-gray-200"}`}>
       <div className="flex items-start gap-1.5">
         <button {...attributes} {...listeners} aria-label="Arrastrar"
           className="touch-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-emerald-600 mt-0.5 shrink-0">
@@ -509,7 +510,7 @@ function SortableActivity({ act, dayId, onTime, onDur, onRemove }) {
         </button>
         <span className="text-base leading-none mt-0.5">{act.emoji}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-sm text-gray-900 leading-tight">{act.name}</div>
+          <div className="text-sm text-gray-900 leading-tight">{act.name} {act.booked && <span className="text-[10px] px-1.5 py-0.5 rounded-full border bg-violet-100 text-violet-700 border-violet-300 font-semibold align-middle">✓ Reservado</span>}</div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="inline-flex items-center gap-1">
               <Clock size={11} className="text-gray-400" />
@@ -557,6 +558,7 @@ const ALT = {
     { name: "Paseo por Central Park", emoji: "🌳", cat: "aire" },
   ],
   default: [
+    { name: "Harry Styles — MSG (toca mié/vie/sáb, si ajustan la noche)", emoji: "🎤", cat: "noche" },
     { name: "Levain Bakery (galletas famosas)", emoji: "🍪", cat: "comida" },
     { name: "Grand Central + whispering gallery", emoji: "🏛️", cat: "joyas" },
     { name: "Staten Island Ferry (vista gratis)", emoji: "⛴️", cat: "aire" },
@@ -646,10 +648,10 @@ const RESERVAR = [
     items: [
       { id: "r_federer", name: "US Open · Federer (mar 25) — Arthur Ashe", urg: "ya", url: "https://www.usopen.org", note: "Boleto aparte; ya en proceso" },
       { id: "r_corona", name: "Corona de la Estatua (opcional)", urg: "ya", url: "https://www.statuecruises.com", note: "Se agota con meses; el ferry sí va en el pase" },
-      { id: "r_harry", name: "Harry Styles (mié 26) — Madison Square Garden", urg: "ya", url: "https://www.msg.com", note: "Residencia mié/vie/sáb; confirma la hora" },
+      { id: "r_harry", name: "Harry Styles — MSG (⚠️ mié ya no cabe: Wicked 7PM; toca vie/sáb)", urg: "ya", url: "https://www.msg.com", note: "Vie choca con NFL y sáb con Yankees — decidir si entra" },
       { id: "r_yankees", name: "Yankees vs Red Sox (sáb 29) — Yankee Stadium", urg: "pronto", url: "https://www.mlb.com/yankees/tickets", note: "Precio dinámico: sube cerca del juego" },
       { id: "r_nfl", name: "NFL (vie 28) — MetLife Stadium (NJ)", urg: "pronto", url: "https://www.ticketmaster.com", note: "Pretemporada; confirma hora y traslado a NJ" },
-      { id: "r_wicked", name: "Wicked (dom 30, matiné) — Broadway", urg: "pronto", url: "https://www.todaytix.com", note: "Confirma horario (~2/3 pm)" },
+      { id: "r_wicked", name: "Wicked ✓ COMPRADO — mié 26, 7:00 PM · Gershwin", urg: "opcional", url: "https://www.todaytix.com", note: "4 boletos · Orquesta fila U, asientos 1-3-5-7" },
     ],
   },
   {

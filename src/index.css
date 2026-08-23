@@ -55,6 +55,10 @@ button {
 .dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.12); }
 .dark .text-rose-700 { color: #fda4af; }
 .dark .border-rose-200 { border-color: rgba(244, 63, 94, 0.35); }
+.dark .bg-violet-50 { background-color: rgba(139, 92, 246, 0.14); }
+.dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.22); }
+.dark .border-violet-200, .dark .border-violet-300 { border-color: rgba(139, 92, 246, 0.45); }
+.dark .text-violet-700 { color: #c4b5fd; }
 .dark input, .dark select, .dark textarea { background-color: #111827; color: #e5e7eb; border-color: #374151; }
 .dark ::placeholder { color: #6b7280; }
 
