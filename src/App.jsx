@@ -40,6 +40,7 @@ const DAYS_SEED = [
     { id: "s9", name: "MoMA", emoji: "🎨", cat: "cultura", time: "10:00" },
     { id: "s10", name: "The Met", emoji: "🎨", cat: "cultura", time: "14:00" },
     { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "16:30" },
+    { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30" },
   ]},
   { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown & Estatua", acts: [
     { id: "s12", name: "Estatua de la Libertad + Ellis Island", emoji: "🗽", cat: "cultura", time: "09:00" },
@@ -53,9 +54,9 @@ const DAYS_SEED = [
   ]},
   { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día + salida a JFK", acts: [
     { id: "s18", name: "Central Park (bici)", emoji: "🚲", cat: "aire", time: "09:30" },
-    { id: "s19", name: "The High Line", emoji: "🌳", cat: "aire", time: "12:00" },
-    { id: "s20", name: "Show de Broadway (matiné, el vuelo es 1:30 AM)", emoji: "🎭", cat: "noche", time: "14:00" },
-    { id: "s21", name: "Cena temprana + últimas compras", emoji: "🍝", cat: "comida", time: "17:30" },
+    { id: "s19", name: "The High Line", emoji: "🌳", cat: "aire", time: "11:30" },
+    { id: "s20", name: "Wicked (Broadway, matiné — confirma horario ~2/3 pm)", emoji: "🎭", cat: "noche", time: "15:00" },
+    { id: "s21", name: "Cena temprana + últimas compras", emoji: "🍝", cat: "comida", time: "18:30" },
     { id: "v4", name: "Recoger maletas del hotel + traslado a JFK", emoji: "🚕", cat: "noche", time: "22:00" },
   ]},
   { id: "d7", label: "Lun 31", full: "Lunes 31 Ago", theme: "Vuelo de regreso (madrugada)", acts: [
