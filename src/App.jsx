@@ -35,6 +35,10 @@ const wxEmoji = (code) => {
   return "🌤️";
 };
 
+// Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
+// y la app de cada quien se actualiza sola (reemplaza el plan guardado).
+const DAYS_VERSION = 2;
+
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
     { id: "v1", name: "Vuelo VB 686 · Monterrey → JFK (sale 6:10 PM)", emoji: "✈️", cat: "noche", time: "18:10", booked: true },
@@ -548,7 +552,6 @@ const ALT = {
     { name: "Times Square de noche (si con energía)", emoji: "🌃", cat: "noche" },
   ],
   d2: [
-    { name: "Harry Styles — MSG (toca hoy; ojo: Wicked ya está comprado)", emoji: "🎤", cat: "noche" },
     { name: "US Open · Qualifying GRATIS (mañana en Flushing)", emoji: "🎾", cat: "aire" },
     { name: "Edge o Summit One Vanderbilt (mirador)", emoji: "🏙️", cat: "cultura" },
     { name: "Radio City / tour NBC Studios", emoji: "🎬", cat: "cultura" },
@@ -710,7 +713,9 @@ export default function App() {
   const fin = new Date(`${TRIP_END}T23:59:59`);
   const diasFaltan = Math.ceil((inicio - hoy) / 86400000);
   const countdown = hoy > fin ? null : hoy >= inicio ? "🎉 ¡El viaje está en curso!" : diasFaltan === 1 ? "🧳 ¡Mañana es el gran día!" : `⏳ Faltan ${diasFaltan} días`;
-  const [days, setDays] = useState(() => load("nyc_days", DAYS_SEED));
+  // Si el plan oficial cambió de versión, se carga el nuevo automáticamente.
+  const [days, setDays] = useState(() => (load("nyc_days_v", 0) === DAYS_VERSION ? load("nyc_days", DAYS_SEED) : DAYS_SEED));
+  useEffect(() => { localStorage.setItem("nyc_days_v", JSON.stringify(DAYS_VERSION)); }, []);
   const [budget, setBudget] = useState(() => load("nyc_budget", BUDGET_SEED));
   const [rate, setRate] = useState(() => load("nyc_rate", 18.5));
   const [packing, setPacking] = useState(() => load("nyc_packing", PACK_SEED));
