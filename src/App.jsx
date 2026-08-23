@@ -24,12 +24,12 @@ const DAYS_SEED = [
     { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20" },
     { id: "v3", name: "Check-in en el depa · 113 Eldridge St 4B (Lower East Side)", emoji: "🏨", cat: "noche", time: "01:30" },
   ]},
-  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "US Open en Flushing (qualifying gratis + Federer)", acts: [
-    { id: "s1", name: "Brunch + paseo por Chinatown / Little Italy (junto al depa)", emoji: "🥟", cat: "comida", time: "11:00" },
-    { id: "e0", name: "Registrar Fan Access Pass GRATIS (fanpass.usopen.org · 18+)", emoji: "🎟️", cat: "cultura", time: "12:30" },
-    { id: "e1", name: "Traslado a Flushing, Queens — tren 7 o LIRR (~1 h)", emoji: "🚇", cat: "noche", time: "13:30" },
-    { id: "eq", name: "US Open · Qualifying GRATIS en canchas exteriores", emoji: "🎾", cat: "aire", time: "14:30" },
-    { id: "e2", name: "US Open · Federer 'An Icon Returns to NY' — Arthur Ashe", emoji: "🎾", cat: "cultura", time: "19:00" },
+  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio con calma (Federer de noche, opcional)", acts: [
+    { id: "s1", name: "Brunch tardío cerca del depa (llegan cansados)", emoji: "🥯", cat: "comida", time: "12:00" },
+    { id: "s2", name: "Chinatown + Little Italy + Nolita", emoji: "🥟", cat: "joyas", time: "13:30" },
+    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "16:00" },
+    { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:30" },
+    { id: "e2", name: "(Opcional) US Open · Federer — Arthur Ashe, Flushing", emoji: "🎾", cat: "noche", time: "19:00" },
   ]},
   { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Harry Styles (MSG)", acts: [
     { id: "s5", name: "Top of the Rock", emoji: "🏙️", cat: "cultura", time: "10:00" },
@@ -508,7 +508,63 @@ function SortableActivity({ act, dayId, onTime, onDur, onRemove }) {
   );
 }
 
-function DayColumn({ day, editTheme, setEditTheme, setTheme, onTime, onDur, onRemove, newCustom, setNewCustom, addCustom }) {
+// Actividades alternas sugeridas por día (para intercambiar con un toque).
+const ALT = {
+  d1: [
+    { name: "US Open · Federer — Arthur Ashe (Flushing)", emoji: "🎾", cat: "noche" },
+    { name: "Little Island + atardecer en el Hudson", emoji: "🌅", cat: "aire" },
+    { name: "Brooklyn Heights Promenade (skyline de noche)", emoji: "🌉", cat: "noche" },
+    { name: "Katz's Delicatessen (pastrami legendario)", emoji: "🥪", cat: "comida" },
+    { name: "Rooftop bar con vista de Manhattan", emoji: "🍸", cat: "noche" },
+    { name: "Comedy club en Greenwich Village", emoji: "🎤", cat: "noche" },
+    { name: "Tenement Museum (historia del LES)", emoji: "🏚️", cat: "cultura" },
+    { name: "Economy Candy (dulcería clásica del LES)", emoji: "🍬", cat: "ninas" },
+    { name: "Times Square de noche (si con energía)", emoji: "🌃", cat: "noche" },
+  ],
+  d2: [
+    { name: "US Open · Qualifying GRATIS (mañana en Flushing)", emoji: "🎾", cat: "aire" },
+    { name: "Edge o Summit One Vanderbilt (mirador)", emoji: "🏙️", cat: "cultura" },
+    { name: "Radio City / tour NBC Studios", emoji: "🎬", cat: "cultura" },
+  ],
+  d3: [
+    { name: "US Open · Qualifying GRATIS (mañana/tarde en Flushing)", emoji: "🎾", cat: "aire" },
+    { name: "Museo de Historia Natural (AMNH)", emoji: "🦕", cat: "cultura" },
+    { name: "Paseo por Central Park", emoji: "🌳", cat: "aire" },
+  ],
+  default: [
+    { name: "Levain Bakery (galletas famosas)", emoji: "🍪", cat: "comida" },
+    { name: "Grand Central + whispering gallery", emoji: "🏛️", cat: "joyas" },
+    { name: "Staten Island Ferry (vista gratis)", emoji: "⛴️", cat: "aire" },
+  ],
+};
+
+function AltSection({ dayId, onAdd }) {
+  const list = ALT[dayId] || ALT.default;
+  const [open, setOpen] = useState(false);
+  if (!list || !list.length) return null;
+  return (
+    <div className="border-t border-gray-100">
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-600 hover:text-emerald-600">
+        <span>💡 Alternativas del día</span>
+        <span className="text-gray-400">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="px-2 pb-2 space-y-1">
+          {list.map((a, i) => (
+            <div key={i} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-2 py-1.5">
+              <div className="min-w-0"><span className="text-sm">{a.emoji}</span> <span className="text-xs text-gray-800">{a.name}</span></div>
+              <button onClick={() => onAdd(dayId, a)} aria-label="Agregar alternativa" className="shrink-0 bg-emerald-500 text-white rounded px-1.5 py-0.5 hover:bg-emerald-600">
+                <Plus size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DayColumn({ day, editTheme, setEditTheme, setTheme, onTime, onDur, onRemove, newCustom, setNewCustom, addCustom, addActivity }) {
   const { setNodeRef, isOver } = useDroppable({ id: day.id });
   const routeUrl = dayRouteUrl(day);
   return (
@@ -539,6 +595,7 @@ function DayColumn({ day, editTheme, setEditTheme, setTheme, onTime, onDur, onRe
           <MapPin size={13} /> Ver ruta y tiempos
         </a>
       )}
+      <AltSection dayId={day.id} onAdd={addActivity} />
       <div className="p-2 border-t border-gray-100 flex gap-1">
         <input value={newCustom[day.id] || ""} onChange={(e) => setNewCustom((p) => ({ ...p, [day.id]: e.target.value }))}
           onKeyDown={(e) => e.key === "Enter" && addCustom(day.id)} placeholder="+ Agregar algo..."
@@ -796,7 +853,7 @@ export default function App() {
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {days.map((d) => (
                       <DayColumn key={d.id} day={d} editTheme={editTheme} setEditTheme={setEditTheme} setTheme={setTheme}
-                        onTime={setActTime} onDur={setActDur} onRemove={removeActivity} newCustom={newCustom} setNewCustom={setNewCustom} addCustom={addCustom} />
+                        onTime={setActTime} onDur={setActDur} onRemove={removeActivity} newCustom={newCustom} setNewCustom={setNewCustom} addCustom={addCustom} addActivity={addActivity} />
                     ))}
                   </div>
                   <DragOverlay>
