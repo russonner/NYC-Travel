@@ -37,56 +37,60 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 2;
+const DAYS_VERSION = 3;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
-    { id: "v1", name: "Vuelo VB 686 · Monterrey → JFK (sale 6:10 PM)", emoji: "✈️", cat: "noche", time: "18:10", booked: true },
-    { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20", booked: true },
-    { id: "v3", name: "Check-in en el depa · 113 Eldridge St 4B (Lower East Side)", emoji: "🏨", cat: "noche", time: "01:30", booked: true },
+    { id: "v0", name: "Llegar al aeropuerto de Monterrey (2 h antes)", emoji: "🧳", cat: "noche", time: "16:00", dur: 130 },
+    { id: "v1", name: "Vuelo VB 686 · Monterrey → JFK", emoji: "✈️", cat: "noche", time: "18:10", dur: 370, booked: true },
+    { id: "v2", name: "Llegada a JFK 12:20 AM · migración + maletas (~1 h)", emoji: "🛬", cat: "noche", time: "00:20", dur: 60, booked: true },
+    { id: "v3", name: "Taxi a Manhattan (~50 min) + check-in depa · 113 Eldridge St 4B", emoji: "🏨", cat: "noche", time: "01:30", dur: 80, booked: true },
   ]},
   { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio con calma (Federer de noche, opcional)", acts: [
-    { id: "s1", name: "Brunch tardío cerca del depa (llegan cansados)", emoji: "🥯", cat: "comida", time: "12:00" },
-    { id: "s2", name: "Chinatown + Little Italy + Nolita", emoji: "🥟", cat: "joyas", time: "13:30" },
-    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "16:00" },
-    { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:30" },
-    { id: "e2", name: "(Opcional) US Open · Federer — Arthur Ashe, Flushing", emoji: "🎾", cat: "noche", time: "19:00" },
+    { id: "s1", name: "Brunch tardío cerca del depa (llegan cansados)", emoji: "🥯", cat: "comida", time: "12:00", dur: 60 },
+    { id: "s2", name: "Chinatown + Little Italy + Nolita (caminando)", emoji: "🥟", cat: "joyas", time: "13:30", dur: 120 },
+    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "16:00", dur: 90 },
+    { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:30", dur: 90 },
+    { id: "e2", name: "(Opcional) US Open · Federer 7 PM — salir del depa ~5:15 pm (en vez de la cena)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
   ]},
   { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Wicked (Gershwin)", acts: [
-    { id: "s5", name: "Top of the Rock", emoji: "🏙️", cat: "cultura", time: "10:00" },
-    { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "13:00" },
-    { id: "s7", name: "Bryant Park", emoji: "🌳", cat: "aire", time: "15:30" },
-    { id: "s8", name: "Times Square + cena temprana", emoji: "🌃", cat: "noche", time: "17:00" },
-    { id: "e3", name: "Wicked — Gershwin Theatre · Orquesta fila U", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
+    { id: "s5", name: "Top of the Rock (reserva horario; llegar 15 min antes)", emoji: "🏙️", cat: "cultura", time: "10:00", dur: 90 },
+    { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "13:00", dur: 120 },
+    { id: "s7", name: "Bryant Park (descanso)", emoji: "🌳", cat: "aire", time: "15:30", dur: 60 },
+    { id: "s8", name: "Times Square + cena temprana", emoji: "🌃", cat: "noche", time: "17:00", dur: 75 },
+    { id: "e3", name: "Wicked — Gershwin · Orq. fila U (llegar 6:20 pm; dura ~2 h 45)", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
   ]},
   { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
-    { id: "s9", name: "MoMA", emoji: "🎨", cat: "cultura", time: "10:00" },
-    { id: "s10", name: "The Met", emoji: "🎨", cat: "cultura", time: "14:00" },
-    { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "16:30" },
-    { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30", booked: true },
+    { id: "s9", name: "MoMA (~2 h 30)", emoji: "🎨", cat: "cultura", time: "10:00", dur: 150 },
+    { id: "s10", name: "The Met (~2 h 30; está a 25 min del MoMA)", emoji: "🎨", cat: "cultura", time: "14:00", dur: 150 },
+    { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "16:30", dur: 30 },
+    { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30", dur: 120, booked: true },
   ]},
   { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown (mañana) + NFL en NJ", acts: [
-    { id: "s12", name: "Estatua de la Libertad + Ellis Island", emoji: "🗽", cat: "cultura", time: "09:00" },
-    { id: "s13", name: "Memorial 9/11", emoji: "🕊️", cat: "cultura", time: "13:30" },
-    { id: "e4", name: "Traslado a MetLife Stadium (Nueva Jersey)", emoji: "🚌", cat: "noche", time: "17:00" },
-    { id: "e5", name: "Futbol americano NFL — MetLife (NJ), confirma hora", emoji: "🏈", cat: "noche", time: "19:30" },
+    { id: "s12", name: "Estatua + Ellis Island (llegar 8:15 a Battery Park; seguridad tipo aeropuerto; ~4 h 30)", emoji: "🗽", cat: "cultura", time: "09:00", dur: 270 },
+    { id: "s13", name: "Memorial 9/11 (~2 h; a 10 min a pie del ferry)", emoji: "🕊️", cat: "cultura", time: "14:00", dur: 120 },
+    { id: "e4", name: "Traslado a MetLife Stadium, NJ (tren/bus ~1 h 15 + margen)", emoji: "🚌", cat: "noche", time: "16:45", dur: 105 },
+    { id: "e5", name: "NFL — MetLife (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "🏈", cat: "noche", time: "19:30", dur: 195 },
+    { id: "e5b", name: "Traslado de regreso a Manhattan (fila del tren post-juego)", emoji: "🚆", cat: "noche", time: "22:45", dur: 90 },
   ]},
   { id: "d5", label: "Sáb 29", full: "Sábado 29 Ago", theme: "Brooklyn + Yankees vs Red Sox", acts: [
-    { id: "s15", name: "Cruzar el Puente de Brooklyn", emoji: "🌉", cat: "aire", time: "10:00" },
-    { id: "s16", name: "DUMBO (foto del puente)", emoji: "📸", cat: "joyas", time: "12:00" },
-    { id: "s17", name: "Smorgasburg (mercado de comida)", emoji: "🍕", cat: "comida", time: "14:00" },
-    { id: "e6", name: "Yankees vs Boston (Red Sox) — Yankee Stadium, Bronx (confirma hora)", emoji: "⚾", cat: "noche", time: "19:00" },
+    { id: "s15", name: "Cruzar el Puente de Brooklyn (a pie ~1 h)", emoji: "🌉", cat: "aire", time: "10:00", dur: 75 },
+    { id: "s16", name: "DUMBO (foto del puente + vueltita)", emoji: "📸", cat: "joyas", time: "11:30", dur: 90 },
+    { id: "s17", name: "Smorgasburg (comer entre puestos)", emoji: "🍕", cat: "comida", time: "13:15", dur: 105 },
+    { id: "e6a", name: "Traslado de vuelta al depa + descanso", emoji: "🚇", cat: "noche", time: "15:15", dur: 60 },
+    { id: "e6b", name: "Traslado a Yankee Stadium (metro 4/D, ~45 min)", emoji: "🚇", cat: "noche", time: "17:45", dur: 60 },
+    { id: "e6", name: "Yankees vs Red Sox — Yankee Stadium (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "⚾", cat: "noche", time: "19:05", dur: 190 },
   ]},
   { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día + salida a JFK", acts: [
-    { id: "s18", name: "Central Park (bici)", emoji: "🚲", cat: "aire", time: "09:30" },
-    { id: "s19", name: "The High Line", emoji: "🌳", cat: "aire", time: "11:30" },
-    { id: "s20", name: "Tarde libre: últimas compras / pendientes del viaje", emoji: "🛍️", cat: "ninas", time: "14:30" },
-    { id: "s21", name: "Cena de despedida (tranquila, cerca del depa)", emoji: "🍝", cat: "comida", time: "18:30" },
-    { id: "v4", name: "Recoger maletas del depa (113 Eldridge St) + traslado a JFK", emoji: "🚕", cat: "noche", time: "22:00" },
+    { id: "s18", name: "Central Park en bici (~2 h)", emoji: "🚲", cat: "aire", time: "09:30", dur: 120 },
+    { id: "s19", name: "The High Line (metro desde el parque ~30 min)", emoji: "🌳", cat: "aire", time: "12:15", dur: 90 },
+    { id: "s20", name: "Tarde libre: últimas compras / pendientes del viaje", emoji: "🛍️", cat: "ninas", time: "14:30", dur: 180 },
+    { id: "s21", name: "Cena de despedida (tranquila, cerca del depa)", emoji: "🍝", cat: "comida", time: "18:30", dur: 90 },
+    { id: "v4", name: "Recoger maletas + taxi a JFK (~50 min; estar 10:45 pm en el aeropuerto)", emoji: "🚕", cat: "noche", time: "21:45", dur: 75 },
   ]},
   { id: "d7", label: "Lun 31", full: "Lunes 31 Ago", theme: "Vuelo de regreso (madrugada)", acts: [
-    { id: "v5", name: "Vuelo VB 687 · JFK → Monterrey (sale 1:30 AM)", emoji: "✈️", cat: "noche", time: "01:30", booked: true },
-    { id: "v6", name: "Llegada a Monterrey 4:15 AM", emoji: "🛬", cat: "noche", time: "04:15", booked: true },
+    { id: "v5", name: "Vuelo VB 687 · JFK → Monterrey", emoji: "✈️", cat: "noche", time: "01:30", dur: 165, booked: true },
+    { id: "v6", name: "Llegada a Monterrey 4:15 AM", emoji: "🛬", cat: "noche", time: "04:15", dur: 30, booked: true },
   ]},
 ];
 
@@ -383,15 +387,16 @@ function MealOptions({ options }) {
 
 // Traslados/vuelos/registros no son "visitas" de hora y media.
 const isLogistics = (name) => /vuelo|llegada|check.?in|traslado|aeropuerto|monterrey|\bjfk\b|maletas|registrar/i.test(name);
-// Duración efectiva para el cálculo de traslapes: comidas no bloquean, logística ocupa poco.
-const effDur = (it) => (it.type === "meal" ? 0 : it.logi ? 40 : it.dur);
+// Duración efectiva para el cálculo de traslapes: comidas no bloquean; la
+// logística usa su duración real si la trae, o ~40 min si no.
+const effDur = (it) => (it.type === "meal" ? 0 : it.rawDur != null ? it.rawDur : it.logi ? 40 : it.dur);
 
 function AgendaDay({ day, weather, addActivity }) {
   const meals = MEALS[day.id];
   const slots = meals
     ? MEAL_SLOTS.filter((s) => meals[s.key]).map((s) => ({ type: "meal", key: s.key, label: s.label, emoji: s.emoji, time: s.time, t: toMin(s.time), dur: 60, options: meals[s.key] }))
     : [];
-  const acts = day.acts.map((a) => ({ type: "act", id: a.id, name: a.name, emoji: a.emoji, time: a.time, t: toMin(a.time), dur: a.dur ?? 90, cat: a.cat, logi: isLogistics(a.name), booked: a.booked }));
+  const acts = day.acts.map((a) => ({ type: "act", id: a.id, name: a.name, emoji: a.emoji, time: a.time, t: toMin(a.time), dur: a.dur ?? 90, rawDur: a.dur, cat: a.cat, logi: isLogistics(a.name), opt: /opcional/i.test(a.name), booked: a.booked }));
   const all = [...acts, ...slots];
   const timed = all.filter((i) => i.t != null).sort((a, b) => sortKey(a.t) - sortKey(b.t) || (a.type === "meal" ? -1 : 1));
   const untimed = all.filter((i) => i.t == null);
@@ -425,7 +430,7 @@ function AgendaDay({ day, weather, addActivity }) {
           const next = timed[idx + 1];
           const c = it.type === "act" ? catOf(it.cat) : null;
           const gap = next ? sortKey(next.t) - (sortKey(it.t) + effDur(it)) : null;
-          const softPair = next ? (it.type === "meal" || next.type === "meal" || it.logi || next.logi) : false;
+          const softPair = next ? (it.type === "meal" || next.type === "meal" || it.logi || next.logi || it.opt || next.opt) : false;
           return (
             <Fragment key={it.type === "act" ? it.id : it.key}>
               <div className="flex gap-3">
@@ -451,7 +456,7 @@ function AgendaDay({ day, weather, addActivity }) {
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
                             {it.booked && <span className="text-[10px] px-1.5 py-0.5 rounded-full border bg-violet-100 text-violet-700 border-violet-300 font-semibold">✓ Reservado</span>}
                             {c && <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${c.chip}`}>{c.label}</span>}
-                            {!it.logi && <span className="inline-flex items-center gap-1 text-[11px] text-gray-500"><Clock size={10} /> visita ~{durLabel(it.dur)}</span>}
+                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-500"><Clock size={10} /> {it.logi ? `~${durLabel(it.dur)}` : `visita ~${durLabel(it.dur)}`}</span>
                           </div>
                         </div>
                       )}
@@ -525,7 +530,7 @@ function SortableActivity({ act, dayId, onTime, onDur, onRemove }) {
               visita
               <select value={act.dur ?? 90} onChange={(e) => onDur(dayId, act.id, Number(e.target.value))}
                 className="bg-white text-[11px] text-gray-700 rounded px-1 py-0.5 outline-none border border-gray-200 focus:border-emerald-400">
-                {[30, 45, 60, 90, 120, 150, 180, 240].map((m) => <option key={m} value={m}>{durLabel(m)}</option>)}
+                {[...new Set([15, 30, 45, 60, 75, 90, 105, 120, 150, 165, 180, 190, 195, 210, 240, 270, 310, 370, act.dur ?? 90])].sort((a, b) => a - b).map((m) => <option key={m} value={m}>{durLabel(m)}</option>)}
               </select>
             </span>
           </div>
