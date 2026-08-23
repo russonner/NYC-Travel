@@ -16,7 +16,24 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin, GripVertical, RotateCcw, LayoutGrid, ListChecks, Footprints, Ticket, Siren, Phone, ExternalLink, ClipboardCheck } from "lucide-react";
+import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin, GripVertical, RotateCcw, LayoutGrid, ListChecks, Footprints, Ticket, Siren, Phone, ExternalLink, ClipboardCheck, Moon, Sun, Printer } from "lucide-react";
+
+// Fechas reales de cada día del viaje (para clima y cuenta regresiva).
+const DAY_DATES = { d0: "2026-08-24", d1: "2026-08-25", d2: "2026-08-26", d3: "2026-08-27", d4: "2026-08-28", d5: "2026-08-29", d6: "2026-08-30", d7: "2026-08-31" };
+const TRIP_START = "2026-08-24";
+const TRIP_END = "2026-08-31";
+
+// Código de clima (WMO, open-meteo) → emoji.
+const wxEmoji = (code) => {
+  if (code === 0) return "☀️";
+  if (code <= 2) return "🌤️";
+  if (code === 3) return "☁️";
+  if (code === 45 || code === 48) return "🌫️";
+  if (code <= 67) return "🌦️";
+  if (code <= 82) return "🌧️";
+  if (code >= 95) return "⛈️";
+  return "🌤️";
+};
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -365,7 +382,7 @@ const isLogistics = (name) => /vuelo|llegada|check.?in|traslado|aeropuerto|monte
 // Duración efectiva para el cálculo de traslapes: comidas no bloquean, logística ocupa poco.
 const effDur = (it) => (it.type === "meal" ? 0 : it.logi ? 40 : it.dur);
 
-function AgendaDay({ day }) {
+function AgendaDay({ day, weather, addActivity }) {
   const meals = MEALS[day.id];
   const slots = meals
     ? MEAL_SLOTS.filter((s) => meals[s.key]).map((s) => ({ type: "meal", key: s.key, label: s.label, emoji: s.emoji, time: s.time, t: toMin(s.time), dur: 60, options: meals[s.key] }))
@@ -380,7 +397,14 @@ function AgendaDay({ day }) {
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
         <div>
-          <div className="text-emerald-600 font-bold text-sm">{day.full}</div>
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-600 font-bold text-sm">{day.full}</span>
+            {weather && (
+              <span className="text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-full px-2 py-0.5" title="Pronóstico NYC">
+                {wxEmoji(weather.code)} {Math.round(weather.max)}° / {Math.round(weather.min)}°
+              </span>
+            )}
+          </div>
           <div className="text-gray-500 text-xs">{day.theme}</div>
         </div>
         {routeUrl && (
@@ -466,6 +490,7 @@ function AgendaDay({ day }) {
           </div>
         )}
       </div>
+      {addActivity && <div className="no-print"><AltSection dayId={day.id} onAdd={addActivity} /></div>}
     </div>
   );
 }
@@ -649,6 +674,30 @@ const RESERVAR = [
 export default function App() {
   const [tab, setTab] = useState("itinerario");
   const [view, setView] = useState(() => load("nyc_view", "agenda"));
+  const [dark, setDark] = useState(() => load("nyc_dark", false));
+  const [wx, setWx] = useState(null);
+
+  // Pronóstico real de NYC (open-meteo, sin llave) para los días del viaje.
+  useEffect(() => {
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=40.7128&longitude=-74.006&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=America%2FNew_York&start_date=${TRIP_START}&end_date=${TRIP_END}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d?.daily?.time) return;
+        const map = {};
+        d.daily.time.forEach((date, i) => {
+          map[date] = { code: d.daily.weather_code[i], max: d.daily.temperature_2m_max[i], min: d.daily.temperature_2m_min[i] };
+        });
+        setWx(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Cuenta regresiva del viaje.
+  const hoy = new Date();
+  const inicio = new Date(`${TRIP_START}T00:00:00`);
+  const fin = new Date(`${TRIP_END}T23:59:59`);
+  const diasFaltan = Math.ceil((inicio - hoy) / 86400000);
+  const countdown = hoy > fin ? null : hoy >= inicio ? "🎉 ¡El viaje está en curso!" : diasFaltan === 1 ? "🧳 ¡Mañana es el gran día!" : `⏳ Faltan ${diasFaltan} días`;
   const [days, setDays] = useState(() => load("nyc_days", DAYS_SEED));
   const [budget, setBudget] = useState(() => load("nyc_budget", BUDGET_SEED));
   const [rate, setRate] = useState(() => load("nyc_rate", 18.5));
@@ -671,6 +720,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem("nyc_rate", JSON.stringify(rate)); }, [rate]);
   useEffect(() => { localStorage.setItem("nyc_packing", JSON.stringify(packing)); }, [packing]);
   useEffect(() => { localStorage.setItem("nyc_reservado", JSON.stringify(reservado)); }, [reservado]);
+  useEffect(() => { localStorage.setItem("nyc_dark", JSON.stringify(dark)); }, [dark]);
   const toggleReservado = (id) => setReservado((r) => ({ ...r, [id]: !r[id] }));
 
   const sensors = useSensors(
@@ -790,14 +840,21 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F4F6F5] text-gray-900">
+    <div className={`min-h-screen text-gray-900 ${dark ? "dark bg-gray-950" : "bg-[#F4F6F5]"}`}>
       <header className="relative bg-gray-900 text-white overflow-hidden">
         <img src="/portada.jpg" alt="Nueva York de noche" onError={(e) => { e.currentTarget.style.display = "none"; }}
           className="absolute inset-0 w-full h-full object-cover object-center opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-gray-900/30" />
         <div className="relative max-w-6xl mx-auto px-4 py-14 sm:py-20">
-          <div className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30 rounded-full px-3 py-1 text-xs font-semibold tracking-wide">
-            <MapPin size={14} /> NUEVA YORK · 24–31 AGOSTO 2026
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30 rounded-full px-3 py-1 text-xs font-semibold tracking-wide">
+              <MapPin size={14} /> NUEVA YORK · 24–31 AGOSTO 2026
+            </div>
+            {countdown && (
+              <div className="inline-flex items-center gap-1.5 bg-white/10 text-white ring-1 ring-white/20 rounded-full px-3 py-1 text-xs font-semibold tracking-wide">
+                {countdown}
+              </div>
+            )}
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold mt-3 tracking-tight drop-shadow-lg">🗽 Aventura Familiar en NYC</h1>
           <p className="text-gray-200 text-sm sm:text-base mt-2 drop-shadow">Roberta (14) · Camila (13) · Mamá y Papá — modo: aprovechar al máximo</p>
@@ -805,8 +862,8 @@ export default function App() {
         <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400" />
       </header>
 
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-2 py-2 flex gap-1 overflow-x-auto">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-gray-200 no-print">
+        <div className="max-w-6xl mx-auto px-2 py-2 flex items-center gap-1 overflow-x-auto">
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.key;
@@ -817,6 +874,16 @@ export default function App() {
               </button>
             );
           })}
+          <div className="ml-auto flex items-center gap-1 pl-2">
+            <button onClick={() => window.print()} aria-label="Imprimir o guardar PDF" title="Imprimir / PDF"
+              className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800">
+              <Printer size={16} />
+            </button>
+            <button onClick={() => setDark((v) => !v)} aria-label="Cambiar tema" title={dark ? "Modo claro" : "Modo oscuro"}
+              className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800">
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -843,7 +910,7 @@ export default function App() {
               <>
                 <p className="text-xs text-gray-500 mb-3">Tu día completo: horas, comidas intercaladas, duración de cada visita y traslados. Para editar horarios y orden, cambia a <strong>Tablero</strong>.</p>
                 <div className="grid gap-4 lg:grid-cols-2">
-                  {days.map((d) => <AgendaDay key={d.id} day={d} />)}
+                  {days.map((d) => <AgendaDay key={d.id} day={d} weather={wx?.[DAY_DATES[d.id]]} addActivity={addActivity} />)}
                 </div>
               </>
             ) : (
