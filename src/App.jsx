@@ -24,17 +24,19 @@ const DAYS_SEED = [
     { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20" },
     { id: "v3", name: "Check-in en el depa · 113 Eldridge St 4B (Lower East Side)", emoji: "🏨", cat: "noche", time: "01:30" },
   ]},
-  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Tu barrio con calma (llegada tarde)", acts: [
+  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio con calma + US Open (Federer)", acts: [
     { id: "s1", name: "Brunch tardío cerca del depa (llegan cansados)", emoji: "🥯", cat: "comida", time: "12:00" },
     { id: "s2", name: "Chinatown + Little Italy + Nolita", emoji: "🥟", cat: "joyas", time: "13:30" },
-    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "16:00" },
-    { id: "s4", name: "Paseo relajado por el Lower East Side", emoji: "🌆", cat: "joyas", time: "18:30" },
+    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "15:30" },
+    { id: "e1", name: "Traslado a Flushing, Queens (tren 7)", emoji: "🚇", cat: "noche", time: "17:30" },
+    { id: "e2", name: "US Open · Federer 'An Icon Returns to NY' — Arthur Ashe", emoji: "🎾", cat: "cultura", time: "19:00" },
   ]},
-  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown & vistas", acts: [
+  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Harry Styles (MSG)", acts: [
     { id: "s5", name: "Top of the Rock", emoji: "🏙️", cat: "cultura", time: "10:00" },
     { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "13:00" },
     { id: "s7", name: "Bryant Park", emoji: "🌳", cat: "aire", time: "16:00" },
-    { id: "s8", name: "Times Square de noche", emoji: "🌃", cat: "noche", time: "20:00" },
+    { id: "s8", name: "Times Square", emoji: "🌃", cat: "noche", time: "17:30" },
+    { id: "e3", name: "Harry Styles — Madison Square Garden (confirma hora)", emoji: "🎤", cat: "noche", time: "20:00" },
   ]},
   { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
     { id: "s9", name: "MoMA", emoji: "🎨", cat: "cultura", time: "10:00" },
@@ -42,15 +44,17 @@ const DAYS_SEED = [
     { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "16:30" },
     { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30" },
   ]},
-  { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown & Estatua", acts: [
+  { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown (mañana) + NFL en NJ", acts: [
     { id: "s12", name: "Estatua de la Libertad + Ellis Island", emoji: "🗽", cat: "cultura", time: "09:00" },
-    { id: "s13", name: "Memorial 9/11", emoji: "🕊️", cat: "cultura", time: "14:00" },
-    { id: "s14", name: "Stone Street (callejón histórico)", emoji: "💎", cat: "joyas", time: "18:00" },
+    { id: "s13", name: "Memorial 9/11", emoji: "🕊️", cat: "cultura", time: "13:30" },
+    { id: "e4", name: "Traslado a MetLife Stadium (Nueva Jersey)", emoji: "🚌", cat: "noche", time: "17:00" },
+    { id: "e5", name: "Futbol americano NFL — MetLife (NJ), confirma hora", emoji: "🏈", cat: "noche", time: "19:30" },
   ]},
-  { id: "d5", label: "Sáb 29", full: "Sábado 29 Ago", theme: "Brooklyn", acts: [
+  { id: "d5", label: "Sáb 29", full: "Sábado 29 Ago", theme: "Brooklyn + Yankees vs Red Sox", acts: [
     { id: "s15", name: "Cruzar el Puente de Brooklyn", emoji: "🌉", cat: "aire", time: "10:00" },
     { id: "s16", name: "DUMBO (foto del puente)", emoji: "📸", cat: "joyas", time: "12:00" },
     { id: "s17", name: "Smorgasburg (mercado de comida)", emoji: "🍕", cat: "comida", time: "14:00" },
+    { id: "e6", name: "Yankees vs Boston (Red Sox) — Yankee Stadium, Bronx (confirma hora)", emoji: "⚾", cat: "noche", time: "19:00" },
   ]},
   { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día + salida a JFK", acts: [
     { id: "s18", name: "Central Park (bici)", emoji: "🚲", cat: "aire", time: "09:30" },
