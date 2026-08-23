@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 3;
+const DAYS_VERSION = 4;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -47,44 +47,45 @@ const DAYS_SEED = [
     { id: "v3", name: "Taxi a Manhattan (~50 min) + check-in depa · 113 Eldridge St 4B", emoji: "🏨", cat: "noche", time: "01:30", dur: 80, booked: true },
   ]},
   { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio con calma (Federer de noche, opcional)", acts: [
-    { id: "s1", name: "Brunch tardío cerca del depa (llegan cansados)", emoji: "🥯", cat: "comida", time: "12:00", dur: 60 },
-    { id: "s2", name: "Chinatown + Little Italy + Nolita (caminando)", emoji: "🥟", cat: "joyas", time: "13:30", dur: 120 },
-    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "16:00", dur: 90 },
+    { id: "s1", name: "Brunch cerca del depa (salir 10:00; todo a pasos)", emoji: "🥯", cat: "comida", time: "10:00", dur: 75 },
+    { id: "s2", name: "Chinatown + Little Italy + Nolita (caminando)", emoji: "🥟", cat: "joyas", time: "11:30", dur: 120 },
+    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "14:00", dur: 90 },
+    { id: "s3b", name: "Descanso en el depa (llegaron a las 3 am — recargar pilas)", emoji: "😴", cat: "joyas", time: "16:00", dur: 120 },
     { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:30", dur: 90 },
     { id: "e2", name: "(Opcional) US Open · Federer 7 PM — salir del depa ~5:15 pm (en vez de la cena)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
   ]},
   { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Wicked (Gershwin)", acts: [
-    { id: "s5", name: "Top of the Rock (reserva horario; llegar 15 min antes)", emoji: "🏙️", cat: "cultura", time: "10:00", dur: 90 },
-    { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "13:00", dur: 120 },
-    { id: "s7", name: "Bryant Park (descanso)", emoji: "🌳", cat: "aire", time: "15:30", dur: 60 },
+    { id: "s5", name: "Top of the Rock (salir 10:00, metro ~30 min; reserva el horario de 10:45)", emoji: "🏙️", cat: "cultura", time: "10:45", dur: 90 },
+    { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "12:45", dur: 120 },
+    { id: "s7", name: "Bryant Park (descanso)", emoji: "🌳", cat: "aire", time: "15:15", dur: 60 },
     { id: "s8", name: "Times Square + cena temprana", emoji: "🌃", cat: "noche", time: "17:00", dur: 75 },
     { id: "e3", name: "Wicked — Gershwin · Orq. fila U (llegar 6:20 pm; dura ~2 h 45)", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
   ]},
   { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
-    { id: "s9", name: "MoMA (~2 h 30)", emoji: "🎨", cat: "cultura", time: "10:00", dur: 150 },
-    { id: "s10", name: "The Met (~2 h 30; está a 25 min del MoMA)", emoji: "🎨", cat: "cultura", time: "14:00", dur: 150 },
-    { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "16:30", dur: 30 },
+    { id: "s9", name: "MoMA (salir 10:00, metro ~30 min; visita ~2 h 30)", emoji: "🎨", cat: "cultura", time: "10:30", dur: 150 },
+    { id: "s10", name: "The Met (~2 h 30; está a 25 min del MoMA)", emoji: "🎨", cat: "cultura", time: "14:30", dur: 150 },
+    { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "17:00", dur: 30 },
     { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30", dur: 120, booked: true },
   ]},
   { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown (mañana) + NFL en NJ", acts: [
-    { id: "s12", name: "Estatua + Ellis Island (llegar 8:15 a Battery Park; seguridad tipo aeropuerto; ~4 h 30)", emoji: "🗽", cat: "cultura", time: "09:00", dur: 270 },
-    { id: "s13", name: "Memorial 9/11 (~2 h; a 10 min a pie del ferry)", emoji: "🕊️", cat: "cultura", time: "14:00", dur: 120 },
-    { id: "e4", name: "Traslado a MetLife Stadium, NJ (tren/bus ~1 h 15 + margen)", emoji: "🚌", cat: "noche", time: "16:45", dur: 105 },
+    { id: "s12", name: "Ferry Estatua + Ellis (salir 10:00; Battery Park 10:20, seguridad tipo aeropuerto; si van justos, recorten el interior de Ellis)", emoji: "🗽", cat: "cultura", time: "10:20", dur: 250 },
+    { id: "s13", name: "Memorial 9/11 al aire libre + Oculus (~45 min; el museo completo no alcanza hoy)", emoji: "🕊️", cat: "cultura", time: "14:45", dur: 45 },
+    { id: "e4", name: "Traslado a MetLife Stadium, NJ (tren/bus ~1 h 15 + margen)", emoji: "🚌", cat: "noche", time: "16:15", dur: 105 },
     { id: "e5", name: "NFL — MetLife (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "🏈", cat: "noche", time: "19:30", dur: 195 },
     { id: "e5b", name: "Traslado de regreso a Manhattan (fila del tren post-juego)", emoji: "🚆", cat: "noche", time: "22:45", dur: 90 },
   ]},
   { id: "d5", label: "Sáb 29", full: "Sábado 29 Ago", theme: "Brooklyn + Yankees vs Red Sox", acts: [
-    { id: "s15", name: "Cruzar el Puente de Brooklyn (a pie ~1 h)", emoji: "🌉", cat: "aire", time: "10:00", dur: 75 },
-    { id: "s16", name: "DUMBO (foto del puente + vueltita)", emoji: "📸", cat: "joyas", time: "11:30", dur: 90 },
+    { id: "s15", name: "Cruzar el Puente de Brooklyn (salir 10:00; entrada a 15 min del depa; a pie ~1 h)", emoji: "🌉", cat: "aire", time: "10:20", dur: 75 },
+    { id: "s16", name: "DUMBO (foto del puente + vueltita)", emoji: "📸", cat: "joyas", time: "11:45", dur: 90 },
     { id: "s17", name: "Smorgasburg (comer entre puestos)", emoji: "🍕", cat: "comida", time: "13:15", dur: 105 },
     { id: "e6a", name: "Traslado de vuelta al depa + descanso", emoji: "🚇", cat: "noche", time: "15:15", dur: 60 },
     { id: "e6b", name: "Traslado a Yankee Stadium (metro 4/D, ~45 min)", emoji: "🚇", cat: "noche", time: "17:45", dur: 60 },
     { id: "e6", name: "Yankees vs Red Sox — Yankee Stadium (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "⚾", cat: "noche", time: "19:05", dur: 190 },
   ]},
   { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día + salida a JFK", acts: [
-    { id: "s18", name: "Central Park en bici (~2 h)", emoji: "🚲", cat: "aire", time: "09:30", dur: 120 },
-    { id: "s19", name: "The High Line (metro desde el parque ~30 min)", emoji: "🌳", cat: "aire", time: "12:15", dur: 90 },
-    { id: "s20", name: "Tarde libre: últimas compras / pendientes del viaje", emoji: "🛍️", cat: "ninas", time: "14:30", dur: 180 },
+    { id: "s18", name: "Central Park en bici (salir 10:00, metro ~30 min; ~2 h)", emoji: "🚲", cat: "aire", time: "10:30", dur: 120 },
+    { id: "s19", name: "The High Line (metro desde el parque ~30 min)", emoji: "🌳", cat: "aire", time: "13:00", dur: 90 },
+    { id: "s20", name: "Tarde libre: últimas compras / pendientes del viaje", emoji: "🛍️", cat: "ninas", time: "15:00", dur: 165 },
     { id: "s21", name: "Cena de despedida (tranquila, cerca del depa)", emoji: "🍝", cat: "comida", time: "18:30", dur: 90 },
     { id: "v4", name: "Recoger maletas + taxi a JFK (~50 min; estar 10:45 pm en el aeropuerto)", emoji: "🚕", cat: "noche", time: "21:45", dur: 75 },
   ]},
@@ -552,6 +553,7 @@ const ALT = {
     { name: "Katz's Delicatessen (pastrami legendario)", emoji: "🥪", cat: "comida" },
     { name: "Rooftop bar con vista de Manhattan", emoji: "🍸", cat: "noche" },
     { name: "Comedy club en Greenwich Village", emoji: "🎤", cat: "noche" },
+    { name: "Museo 9/11 completo (~2 h; FiDi está a 15 min del depa — libera el viernes)", emoji: "🕊️", cat: "cultura" },
     { name: "Tenement Museum (historia del LES)", emoji: "🏚️", cat: "cultura" },
     { name: "Economy Candy (dulcería clásica del LES)", emoji: "🍬", cat: "ninas" },
     { name: "Times Square de noche (si con energía)", emoji: "🌃", cat: "noche" },
@@ -567,6 +569,7 @@ const ALT = {
     { name: "Paseo por Central Park", emoji: "🌳", cat: "aire" },
   ],
   d4: [
+    { name: "Museo 9/11 completo (~2 h) — solo si recortan Ellis o mueven el ferry", emoji: "🕊️", cat: "cultura" },
     { name: "Harry Styles — MSG (toca hoy; cambiar vs NFL)", emoji: "🎤", cat: "noche" },
     { name: "Stone Street (callejón histórico, cena)", emoji: "💎", cat: "joyas" },
     { name: "Staten Island Ferry al atardecer (gratis)", emoji: "⛴️", cat: "aire" },
