@@ -24,36 +24,38 @@ const DAYS_SEED = [
     { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20" },
     { id: "v3", name: "Check-in en el depa · 113 Eldridge St 4B (Lower East Side)", emoji: "🏨", cat: "noche", time: "01:30" },
   ]},
-  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Vistas de Midtown", acts: [
-    { id: "a3", name: "Top of the Rock", emoji: "🏙️", cat: "cultura", time: "10:00" },
-    { id: "a4", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "13:00" },
-    { id: "a5", name: "Bryant Park", emoji: "🌳", cat: "aire", time: "16:00" },
+  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Tu barrio con calma (llegada tarde)", acts: [
+    { id: "s1", name: "Brunch tardío cerca del depa (llegan cansados)", emoji: "🥯", cat: "comida", time: "12:00" },
+    { id: "s2", name: "Chinatown + Little Italy + Nolita", emoji: "🥟", cat: "joyas", time: "13:30" },
+    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "16:00" },
+    { id: "s4", name: "Paseo relajado por el Lower East Side", emoji: "🌆", cat: "joyas", time: "18:30" },
   ]},
-  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Museos", acts: [
-    { id: "a6", name: "MoMA", emoji: "🎨", cat: "cultura", time: "10:00" },
-    { id: "a7", name: "The Met", emoji: "🎨", cat: "cultura", time: "14:00" },
-    { id: "a8", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "16:30" },
+  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown & vistas", acts: [
+    { id: "s5", name: "Top of the Rock", emoji: "🏙️", cat: "cultura", time: "10:00" },
+    { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "13:00" },
+    { id: "s7", name: "Bryant Park", emoji: "🌳", cat: "aire", time: "16:00" },
+    { id: "s8", name: "Times Square de noche", emoji: "🌃", cat: "noche", time: "20:00" },
   ]},
-  { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Downtown & Estatua", acts: [
-    { id: "a9", name: "Estatua de la Libertad + Ellis Island", emoji: "🗽", cat: "cultura", time: "09:00" },
-    { id: "a10", name: "Memorial 9/11", emoji: "🕊️", cat: "cultura", time: "14:00" },
-    { id: "a11", name: "Stone Street (callejón histórico)", emoji: "💎", cat: "joyas", time: "18:00" },
+  { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
+    { id: "s9", name: "MoMA", emoji: "🎨", cat: "cultura", time: "10:00" },
+    { id: "s10", name: "The Met", emoji: "🎨", cat: "cultura", time: "14:00" },
+    { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "16:30" },
   ]},
-  { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Central Park & High Line", acts: [
-    { id: "a12", name: "Central Park (bici)", emoji: "🚲", cat: "aire", time: "10:00" },
-    { id: "a13", name: "The High Line", emoji: "🌳", cat: "aire", time: "14:00" },
-    { id: "a14", name: "Chelsea Market", emoji: "🍕", cat: "comida", time: "16:00" },
+  { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown & Estatua", acts: [
+    { id: "s12", name: "Estatua de la Libertad + Ellis Island", emoji: "🗽", cat: "cultura", time: "09:00" },
+    { id: "s13", name: "Memorial 9/11", emoji: "🕊️", cat: "cultura", time: "14:00" },
+    { id: "s14", name: "Stone Street (callejón histórico)", emoji: "💎", cat: "joyas", time: "18:00" },
   ]},
   { id: "d5", label: "Sáb 29", full: "Sábado 29 Ago", theme: "Brooklyn", acts: [
-    { id: "a15", name: "Cruzar el Puente de Brooklyn", emoji: "🌉", cat: "aire", time: "10:00" },
-    { id: "a16", name: "DUMBO (foto del puente)", emoji: "📸", cat: "joyas", time: "12:00" },
-    { id: "a17", name: "Smorgasburg (mercado de comida)", emoji: "🍕", cat: "comida", time: "14:00" },
+    { id: "s15", name: "Cruzar el Puente de Brooklyn", emoji: "🌉", cat: "aire", time: "10:00" },
+    { id: "s16", name: "DUMBO (foto del puente)", emoji: "📸", cat: "joyas", time: "12:00" },
+    { id: "s17", name: "Smorgasburg (mercado de comida)", emoji: "🍕", cat: "comida", time: "14:00" },
   ]},
-  { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día completo + salida a JFK", acts: [
-    { id: "a18", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "11:00" },
-    { id: "a19", name: "Little Island", emoji: "🌳", cat: "aire", time: "15:00" },
-    { id: "a20", name: "Show de Broadway (mejor matiné, el vuelo es 1:30 AM)", emoji: "🎭", cat: "noche", time: "14:00" },
-    { id: "a22", name: "Cena temprana + últimas compras", emoji: "🍝", cat: "comida", time: "18:30" },
+  { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día + salida a JFK", acts: [
+    { id: "s18", name: "Central Park (bici)", emoji: "🚲", cat: "aire", time: "09:30" },
+    { id: "s19", name: "The High Line", emoji: "🌳", cat: "aire", time: "12:00" },
+    { id: "s20", name: "Show de Broadway (matiné, el vuelo es 1:30 AM)", emoji: "🎭", cat: "noche", time: "14:00" },
+    { id: "s21", name: "Cena temprana + últimas compras", emoji: "🍝", cat: "comida", time: "17:30" },
     { id: "v4", name: "Recoger maletas del hotel + traslado a JFK", emoji: "🚕", cat: "noche", time: "22:00" },
   ]},
   { id: "d7", label: "Lun 31", full: "Lunes 31 Ago", theme: "Vuelo de regreso (madrugada)", acts: [
@@ -133,7 +135,21 @@ const MEAL_SLOTS = [
 ];
 
 const MEALS = {
+  // Mar 25 — barrio del depa (LES / Chinatown / SoHo). Llegan tarde: sin desayuno formal.
   d1: {
+    comida: [
+      { tier: "callejera", name: "Dim sum en Chinatown", note: "A pasos del depa, barato" },
+      { tier: "estandar", name: "Russ & Daughters Cafe", note: "Bagel con salmón, ícono del LES" },
+      { tier: "fancy", name: "Balthazar (SoHo)", note: "Brasserie francesa icónica, reserva" },
+    ],
+    cena: [
+      { tier: "callejera", name: "Xi'an Famous Foods (Chinatown)", note: "Noodles picosos baratos" },
+      { tier: "estandar", name: "Rubirosa (Nolita)", note: "Pizza vodka famosa" },
+      { tier: "fancy", name: "Carbone (Greenwich Village)", note: "Italoamericano icónico, reserva difícil" },
+    ],
+  },
+  // Mié 26 — Midtown
+  d2: {
     desayuno: [
       { tier: "callejera", name: "Carrito de café + bagel", note: "Rápido, en cualquier esquina de Midtown" },
       { tier: "estandar", name: "Ess-a-Bagel", note: "Bagels enormes, clásico NY" },
@@ -150,7 +166,8 @@ const MEALS = {
       { tier: "fancy", name: "Keens Steakhouse", note: "Steakhouse histórico, reserva" },
     ],
   },
-  d2: {
+  // Jue 27 — Museos (Midtown / UES)
+  d3: {
     desayuno: [
       { tier: "callejera", name: "Carrito de café camino al museo", note: "Pretzel o bagel" },
       { tier: "estandar", name: "Pret A Manger / Tom's UES", note: "Desayuno sencillo" },
@@ -167,7 +184,8 @@ const MEALS = {
       { tier: "fancy", name: "Daniel (UES)", note: "Alta cocina francesa, reserva formal" },
     ],
   },
-  d3: {
+  // Vie 28 — Downtown / FiDi
+  d4: {
     desayuno: [
       { tier: "callejera", name: "Carrito de café + donut", note: "Antes del ferry a la Estatua" },
       { tier: "estandar", name: "Leo's Bagels (FiDi)", note: "Bagels cerca de Wall St" },
@@ -184,23 +202,7 @@ const MEALS = {
       { tier: "fancy", name: "Crown Shy (FiDi)", note: "Moderno con estrella, reserva" },
     ],
   },
-  d4: {
-    desayuno: [
-      { tier: "callejera", name: "Carrito de café en Chelsea", note: "Antes de la High Line" },
-      { tier: "estandar", name: "Chelsea Market (varios)", note: "Mil opciones bajo un techo" },
-      { tier: "fancy", name: "Cookshop", note: "Brunch granja-a-mesa, reserva" },
-    ],
-    comida: [
-      { tier: "callejera", name: "Los Tacos No.1 (Chelsea Market)", note: "Tacos top" },
-      { tier: "estandar", name: "Chelsea Market food hall", note: "Lobster, ramen, tacos…" },
-      { tier: "fancy", name: "Buddakan", note: "Asiático espectacular, reserva" },
-    ],
-    cena: [
-      { tier: "callejera", name: "Gansevoort Market (Meatpacking)", note: "Food hall variado" },
-      { tier: "estandar", name: "Bubby's (Meatpacking)", note: "Americano clásico" },
-      { tier: "fancy", name: "The Standard Grill", note: "Escena Meatpacking, reserva" },
-    ],
-  },
+  // Sáb 29 — Brooklyn
   d5: {
     desayuno: [
       { tier: "callejera", name: "Café en DUMBO con vista", note: "Junto al puente" },
@@ -218,21 +220,22 @@ const MEALS = {
       { tier: "fancy", name: "Lilia (Williamsburg)", note: "Pasta de culto, reserva difícil" },
     ],
   },
+  // Dom 30 — Central Park / High Line / Chelsea (día de salida)
   d6: {
     desayuno: [
-      { tier: "callejera", name: "Dim sum en Chinatown", note: "A pasos del depa, barato" },
-      { tier: "estandar", name: "Russ & Daughters Cafe", note: "Bagel con salmón, ícono del LES" },
-      { tier: "fancy", name: "Jack's Wife Freda (SoHo)", note: "Brunch de moda, reserva" },
+      { tier: "callejera", name: "Carrito de café en Chelsea", note: "Antes de la High Line" },
+      { tier: "estandar", name: "Chelsea Market (varios)", note: "Mil opciones bajo un techo" },
+      { tier: "fancy", name: "Cookshop", note: "Brunch granja-a-mesa, reserva" },
     ],
     comida: [
-      { tier: "callejera", name: "Joe's Pizza o Katz's", note: "Rebanada o pastrami legendario" },
-      { tier: "estandar", name: "Lombardi's (Nolita)", note: "La pizzería más antigua de EUA" },
-      { tier: "fancy", name: "Balthazar (SoHo)", note: "Brasserie francesa icónica, reserva" },
+      { tier: "callejera", name: "Los Tacos No.1 (Chelsea Market)", note: "Tacos top" },
+      { tier: "estandar", name: "Chelsea Market food hall", note: "Lobster, ramen, tacos…" },
+      { tier: "fancy", name: "Buddakan", note: "Asiático espectacular, reserva" },
     ],
     cena: [
-      { tier: "callejera", name: "Xi'an Famous Foods (Chinatown)", note: "Noodles picosos baratos" },
-      { tier: "estandar", name: "Rubirosa (Nolita)", note: "Pizza vodka famosa" },
-      { tier: "fancy", name: "Carbone (Greenwich Village)", note: "Italoamericano icónico, reserva difícil" },
+      { tier: "callejera", name: "Gansevoort Market (Meatpacking)", note: "Food hall variado" },
+      { tier: "estandar", name: "Bubby's (Meatpacking)", note: "Americano clásico" },
+      { tier: "fancy", name: "The Standard Grill", note: "Escena Meatpacking, reserva" },
     ],
   },
 };
