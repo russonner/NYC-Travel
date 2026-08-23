@@ -1,1 +1,37 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f4f6f5;
+  color: #111827;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #10b981;
+  color: #ffffff;
+}
+
+/* Barra de scroll delgada para las tiras horizontales (tabs) */
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 9999px;
+}
