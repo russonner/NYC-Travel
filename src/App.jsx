@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 4;
+const DAYS_VERSION = 5;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -55,7 +55,7 @@ const DAYS_SEED = [
     { id: "e2", name: "(Opcional) US Open · Federer 7 PM — salir del depa ~5:15 pm (en vez de la cena)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
   ]},
   { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Wicked (Gershwin)", acts: [
-    { id: "s5", name: "Top of the Rock (salir 10:00, metro ~30 min; reserva el horario de 10:45)", emoji: "🏙️", cat: "cultura", time: "10:45", dur: 90 },
+    { id: "s5", name: "Summit One Vanderbilt (salir 10:00, metro ~30 min; reserva el horario de 10:45) — cubos de vidrio + espejos; está junto a Grand Central: asómense al whispering gallery", emoji: "🪞", cat: "cultura", time: "10:45", dur: 90 },
     { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "12:45", dur: 120 },
     { id: "s7", name: "Bryant Park (descanso)", emoji: "🌳", cat: "aire", time: "15:15", dur: 60 },
     { id: "s8", name: "Times Square + cena temprana", emoji: "🌃", cat: "noche", time: "17:00", dur: 75 },
@@ -560,7 +560,7 @@ const ALT = {
   ],
   d2: [
     { name: "US Open · Qualifying GRATIS (mañana en Flushing)", emoji: "🎾", cat: "aire" },
-    { name: "Edge o Summit One Vanderbilt (mirador)", emoji: "🏙️", cat: "cultura" },
+    { name: "Top of the Rock (si prefieren la vista clásica al Empire State)", emoji: "🏙️", cat: "cultura" },
     { name: "Radio City / tour NBC Studios", emoji: "🎬", cat: "cultura" },
   ],
   d3: [
@@ -679,7 +679,7 @@ const RESERVAR = [
     group: "🎟️ En el New York Explorer Pass (elige 5-6)",
     items: [
       { id: "r_pass", name: "Comprar el Explorer Pass (5-6 atracciones)", urg: "pronto", url: "https://gocity.com/en/new-york/passes/explorer", note: "Cubre las de abajo; ahorra ~50%" },
-      { id: "r_totr", name: "Top of the Rock (mié) — o Edge/Summit (elige 1)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Reserva horario aunque tengas pase" },
+      { id: "r_totr", name: "Summit One Vanderbilt (mié 10:45) — reserva horario", urg: "pronto", url: "https://summitov.com", note: "Cubos de vidrio Levitation + espejos; incluido en el Explorer Pass" },
       { id: "r_statue", name: "Estatua + Ellis Island · ferry (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Reserva horario del ferry" },
       { id: "r_911", name: "9/11 Memorial & Museum (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Boleto con horario" },
       { id: "r_moma", name: "MoMA (jue)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "" },
