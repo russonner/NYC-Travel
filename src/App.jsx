@@ -16,7 +16,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin, GripVertical, RotateCcw, LayoutGrid, ListChecks, Footprints, Ticket, Siren, Phone, ExternalLink } from "lucide-react";
+import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin, GripVertical, RotateCcw, LayoutGrid, ListChecks, Footprints, Ticket, Siren, Phone, ExternalLink, ClipboardCheck } from "lucide-react";
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -541,6 +541,44 @@ function DayColumn({ day, editTheme, setEditTheme, setTheme, onTime, onDur, onRe
   );
 }
 
+// Módulo "Reservar primero": lo importante que se agota o sube de precio.
+const URG = {
+  ya: { label: "Reserva YA", cls: "bg-rose-100 text-rose-700 border-rose-200" },
+  pronto: { label: "Pronto", cls: "bg-amber-100 text-amber-700 border-amber-200" },
+  opcional: { label: "Con calma", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+};
+
+const RESERVAR = [
+  {
+    group: "🛒 Comprar por separado (no entran en el pase)",
+    items: [
+      { id: "r_federer", name: "US Open · Federer (mar 25) — Arthur Ashe", urg: "ya", url: "https://www.usopen.org", note: "Boleto aparte; ya en proceso" },
+      { id: "r_corona", name: "Corona de la Estatua (opcional)", urg: "ya", url: "https://www.statuecruises.com", note: "Se agota con meses; el ferry sí va en el pase" },
+      { id: "r_harry", name: "Harry Styles (mié 26) — Madison Square Garden", urg: "ya", url: "https://www.msg.com", note: "Residencia mié/vie/sáb; confirma la hora" },
+      { id: "r_yankees", name: "Yankees vs Red Sox (sáb 29) — Yankee Stadium", urg: "pronto", url: "https://www.mlb.com/yankees/tickets", note: "Precio dinámico: sube cerca del juego" },
+      { id: "r_nfl", name: "NFL (vie 28) — MetLife Stadium (NJ)", urg: "pronto", url: "https://www.ticketmaster.com", note: "Pretemporada; confirma hora y traslado a NJ" },
+      { id: "r_wicked", name: "Wicked (dom 30, matiné) — Broadway", urg: "pronto", url: "https://www.todaytix.com", note: "Confirma horario (~2/3 pm)" },
+    ],
+  },
+  {
+    group: "🎟️ En el New York Explorer Pass (elige 5-6)",
+    items: [
+      { id: "r_pass", name: "Comprar el Explorer Pass (5-6 atracciones)", urg: "pronto", url: "https://gocity.com/en/new-york/passes/explorer", note: "Cubre las de abajo; ahorra ~50%" },
+      { id: "r_totr", name: "Top of the Rock (mié) — o Edge/Summit (elige 1)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Reserva horario aunque tengas pase" },
+      { id: "r_statue", name: "Estatua + Ellis Island · ferry (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Reserva horario del ferry" },
+      { id: "r_911", name: "9/11 Memorial & Museum (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Boleto con horario" },
+      { id: "r_moma", name: "MoMA (jue)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "" },
+      { id: "r_met", name: "The Met (jue)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Cierra 5 pm los jueves" },
+    ],
+  },
+  {
+    group: "🆓 Gratis (solo registrarte)",
+    items: [
+      { id: "r_fanpass", name: "US Open · Fan Access Pass (qualifying gratis, mar)", urg: "ya", url: "https://fanpass.usopen.org", note: "Gratis, 18+; regístralo antes de ir" },
+    ],
+  },
+];
+
 export default function App() {
   const [tab, setTab] = useState("itinerario");
   const [view, setView] = useState(() => load("nyc_view", "agenda"));
@@ -548,6 +586,7 @@ export default function App() {
   const [budget, setBudget] = useState(() => load("nyc_budget", BUDGET_SEED));
   const [rate, setRate] = useState(() => load("nyc_rate", 18.5));
   const [packing, setPacking] = useState(() => load("nyc_packing", PACK_SEED));
+  const [reservado, setReservado] = useState(() => load("nyc_reservado", {}));
   const [filter, setFilter] = useState("todos");
   const [pickerFor, setPickerFor] = useState(null);
   const [newCustom, setNewCustom] = useState({});
@@ -564,6 +603,8 @@ export default function App() {
   useEffect(() => { localStorage.setItem("nyc_budget", JSON.stringify(budget)); }, [budget]);
   useEffect(() => { localStorage.setItem("nyc_rate", JSON.stringify(rate)); }, [rate]);
   useEffect(() => { localStorage.setItem("nyc_packing", JSON.stringify(packing)); }, [packing]);
+  useEffect(() => { localStorage.setItem("nyc_reservado", JSON.stringify(reservado)); }, [reservado]);
+  const toggleReservado = (id) => setReservado((r) => ({ ...r, [id]: !r[id] }));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -663,6 +704,7 @@ export default function App() {
     { key: "itinerario", label: "Itinerario", icon: Calendar },
     { key: "ideas", label: "Ideas", icon: Lightbulb },
     { key: "ia", label: "Asistente IA", icon: Sparkles },
+    { key: "reservar", label: "Reservar", icon: ClipboardCheck },
     { key: "presupuesto", label: "Presupuesto", icon: Wallet },
     { key: "maleta", label: "Maleta", icon: Backpack },
     { key: "reservas", label: "Reservas", icon: Ticket },
@@ -979,6 +1021,55 @@ export default function App() {
               </div>
             </div>
             <p className="text-[11px] text-gray-400">Las clínicas (urgent care) son para casos no graves; para urgencias serias, hospital o 911. Verifica la cobertura de tu seguro de viaje antes de acudir.</p>
+          </div>
+        )}
+
+        {tab === "reservar" && (
+          <div className="max-w-3xl mx-auto space-y-4">
+            <p className="text-sm text-gray-500">Lo importante que conviene asegurar antes (se agota o sube de precio). Marca lo que ya reservaste — se guarda solo.</p>
+            {(() => {
+              const all = RESERVAR.flatMap((g) => g.items);
+              const done = all.filter((i) => reservado[i.id]).length;
+              return (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-800">Progreso de reservas</span>
+                    <span className="text-gray-500">{done}/{all.length}</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-2">
+                    <div className="h-full bg-emerald-500 transition-all" style={{ width: `${all.length ? (done / all.length) * 100 : 0}%` }} />
+                  </div>
+                </div>
+              );
+            })()}
+            {RESERVAR.map((g) => (
+              <div key={g.group} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                <h3 className="font-semibold text-gray-900 mb-2">{g.group}</h3>
+                <div className="space-y-2">
+                  {g.items.map((it) => {
+                    const u = URG[it.urg];
+                    const on = !!reservado[it.id];
+                    return (
+                      <div key={it.id} className="flex items-start gap-3 p-2 rounded-lg border border-gray-100">
+                        <button onClick={() => toggleReservado(it.id)} aria-label="Marcar reservado"
+                          className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center border shrink-0 ${on ? "bg-emerald-500 border-emerald-500" : "border-gray-300"}`}>
+                          {on && <Check size={13} className="text-white" />}
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <a href={it.url} target="_blank" rel="noopener noreferrer"
+                              className={`text-sm font-medium ${on ? "line-through text-gray-400" : "text-gray-900 hover:text-emerald-600"}`}>{it.name}</a>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${u.cls}`}>{u.label}</span>
+                          </div>
+                          {it.note && <div className="text-[11px] text-gray-500">{it.note}</div>}
+                        </div>
+                        <ExternalLink size={13} className="text-gray-300 mt-1 shrink-0" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
