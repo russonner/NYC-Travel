@@ -678,8 +678,8 @@ const RESERVAR = [
   {
     group: "🎟️ En el New York Explorer Pass (elige 5-6)",
     items: [
-      { id: "r_pass", name: "Comprar el Explorer Pass (5-6 atracciones)", urg: "pronto", url: "https://gocity.com/en/new-york/passes/explorer", note: "Cubre las de abajo; ahorra ~50%" },
-      { id: "r_totr", name: "Summit One Vanderbilt (mié 10:45) — reserva horario", urg: "pronto", url: "https://summitov.com", note: "Cubos de vidrio Levitation + espejos; incluido en el Explorer Pass" },
+      { id: "r_pass", name: "Explorer Pass — recalcular si aún conviene", urg: "opcional", url: "https://gocity.com/en/new-york/passes/explorer", note: "Con Summit fuera y el museo 9/11 recortado quedan ~3 en pase (ferry, MoMA, Met): compara vs comprarlas sueltas" },
+      { id: "r_totr", name: "Summit One Vanderbilt (mié 10:45) — comprar directo", urg: "pronto", url: "https://summitov.com", note: "⚠️ NO entra en ningún pase (2026) — boleto aparte ~$43/p; reserva horario" },
       { id: "r_statue", name: "Estatua + Ellis Island · ferry (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Reserva horario del ferry" },
       { id: "r_911", name: "9/11 Memorial & Museum (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Boleto con horario" },
       { id: "r_moma", name: "MoMA (jue)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "" },
