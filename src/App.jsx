@@ -360,12 +360,17 @@ function MealOptions({ options }) {
   );
 }
 
+// Traslados/vuelos/registros no son "visitas" de hora y media.
+const isLogistics = (name) => /vuelo|llegada|check.?in|traslado|aeropuerto|monterrey|\bjfk\b|maletas|registrar/i.test(name);
+// Duración efectiva para el cálculo de traslapes: comidas no bloquean, logística ocupa poco.
+const effDur = (it) => (it.type === "meal" ? 0 : it.logi ? 40 : it.dur);
+
 function AgendaDay({ day }) {
   const meals = MEALS[day.id];
   const slots = meals
     ? MEAL_SLOTS.filter((s) => meals[s.key]).map((s) => ({ type: "meal", key: s.key, label: s.label, emoji: s.emoji, time: s.time, t: toMin(s.time), dur: 60, options: meals[s.key] }))
     : [];
-  const acts = day.acts.map((a) => ({ type: "act", id: a.id, name: a.name, emoji: a.emoji, time: a.time, t: toMin(a.time), dur: a.dur ?? 90, cat: a.cat }));
+  const acts = day.acts.map((a) => ({ type: "act", id: a.id, name: a.name, emoji: a.emoji, time: a.time, t: toMin(a.time), dur: a.dur ?? 90, cat: a.cat, logi: isLogistics(a.name) }));
   const all = [...acts, ...slots];
   const timed = all.filter((i) => i.t != null).sort((a, b) => sortKey(a.t) - sortKey(b.t) || (a.type === "meal" ? -1 : 1));
   const untimed = all.filter((i) => i.t == null);
@@ -391,7 +396,8 @@ function AgendaDay({ day }) {
         {timed.map((it, idx) => {
           const next = timed[idx + 1];
           const c = it.type === "act" ? catOf(it.cat) : null;
-          const gap = next ? sortKey(next.t) - (sortKey(it.t) + it.dur) : null;
+          const gap = next ? sortKey(next.t) - (sortKey(it.t) + effDur(it)) : null;
+          const softPair = next ? (it.type === "meal" || next.type === "meal" || it.logi || next.logi) : false;
           return (
             <Fragment key={it.type === "act" ? it.id : it.key}>
               <div className="flex gap-3">
@@ -416,7 +422,7 @@ function AgendaDay({ day }) {
                           <div className="text-sm text-gray-900 leading-tight">{it.name}</div>
                           <div className="mt-1 flex items-center gap-2 flex-wrap">
                             {c && <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${c.chip}`}>{c.label}</span>}
-                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-500"><Clock size={10} /> visita ~{durLabel(it.dur)}</span>
+                            {!it.logi && <span className="inline-flex items-center gap-1 text-[11px] text-gray-500"><Clock size={10} /> visita ~{durLabel(it.dur)}</span>}
                           </div>
                         </>
                       )}
@@ -429,13 +435,17 @@ function AgendaDay({ day }) {
                   <div className="shrink-0 w-12" />
                   <div className="shrink-0 w-2.5 flex justify-center"><div className="w-px h-full bg-gray-200" /></div>
                   <div className="flex-1 py-1">
-                    {gap != null && gap >= 0 ? (
+                    {!softPair && gap < -10 ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-rose-500 font-medium">
+                        ⚠️ se traslapa {durLabel(-gap)} — ajusta horarios
+                      </span>
+                    ) : gap > 5 ? (
                       <span className="inline-flex items-center gap-1 text-[11px] text-gray-400">
-                        <Footprints size={11} /> {gap === 0 ? "enseguida" : `traslado / tiempo libre ~${durLabel(gap)}`}
+                        <Footprints size={11} /> traslado / tiempo libre ~{durLabel(gap)}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-rose-500 font-medium">
-                        ⚠️ se traslapa {durLabel(Math.abs(gap))} — ajusta horarios
+                      <span className="inline-flex items-center gap-1 text-[11px] text-gray-400">
+                        <Footprints size={11} /> enseguida
                       </span>
                     )}
                   </div>
