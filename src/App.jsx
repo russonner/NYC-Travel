@@ -78,7 +78,7 @@ const DAYS_SEED = [
     { id: "s19", name: "The High Line", emoji: "🌳", cat: "aire", time: "11:30" },
     { id: "s20", name: "Wicked (Broadway, matiné — confirma horario ~2/3 pm)", emoji: "🎭", cat: "noche", time: "15:00" },
     { id: "s21", name: "Cena temprana + últimas compras", emoji: "🍝", cat: "comida", time: "18:30" },
-    { id: "v4", name: "Recoger maletas del hotel + traslado a JFK", emoji: "🚕", cat: "noche", time: "22:00" },
+    { id: "v4", name: "Recoger maletas del depa (113 Eldridge St) + traslado a JFK", emoji: "🚕", cat: "noche", time: "22:00" },
   ]},
   { id: "d7", label: "Lun 31", full: "Lunes 31 Ago", theme: "Vuelo de regreso (madrugada)", acts: [
     { id: "v5", name: "Vuelo VB 687 · JFK → Monterrey (sale 1:30 AM)", emoji: "✈️", cat: "noche", time: "01:30" },
@@ -123,7 +123,7 @@ const IDEAS = [
 
 const BUDGET_SEED = [
   { id: "b1", cat: "Vuelos", est: 1200, real: 0 },
-  { id: "b2", cat: "Hotel (7 noches)", est: 2100, real: 0 },
+  { id: "b2", cat: "Depa · 113 Eldridge St (7 noches)", est: 2100, real: 0 },
   { id: "b3", cat: "Comida", est: 1000, real: 0 },
   { id: "b4", cat: "Actividades", est: 800, real: 0 },
   { id: "b5", cat: "Transporte local", est: 200, real: 0 },
