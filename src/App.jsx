@@ -558,7 +558,6 @@ const ALT = {
     { name: "Paseo por Central Park", emoji: "🌳", cat: "aire" },
   ],
   default: [
-    { name: "Harry Styles — MSG (toca mié/vie/sáb, si ajustan la noche)", emoji: "🎤", cat: "noche" },
     { name: "Levain Bakery (galletas famosas)", emoji: "🍪", cat: "comida" },
     { name: "Grand Central + whispering gallery", emoji: "🏛️", cat: "joyas" },
     { name: "Staten Island Ferry (vista gratis)", emoji: "⛴️", cat: "aire" },
@@ -648,7 +647,6 @@ const RESERVAR = [
     items: [
       { id: "r_federer", name: "US Open · Federer (mar 25) — Arthur Ashe", urg: "ya", url: "https://www.usopen.org", note: "Boleto aparte; ya en proceso" },
       { id: "r_corona", name: "Corona de la Estatua (opcional)", urg: "ya", url: "https://www.statuecruises.com", note: "Se agota con meses; el ferry sí va en el pase" },
-      { id: "r_harry", name: "Harry Styles — MSG (⚠️ mié ya no cabe: Wicked 7PM; toca vie/sáb)", urg: "ya", url: "https://www.msg.com", note: "Vie choca con NFL y sáb con Yankees — decidir si entra" },
       { id: "r_yankees", name: "Yankees vs Red Sox (sáb 29) — Yankee Stadium", urg: "pronto", url: "https://www.mlb.com/yankees/tickets", note: "Precio dinámico: sube cerca del juego" },
       { id: "r_nfl", name: "NFL (vie 28) — MetLife Stadium (NJ)", urg: "pronto", url: "https://www.ticketmaster.com", note: "Pretemporada; confirma hora y traslado a NJ" },
       { id: "r_wicked", name: "Wicked ✓ COMPRADO — mié 26, 7:00 PM · Gershwin", urg: "opcional", url: "https://www.todaytix.com", note: "4 boletos · Orquesta fila U, asientos 1-3-5-7" },
