@@ -723,28 +723,29 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F4F6F5] text-gray-900" style={{ fontFamily: "system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[#F4F6F5] text-gray-900">
       <header className="relative bg-gray-900 text-white overflow-hidden">
         <img src="/portada.jpg" alt="Nueva York de noche" onError={(e) => { e.currentTarget.style.display = "none"; }}
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-70" />
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/75 to-gray-900/40" />
-        <div className="relative max-w-6xl mx-auto px-4 py-10 sm:py-14">
-          <div className="flex items-center gap-2 text-emerald-300 text-sm font-semibold tracking-wide">
-            <MapPin size={16} /> NUEVA YORK · 24–31 AGOSTO 2026
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-gray-900/30" />
+        <div className="relative max-w-6xl mx-auto px-4 py-14 sm:py-20">
+          <div className="inline-flex items-center gap-1.5 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30 rounded-full px-3 py-1 text-xs font-semibold tracking-wide">
+            <MapPin size={14} /> NUEVA YORK · 24–31 AGOSTO 2026
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold mt-1 drop-shadow">🗽 Aventura Familiar en NYC</h1>
-          <p className="text-gray-200 text-sm mt-1 drop-shadow">Roberta (14) · Camila (13) · Mamá y Papá — modo: aprovechar al máximo</p>
+          <h1 className="text-4xl sm:text-5xl font-extrabold mt-3 tracking-tight drop-shadow-lg">🗽 Aventura Familiar en NYC</h1>
+          <p className="text-gray-200 text-sm sm:text-base mt-2 drop-shadow">Roberta (14) · Camila (13) · Mamá y Papá — modo: aprovechar al máximo</p>
         </div>
+        <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-400" />
       </header>
 
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-2 flex overflow-x-auto">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-2 py-2 flex gap-1 overflow-x-auto">
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.key;
             return (
               <button key={t.key} onClick={() => setTab(t.key)}
-                className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${active ? "border-emerald-500 text-emerald-600" : "border-transparent text-gray-500 hover:text-gray-800"}`}>
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${active ? "bg-emerald-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"}`}>
                 <Icon size={16} /> {t.label}
               </button>
             );
