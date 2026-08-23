@@ -59,7 +59,7 @@ const DAYS_SEED = [
     { id: "s9", name: "MoMA", emoji: "🎨", cat: "cultura", time: "10:00" },
     { id: "s10", name: "The Met", emoji: "🎨", cat: "cultura", time: "14:00" },
     { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "16:30" },
-    { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30" },
+    { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30", booked: true },
   ]},
   { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown (mañana) + NFL en NJ", acts: [
     { id: "s12", name: "Estatua de la Libertad + Ellis Island", emoji: "🗽", cat: "cultura", time: "09:00" },
@@ -548,6 +548,7 @@ const ALT = {
     { name: "Times Square de noche (si con energía)", emoji: "🌃", cat: "noche" },
   ],
   d2: [
+    { name: "Harry Styles — MSG (toca hoy; ojo: Wicked ya está comprado)", emoji: "🎤", cat: "noche" },
     { name: "US Open · Qualifying GRATIS (mañana en Flushing)", emoji: "🎾", cat: "aire" },
     { name: "Edge o Summit One Vanderbilt (mirador)", emoji: "🏙️", cat: "cultura" },
     { name: "Radio City / tour NBC Studios", emoji: "🎬", cat: "cultura" },
@@ -556,6 +557,16 @@ const ALT = {
     { name: "US Open · Qualifying GRATIS (mañana/tarde en Flushing)", emoji: "🎾", cat: "aire" },
     { name: "Museo de Historia Natural (AMNH)", emoji: "🦕", cat: "cultura" },
     { name: "Paseo por Central Park", emoji: "🌳", cat: "aire" },
+  ],
+  d4: [
+    { name: "Harry Styles — MSG (toca hoy; cambiar vs NFL)", emoji: "🎤", cat: "noche" },
+    { name: "Stone Street (callejón histórico, cena)", emoji: "💎", cat: "joyas" },
+    { name: "Staten Island Ferry al atardecer (gratis)", emoji: "⛴️", cat: "aire" },
+  ],
+  d5: [
+    { name: "Harry Styles — MSG (toca hoy; cambiar vs Yankees)", emoji: "🎤", cat: "noche" },
+    { name: "Brooklyn Heights Promenade (skyline de noche)", emoji: "🌆", cat: "noche" },
+    { name: "L'industrie Pizza + paseo por Williamsburg", emoji: "🍕", cat: "comida" },
   ],
   default: [
     { name: "Levain Bakery (galletas famosas)", emoji: "🍪", cat: "comida" },
@@ -650,6 +661,7 @@ const RESERVAR = [
       { id: "r_yankees", name: "Yankees vs Red Sox (sáb 29) — Yankee Stadium", urg: "pronto", url: "https://www.mlb.com/yankees/tickets", note: "Precio dinámico: sube cerca del juego" },
       { id: "r_nfl", name: "NFL (vie 28) — MetLife Stadium (NJ)", urg: "pronto", url: "https://www.ticketmaster.com", note: "Pretemporada; confirma hora y traslado a NJ" },
       { id: "r_wicked", name: "Wicked ✓ COMPRADO — mié 26, 7:00 PM · Gershwin", urg: "opcional", url: "https://www.todaytix.com", note: "4 boletos · Orquesta fila U, asientos 1-3-5-7" },
+      { id: "r_harry", name: "Harry Styles — MSG (alternativa: solo si lo cambian por NFL o Yankees)", urg: "opcional", url: "https://www.msg.com", note: "Toca mié/vie/sáb; decisión pendiente" },
     ],
   },
   {
