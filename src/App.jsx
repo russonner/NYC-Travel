@@ -24,11 +24,11 @@ const DAYS_SEED = [
     { id: "v2", name: "Llegada a JFK 12:20 AM (+1 día) + traslado a Manhattan", emoji: "🛬", cat: "noche", time: "00:20" },
     { id: "v3", name: "Check-in en el depa · 113 Eldridge St 4B (Lower East Side)", emoji: "🏨", cat: "noche", time: "01:30" },
   ]},
-  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio con calma + US Open (Federer)", acts: [
-    { id: "s1", name: "Brunch tardío cerca del depa (llegan cansados)", emoji: "🥯", cat: "comida", time: "12:00" },
-    { id: "s2", name: "Chinatown + Little Italy + Nolita", emoji: "🥟", cat: "joyas", time: "13:30" },
-    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "15:30" },
-    { id: "e1", name: "Traslado a Flushing, Queens (tren 7)", emoji: "🚇", cat: "noche", time: "17:30" },
+  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "US Open en Flushing (qualifying gratis + Federer)", acts: [
+    { id: "s1", name: "Brunch + paseo por Chinatown / Little Italy (junto al depa)", emoji: "🥟", cat: "comida", time: "11:00" },
+    { id: "e0", name: "Registrar Fan Access Pass GRATIS (fanpass.usopen.org · 18+)", emoji: "🎟️", cat: "cultura", time: "12:30" },
+    { id: "e1", name: "Traslado a Flushing, Queens — tren 7 o LIRR (~1 h)", emoji: "🚇", cat: "noche", time: "13:30" },
+    { id: "eq", name: "US Open · Qualifying GRATIS en canchas exteriores", emoji: "🎾", cat: "aire", time: "14:30" },
     { id: "e2", name: "US Open · Federer 'An Icon Returns to NY' — Arthur Ashe", emoji: "🎾", cat: "cultura", time: "19:00" },
   ]},
   { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Harry Styles (MSG)", acts: [
