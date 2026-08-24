@@ -16,7 +16,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin, GripVertical, RotateCcw, LayoutGrid, ListChecks, Footprints, Ticket, Siren, Phone, ExternalLink, ClipboardCheck, Moon, Sun, Printer } from "lucide-react";
+import { Calendar, Lightbulb, Sparkles, Wallet, Backpack, Plus, X, Trash2, Send, Loader2, Check, Clock, Edit3, MapPin, GripVertical, RotateCcw, LayoutGrid, ListChecks, Footprints, Ticket, Siren, Phone, ExternalLink, ClipboardCheck, Moon, Sun, Printer, Home } from "lucide-react";
 
 // Fechas reales de cada día del viaje (para clima y cuenta regresiva).
 const DAY_DATES = { d0: "2026-08-24", d1: "2026-08-25", d2: "2026-08-26", d3: "2026-08-27", d4: "2026-08-28", d5: "2026-08-29", d6: "2026-08-30", d7: "2026-08-31" };
@@ -668,6 +668,44 @@ const URG = {
   opcional: { label: "Con calma", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
 };
 
+// Guía del depa (de Mia, la anfitriona). Los datos sensibles (código del
+// lockbox y contraseña WiFi) van enmascarados porque la app es pública:
+// consultarlos en el mensaje original de Mia.
+const DEPA = [
+  { title: "📍 Dirección", items: [
+    "113 Eldridge Street, Apt. 4B, New York, NY 10002 — 4º piso",
+  ]},
+  { title: "🔑 Acceso", items: [
+    "El lockbox está en una reja ROJA en la esquina de BROOME y ELDRIDGE.",
+    "Hay varios lockboxes: el suyo es el NEGRO, marca “PUROMA”.",
+    "Código: •••• (ver el mensaje de Mia — no se publica aquí por seguridad).",
+    "Llave NEGRA: puerta del edificio (girar a la IZQUIERDA al abrir).",
+    "Llave DORADA: puerta del depa (abre la cerradura de ABAJO).",
+  ]},
+  { title: "📶 WiFi", items: [
+    "Red: Verizon_Z3SPB9",
+    "Contraseña: •••• (ver mensaje de Mia) — o escaneen el QR atrás del módem en la sala y se conecta solo.",
+  ]},
+  { title: "❄️ Clima", items: [
+    "El termostato SOLO controla la calefacción.",
+    "Hay 2 aires acondicionados de ventana (nuevos y potentes) en las recámaras.",
+    "Apáguenlos al salir — enfrían rapidísimo al regresar.",
+  ]},
+  { title: "🗑️ Basura y reciclaje", items: [
+    "Basura llena → bolsa al ducto (chute) del pasillo, justo afuera del depa.",
+    "Reciclaje lleno → dejarlo en el 1er piso del edificio (antes de las escaleras).",
+  ]},
+  { title: "📋 Reglas de la casa", items: [
+    "Sin mascotas ni fiestas (edificio tranquilo, familias y artistas locales).",
+    "Al WC SOLO papel de baño (las toallitas “flushables” NO lo son 😅).",
+    "La barra de la cocina es papel contact: usar posavasos para cosas calientes.",
+    "Zapatos al rack de la cocina al entrar (las banquetas de NYC son otro nivel).",
+  ]},
+  { title: "💌 Contacto (Mia Hwang)", items: [
+    "miayounghwang@gmail.com — “No duden en escribirme si su experiencia es menos que 5 estrellas :)”",
+  ]},
+];
+
 const RESERVAR = [
   {
     group: "🛒 Comprar por separado (no entran en el pase)",
@@ -856,6 +894,7 @@ export default function App() {
     { key: "maleta", label: "Maleta", icon: Backpack },
     { key: "reservas", label: "Reservas", icon: Ticket },
     { key: "emergencias", label: "Emergencias", icon: Siren },
+    { key: "depa", label: "Depa", icon: Home },
   ];
 
   const DayPicker = ({ onPick }) => (
@@ -1186,6 +1225,26 @@ export default function App() {
               </div>
             </div>
             <p className="text-[11px] text-gray-400">Las clínicas (urgent care) son para casos no graves; para urgencias serias, hospital o 911. Verifica la cobertura de tu seguro de viaje antes de acudir.</p>
+          </div>
+        )}
+
+        {tab === "depa" && (
+          <div className="max-w-3xl mx-auto space-y-4">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-gray-700">
+              <p className="font-semibold text-emerald-700 mb-1">🏠 Bienvenida de Mia</p>
+              <p>“¡Siéntanse como en casa! He vivido en el depa más de 10 años y le tengo muchos recuerdos lindos — espero que ustedes también los hagan. Usen con confianza todo lo que hay en el departamento.”</p>
+            </div>
+            {DEPA.map((g) => (
+              <div key={g.title} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4">
+                <h3 className="font-semibold text-gray-900 mb-2">{g.title}</h3>
+                <ul className="space-y-1.5">
+                  {g.items.map((it, i) => (
+                    <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-emerald-500 shrink-0">•</span><span>{it}</span></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <p className="text-[11px] text-gray-400">🔒 El código del lockbox y la contraseña del WiFi no se muestran aquí porque esta página es pública — están en el mensaje original de Mia (Airbnb/WhatsApp).</p>
           </div>
         )}
 
