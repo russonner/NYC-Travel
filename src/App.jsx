@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 7;
+const DAYS_VERSION = 8;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -53,21 +53,22 @@ const DAYS_SEED = [
     { id: "s2", name: "Chinatown + Little Italy (vuelta corta)", emoji: "🥟", cat: "joyas", time: "11:15", dur: 60 },
     { id: "t1", name: "Traslado a Grand Central (metro ~30 min)", emoji: "🚇", cat: "cultura", time: "12:20", dur: 35 },
     { id: "s5", name: "SUMMIT One Vanderbilt — entrada 1:00 PM (espejos + cubos Levitation; de salida, whispering gallery de Grand Central)", emoji: "🪞", cat: "cultura", time: "13:00", dur: 90, booked: true },
-    { id: "s3", name: "SoHo (tiendas + arte callejero; metro de regreso ~25 min)", emoji: "🛍️", cat: "ninas", time: "15:30", dur: 90 },
-    { id: "s3b", name: "Descanso en el depa (llegaron a las 3 am)", emoji: "😴", cat: "joyas", time: "17:15", dur: 60 },
-    { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:30", dur: 90 },
-    { id: "e2", name: "(Opcional) US Open · Federer 7 PM — salir del depa ~5:15 pm (en vez de la cena)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
+    { id: "s5b", name: "Bryant Park + Biblioteca NYPL (a 2 cuadras del Summit)", emoji: "🌳", cat: "aire", time: "14:40", dur: 50 },
+    { id: "s3", name: "SoHo (tiendas + arte callejero; metro de regreso ~25 min)", emoji: "🛍️", cat: "ninas", time: "16:00", dur: 75 },
+    { id: "s3b", name: "Descanso en el depa (llegaron a las 3 am)", emoji: "😴", cat: "joyas", time: "17:30", dur: 60 },
+    { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:45", dur: 90 },
+    { id: "e2", name: "(Opcional) US Open · Federer 7 PM — el tren 7 sale de Grand Central: quedarse en Midtown tras el Summit y salir ~5:30 pm (en vez de SoHo/cena)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
   ]},
   { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "5ta Avenida + Wicked (Gershwin)", acts: [
     { id: "s6", name: "Quinta Avenida (salir 10:00, metro ~30 min; shopping con calma)", emoji: "🛍️", cat: "ninas", time: "10:45", dur: 150 },
     { id: "s6b", name: "Rockefeller Center por fuera + St. Patrick's", emoji: "🏛️", cat: "cultura", time: "13:45", dur: 60 },
-    { id: "s7", name: "Bryant Park (descanso)", emoji: "🌳", cat: "aire", time: "15:15", dur: 60 },
+    { id: "s7", name: "Tiempo libre en Midtown (café / tiendas pendientes / descanso)", emoji: "☕", cat: "joyas", time: "15:15", dur: 90 },
     { id: "s8", name: "Times Square + cena temprana", emoji: "🌃", cat: "noche", time: "17:00", dur: 75 },
     { id: "e3", name: "Wicked — Gershwin · Orq. fila U (llegar 6:20 pm; dura ~2 h 45)", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
   ]},
   { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
     { id: "s9", name: "MoMA — boletos confirmados (salir 10:00, metro ~30 min; ~2 h 30)", emoji: "🎨", cat: "cultura", time: "10:30", dur: 150, booked: true },
-    { id: "s10", name: "The Met (~2 h 30; está a 25 min del MoMA)", emoji: "🎨", cat: "cultura", time: "14:30", dur: 150 },
+    { id: "s10", name: "The Met (sin boleto aún — flexible; ~2 h 30, a 25 min del MoMA; si van cansados, recórtenlo a los hits: Dendur, armaduras, rooftop)", emoji: "🎨", cat: "cultura", time: "14:30", dur: 150 },
     { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "17:00", dur: 30 },
     { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30", dur: 120, booked: true },
   ]},
