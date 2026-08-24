@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 5;
+const DAYS_VERSION = 6;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -46,23 +46,25 @@ const DAYS_SEED = [
     { id: "v2", name: "Llegada a JFK 12:20 AM · migración + maletas (~1 h)", emoji: "🛬", cat: "noche", time: "00:20", dur: 60, booked: true },
     { id: "v3", name: "Taxi a Manhattan (~50 min) + check-in depa · 113 Eldridge St 4B", emoji: "🏨", cat: "noche", time: "01:30", dur: 80, booked: true },
   ]},
-  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio con calma (Federer de noche, opcional)", acts: [
+  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio + SUMMIT 1 PM (Federer opcional)", acts: [
     { id: "s1", name: "Brunch cerca del depa (salir 10:00; todo a pasos)", emoji: "🥯", cat: "comida", time: "10:00", dur: 75 },
-    { id: "s2", name: "Chinatown + Little Italy + Nolita (caminando)", emoji: "🥟", cat: "joyas", time: "11:30", dur: 120 },
-    { id: "s3", name: "SoHo (tiendas + arte callejero)", emoji: "🛍️", cat: "ninas", time: "14:00", dur: 90 },
-    { id: "s3b", name: "Descanso en el depa (llegaron a las 3 am — recargar pilas)", emoji: "😴", cat: "joyas", time: "16:00", dur: 120 },
+    { id: "s2", name: "Chinatown + Little Italy (vuelta corta)", emoji: "🥟", cat: "joyas", time: "11:15", dur: 60 },
+    { id: "t1", name: "Traslado a Grand Central (metro ~30 min)", emoji: "🚇", cat: "cultura", time: "12:20", dur: 35 },
+    { id: "s5", name: "SUMMIT One Vanderbilt — entrada 1:00 PM (espejos + cubos Levitation; de salida, whispering gallery de Grand Central)", emoji: "🪞", cat: "cultura", time: "13:00", dur: 90, booked: true },
+    { id: "s3", name: "SoHo (tiendas + arte callejero; metro de regreso ~25 min)", emoji: "🛍️", cat: "ninas", time: "15:30", dur: 90 },
+    { id: "s3b", name: "Descanso en el depa (llegaron a las 3 am)", emoji: "😴", cat: "joyas", time: "17:15", dur: 60 },
     { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:30", dur: 90 },
     { id: "e2", name: "(Opcional) US Open · Federer 7 PM — salir del depa ~5:15 pm (en vez de la cena)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
   ]},
-  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "Midtown + Wicked (Gershwin)", acts: [
-    { id: "s5", name: "Summit One Vanderbilt (salir 10:00, metro ~30 min; reserva el horario de 10:45) — cubos de vidrio + espejos; está junto a Grand Central: asómense al whispering gallery", emoji: "🪞", cat: "cultura", time: "10:45", dur: 90 },
-    { id: "s6", name: "Quinta Avenida (shopping)", emoji: "🛍️", cat: "ninas", time: "12:45", dur: 120 },
+  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "5ta Avenida + Wicked (Gershwin)", acts: [
+    { id: "s6", name: "Quinta Avenida (salir 10:00, metro ~30 min; shopping con calma)", emoji: "🛍️", cat: "ninas", time: "10:45", dur: 150 },
+    { id: "s6b", name: "Rockefeller Center por fuera + St. Patrick's", emoji: "🏛️", cat: "cultura", time: "13:45", dur: 60 },
     { id: "s7", name: "Bryant Park (descanso)", emoji: "🌳", cat: "aire", time: "15:15", dur: 60 },
     { id: "s8", name: "Times Square + cena temprana", emoji: "🌃", cat: "noche", time: "17:00", dur: 75 },
     { id: "e3", name: "Wicked — Gershwin · Orq. fila U (llegar 6:20 pm; dura ~2 h 45)", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
   ]},
   { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
-    { id: "s9", name: "MoMA (salir 10:00, metro ~30 min; visita ~2 h 30)", emoji: "🎨", cat: "cultura", time: "10:30", dur: 150 },
+    { id: "s9", name: "MoMA — boletos confirmados (salir 10:00, metro ~30 min; ~2 h 30)", emoji: "🎨", cat: "cultura", time: "10:30", dur: 150, booked: true },
     { id: "s10", name: "The Met (~2 h 30; está a 25 min del MoMA)", emoji: "🎨", cat: "cultura", time: "14:30", dur: 150 },
     { id: "s11", name: "Pasos del Met (foto Gossip Girl)", emoji: "📸", cat: "ninas", time: "17:00", dur: 30 },
     { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30", dur: 120, booked: true },
@@ -679,10 +681,10 @@ const RESERVAR = [
     group: "🎟️ En el New York Explorer Pass (elige 5-6)",
     items: [
       { id: "r_pass", name: "Explorer Pass — recalcular si aún conviene", urg: "opcional", url: "https://gocity.com/en/new-york/passes/explorer", note: "Con Summit fuera y el museo 9/11 recortado quedan ~3 en pase (ferry, MoMA, Met): compara vs comprarlas sueltas" },
-      { id: "r_totr", name: "Summit One Vanderbilt (mié 10:45) — comprar directo", urg: "pronto", url: "https://summitov.com", note: "⚠️ NO entra en ningún pase (2026) — boleto aparte ~$43/p; reserva horario" },
+      { id: "r_totr", name: "SUMMIT ✓ COMPRADO — mar 25, 1:00 PM (Tiqets)", urg: "opcional", url: "https://summitov.com", note: "4 adultos · confirmado" },
       { id: "r_statue", name: "Estatua + Ellis Island · ferry (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Reserva horario del ferry" },
       { id: "r_911", name: "9/11 Memorial & Museum (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Boleto con horario" },
-      { id: "r_moma", name: "MoMA (jue)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "" },
+      { id: "r_moma", name: "MoMA ✓ COMPRADO — jue 27 (Tiqets)", urg: "opcional", url: "https://www.moma.org", note: "4 adultos · confirmado" },
       { id: "r_met", name: "The Met (jue)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Cierra 5 pm los jueves" },
     ],
   },
