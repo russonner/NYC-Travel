@@ -37,11 +37,13 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 6;
+const DAYS_VERSION = 7;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
-    { id: "v0", name: "Llegar al aeropuerto de Monterrey (2 h antes)", emoji: "🧳", cat: "noche", time: "16:00", dur: 130 },
+    { id: "v00", name: "Salir de casa rumbo al aeropuerto (tráfico de lunes + margen)", emoji: "🚗", cat: "noche", time: "13:45", dur: 60 },
+    { id: "v0b", name: "iPark: dejar el auto + traslado en shuttle a Terminal A (foto al cajón y ticket)", emoji: "🅿️", cat: "noche", time: "14:45", dur: 25 },
+    { id: "v0", name: "Mostrador Viva Terminal A: maletas + seguridad y migración (abordaje 5:15 pm, puertas cierran 5:50)", emoji: "🧳", cat: "noche", time: "15:10", dur: 125 },
     { id: "v1", name: "Vuelo VB 686 · Monterrey → JFK", emoji: "✈️", cat: "noche", time: "18:10", dur: 370, booked: true },
     { id: "v2", name: "Llegada a JFK 12:20 AM · migración + maletas (~1 h)", emoji: "🛬", cat: "noche", time: "00:20", dur: 60, booked: true },
     { id: "v3", name: "Taxi a Manhattan (~50 min) + check-in depa · 113 Eldridge St 4B", emoji: "🏨", cat: "noche", time: "01:30", dur: 80, booked: true },
