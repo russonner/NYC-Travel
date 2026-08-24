@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 8;
+const DAYS_VERSION = 9;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -57,7 +57,7 @@ const DAYS_SEED = [
     { id: "s3", name: "SoHo (tiendas + arte callejero; metro de regreso ~25 min)", emoji: "🛍️", cat: "ninas", time: "16:00", dur: 75 },
     { id: "s3b", name: "Descanso en el depa (llegaron a las 3 am)", emoji: "😴", cat: "joyas", time: "17:30", dur: 60 },
     { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:45", dur: 90 },
-    { id: "e2", name: "(Opcional) US Open · Federer 7 PM — el tren 7 sale de Grand Central: quedarse en Midtown tras el Summit y salir ~5:30 pm (en vez de SoHo/cena)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
+    { id: "e2", name: "(Opcional) US Open · Federer 7 PM — tren 7 desde Grand Central, salir ~5:30 pm (Arthur Ashe tiene techo: va llueva o no)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
   ]},
   { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "5ta Avenida + Wicked (Gershwin)", acts: [
     { id: "s6", name: "Quinta Avenida (salir 10:00, metro ~30 min; shopping con calma)", emoji: "🛍️", cat: "ninas", time: "10:45", dur: 150 },
@@ -73,7 +73,7 @@ const DAYS_SEED = [
     { id: "s11b", name: "Cena con amigos (después de las 7 pm)", emoji: "🍽️", cat: "noche", time: "19:30", dur: 120, booked: true },
   ]},
   { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown (mañana) + NFL en NJ", acts: [
-    { id: "s12", name: "Ferry Estatua + Ellis (salir 10:00; Battery Park 10:20, seguridad tipo aeropuerto; si van justos, recorten el interior de Ellis)", emoji: "🗽", cat: "cultura", time: "10:20", dur: 250 },
+    { id: "s12", name: "Ferry Estatua + Ellis (salir 10:00; Battery Park 10:20; ⛈️ Plan B si amanece lluvioso: museo 9/11 completo bajo techo y mover el ferry al domingo)", emoji: "🗽", cat: "cultura", time: "10:20", dur: 250 },
     { id: "s13", name: "Memorial 9/11 al aire libre + Oculus (~45 min; el museo completo no alcanza hoy)", emoji: "🕊️", cat: "cultura", time: "14:45", dur: 45 },
     { id: "e4", name: "Traslado a MetLife Stadium, NJ (tren/bus ~1 h 15 + margen)", emoji: "🚌", cat: "noche", time: "16:15", dur: 105 },
     { id: "e5", name: "NFL — MetLife (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "🏈", cat: "noche", time: "19:30", dur: 195 },
