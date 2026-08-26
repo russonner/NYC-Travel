@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 11;
+const DAYS_VERSION = 12;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -48,16 +48,14 @@ const DAYS_SEED = [
     { id: "v2", name: "Llegada a JFK 12:20 AM · migración + maletas (~1 h)", emoji: "🛬", cat: "noche", time: "00:20", dur: 60, booked: true },
     { id: "v3", name: "Taxi a Manhattan (~50 min) + check-in depa · 113 Eldridge St 4B", emoji: "🏨", cat: "noche", time: "01:30", dur: 80, booked: true },
   ]},
-  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "Barrio + SUMMIT 1 PM (Federer opcional)", acts: [
-    { id: "s1", name: "Brunch cerca del depa (salir 10:00; todo a pasos)", emoji: "🥯", cat: "comida", time: "10:00", dur: 75 },
-    { id: "s2", name: "Chinatown + Little Italy (vuelta corta)", emoji: "🥟", cat: "joyas", time: "11:15", dur: 60 },
-    { id: "t1", name: "Traslado a Grand Central (metro ~30 min)", emoji: "🚇", cat: "cultura", time: "12:20", dur: 35 },
-    { id: "s5", name: "SUMMIT One Vanderbilt — entrada 1:00 PM (espejos + cubos Levitation; de salida, whispering gallery de Grand Central)", emoji: "🪞", cat: "cultura", time: "13:00", dur: 90, booked: true },
-    { id: "s5b", name: "Bryant Park + Biblioteca NYPL (a 2 cuadras del Summit)", emoji: "🌳", cat: "aire", time: "14:40", dur: 50 },
-    { id: "s3", name: "SoHo (tiendas + arte callejero; metro de regreso ~25 min)", emoji: "🛍️", cat: "ninas", time: "16:00", dur: 75 },
-    { id: "s3b", name: "Descanso en el depa (llegaron a las 3 am)", emoji: "😴", cat: "joyas", time: "17:30", dur: 60 },
-    { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:45", dur: 90 },
-    { id: "e2", name: "(Opcional) US Open · Federer 7 PM — tren 7 desde Grand Central, salir ~5:30 pm (Arthur Ashe tiene techo: va llueva o no)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
+  { id: "d1", label: "Mar 25", full: "Martes 25 Ago", theme: "✅ Hecho: SUMMIT, San Patricio, 5ta Av y Times Sq", acts: [
+    { id: "s1", name: "Mañana tranquila + brunch cerca del depa", emoji: "🥯", cat: "comida", time: "10:00", dur: 75 },
+    { id: "t1", name: "Traslado a Grand Central (metro ~30 min)", emoji: "🚇", cat: "cultura", time: "12:15", dur: 35 },
+    { id: "s5", name: "SUMMIT One Vanderbilt — ¡hecho! Espejos + cubos Levitation", emoji: "🪞", cat: "cultura", time: "13:00", dur: 90, booked: true },
+    { id: "h1", name: "Catedral de San Patricio", emoji: "🏛️", cat: "cultura", time: "15:00", dur: 45 },
+    { id: "h2", name: "5ta Avenida (tiendas)", emoji: "🛍️", cat: "ninas", time: "15:50", dur: 100 },
+    { id: "h3", name: "Times Square de día", emoji: "🌃", cat: "noche", time: "17:45", dur: 75 },
+    { id: "h4", name: "Cena en See No Evil Pizza (Greenwich Village)", emoji: "🍕", cat: "comida", time: "19:30", dur: 90 },
   ]},
   { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "US Open Fan Week (gratis) + Wicked", acts: [
     { id: "e0", name: "Registrar Fan Access Pass GRATIS antes de salir (fanpass.usopen.org · 18+)", emoji: "🎟️", cat: "cultura", time: "09:30", dur: 15 },
