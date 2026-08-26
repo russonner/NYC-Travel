@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 10;
+const DAYS_VERSION = 11;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -59,11 +59,12 @@ const DAYS_SEED = [
     { id: "s4", name: "Cena + paseo por el Lower East Side", emoji: "🌆", cat: "comida", time: "18:45", dur: 90 },
     { id: "e2", name: "(Opcional) US Open · Federer 7 PM — tren 7 desde Grand Central, salir ~5:30 pm (Arthur Ashe tiene techo: va llueva o no)", emoji: "🎾", cat: "noche", time: "19:00", dur: 150 },
   ]},
-  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "5ta Avenida + Wicked (Gershwin)", acts: [
-    { id: "s6", name: "Quinta Avenida (salir 10:00, metro ~30 min; shopping con calma)", emoji: "🛍️", cat: "ninas", time: "10:45", dur: 150 },
-    { id: "s6b", name: "Rockefeller Center por fuera + St. Patrick's", emoji: "🏛️", cat: "cultura", time: "13:45", dur: 60 },
-    { id: "s7", name: "Tiempo libre en Midtown (café / tiendas pendientes / descanso)", emoji: "☕", cat: "joyas", time: "15:15", dur: 90 },
-    { id: "s8", name: "Times Square + cena temprana", emoji: "🌃", cat: "noche", time: "17:00", dur: 75 },
+  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "US Open Fan Week (gratis) + Wicked", acts: [
+    { id: "e0", name: "Registrar Fan Access Pass GRATIS antes de salir (fanpass.usopen.org · 18+)", emoji: "🎟️", cat: "cultura", time: "09:30", dur: 15 },
+    { id: "t2", name: "Traslado a Flushing (metro a Grand Central + tren 7, ~1 h)", emoji: "🚇", cat: "noche", time: "10:00", dur: 65 },
+    { id: "eq", name: "US Open Fan Week · qualifying GRATIS en canchas exteriores + ambiente (coman allá)", emoji: "🎾", cat: "aire", time: "11:15", dur: 195 },
+    { id: "t3", name: "Traslado en tren 7 DIRECTO a Times Square (~45 min)", emoji: "🚇", cat: "noche", time: "14:45", dur: 50 },
+    { id: "s8", name: "Café / descanso + cena temprana cerca del Gershwin", emoji: "☕", cat: "comida", time: "16:30", dur: 105 },
     { id: "e3", name: "Wicked — Gershwin · Orq. fila U (llegar 6:20 pm; dura ~2 h 45)", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
   ]},
   { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
@@ -93,7 +94,7 @@ const DAYS_SEED = [
     { id: "s19a", name: "Little Island (parque flotante — junto al arranque de la High Line)", emoji: "🌊", cat: "joyas", time: "13:00", dur: 30 },
     { id: "s19", name: "The High Line (recorrido de sur a norte)", emoji: "🌳", cat: "aire", time: "13:35", dur: 90 },
     { id: "s19b", name: "The Vessel + Hudson Yards (la High Line desemboca ahí; fotos)", emoji: "🐝", cat: "joyas", time: "15:10", dur: 20 },
-    { id: "s20", name: "Tarde libre: últimas compras / pendientes del viaje", emoji: "🛍️", cat: "ninas", time: "15:45", dur: 135 },
+    { id: "s20", name: "SoHo + Chinatown a fondo (a pasos del depa) + últimas compras", emoji: "🛍️", cat: "ninas", time: "15:45", dur: 135 },
     { id: "s21", name: "Cena de despedida (tranquila, cerca del depa)", emoji: "🍝", cat: "comida", time: "18:30", dur: 90 },
     { id: "v4", name: "Recoger maletas + taxi a JFK (~50 min; estar 10:45 pm en el aeropuerto)", emoji: "🚕", cat: "noche", time: "21:45", dur: 75 },
   ]},
