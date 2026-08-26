@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 12;
+const DAYS_VERSION = 13;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -88,11 +88,12 @@ const DAYS_SEED = [
     { id: "e6", name: "Yankees vs Red Sox — Yankee Stadium (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "⚾", cat: "noche", time: "19:05", dur: 190 },
   ]},
   { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "Último día + salida a JFK", acts: [
-    { id: "s18", name: "Central Park en bici (salir 10:00, metro ~30 min; ~2 h)", emoji: "🚲", cat: "aire", time: "10:30", dur: 120 },
+    { id: "s18", name: "Central Park en bici (salir 10:00, metro ~30 min; ~2 h) — parada de fotos en Bethesda Terrace y su fuente", emoji: "🚲", cat: "aire", time: "10:30", dur: 120 },
     { id: "s19a", name: "Little Island (parque flotante — junto al arranque de la High Line)", emoji: "🌊", cat: "joyas", time: "13:00", dur: 30 },
-    { id: "s19", name: "The High Line (recorrido de sur a norte)", emoji: "🌳", cat: "aire", time: "13:35", dur: 90 },
-    { id: "s19b", name: "The Vessel + Hudson Yards (la High Line desemboca ahí; fotos)", emoji: "🐝", cat: "joyas", time: "15:10", dur: 20 },
-    { id: "s20", name: "SoHo + Chinatown a fondo (a pasos del depa) + últimas compras", emoji: "🛍️", cat: "ninas", time: "15:45", dur: 135 },
+    { id: "s19c", name: "Chelsea Market (comida en el food hall + fotos; a 2 cuadras, entrada sur de la High Line)", emoji: "🥡", cat: "comida", time: "13:35", dur: 50 },
+    { id: "s19", name: "The High Line (recorrido de sur a norte)", emoji: "🌳", cat: "aire", time: "14:30", dur: 90 },
+    { id: "s19b", name: "The Vessel + Hudson Yards (la High Line desemboca ahí; fotos)", emoji: "🐝", cat: "joyas", time: "16:00", dur: 20 },
+    { id: "s20", name: "SoHo + Chinatown a fondo (a pasos del depa) + últimas compras", emoji: "🛍️", cat: "ninas", time: "16:35", dur: 110 },
     { id: "s21", name: "Cena de despedida (tranquila, cerca del depa)", emoji: "🍝", cat: "comida", time: "18:30", dur: 90 },
     { id: "v4", name: "Recoger maletas + taxi a JFK (~50 min; estar 10:45 pm en el aeropuerto)", emoji: "🚕", cat: "noche", time: "21:45", dur: 75 },
   ]},
