@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 13;
+const DAYS_VERSION = 14;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -57,13 +57,13 @@ const DAYS_SEED = [
     { id: "h3", name: "Times Square de día", emoji: "🌃", cat: "noche", time: "17:45", dur: 75 },
     { id: "h4", name: "Cena en See No Evil Pizza (Greenwich Village)", emoji: "🍕", cat: "comida", time: "19:30", dur: 90 },
   ]},
-  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "US Open Fan Week (gratis) + Wicked", acts: [
-    { id: "e0", name: "Registrar Fan Access Pass GRATIS antes de salir (fanpass.usopen.org · 18+)", emoji: "🎟️", cat: "cultura", time: "09:30", dur: 15 },
-    { id: "t2", name: "Traslado a Flushing (metro a Grand Central + tren 7, ~1 h)", emoji: "🚇", cat: "noche", time: "10:00", dur: 65 },
-    { id: "eq", name: "US Open Fan Week · qualifying GRATIS en canchas exteriores + ambiente (coman allá)", emoji: "🎾", cat: "aire", time: "11:15", dur: 195 },
-    { id: "t3", name: "Traslado en tren 7 DIRECTO a Times Square (~45 min)", emoji: "🚇", cat: "noche", time: "14:45", dur: 50 },
-    { id: "s8", name: "Café / descanso + cena temprana cerca del Gershwin", emoji: "☕", cat: "comida", time: "16:30", dur: 105 },
-    { id: "e3", name: "Wicked — Gershwin · Orq. fila U (llegar 6:20 pm; dura ~2 h 45)", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
+  { id: "d2", label: "Mié 26", full: "Miércoles 26 Ago", theme: "✅ Hecho: 9/11, Oculus, Puente de Brooklyn, DUMBO y Wicked", acts: [
+    { id: "w1", name: "Memorial 9/11 al aire libre + Oculus por dentro", emoji: "🕊️", cat: "cultura", time: "11:00", dur: 90 },
+    { id: "w2", name: "Cruzar el Puente de Brooklyn a pie", emoji: "🌉", cat: "aire", time: "13:00", dur: 75 },
+    { id: "w3", name: "DUMBO (foto clásica del puente + vueltita)", emoji: "📸", cat: "joyas", time: "14:15", dur: 90 },
+    { id: "w4", name: "Traslado de regreso al depa + descanso y arreglarse", emoji: "🚇", cat: "noche", time: "16:00", dur: 120 },
+    { id: "e3", name: "Wicked — Gershwin · Orq. fila U (~2 h 45)", emoji: "🎭", cat: "noche", time: "19:00", dur: 165, booked: true },
+    { id: "w5", name: "Times Square de noche, a la salida del teatro", emoji: "🌃", cat: "noche", time: "21:50", dur: 40 },
   ]},
   { id: "d3", label: "Jue 27", full: "Jueves 27 Ago", theme: "Museos", acts: [
     { id: "s9", name: "MoMA — boletos confirmados (salir 10:00, metro ~30 min; ~2 h 30)", emoji: "🎨", cat: "cultura", time: "10:30", dur: 150, booked: true },
@@ -74,16 +74,16 @@ const DAYS_SEED = [
   { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "Downtown (mañana) + NFL en NJ", acts: [
     { id: "s12", name: "Ferry Estatua + Ellis (salir 10:00; Battery Park 10:20; ⛈️ Plan B si amanece lluvioso: museo 9/11 completo bajo techo y mover el ferry al domingo)", emoji: "🗽", cat: "cultura", time: "10:20", dur: 250 },
     { id: "s13a", name: "Toro de Wall Street + Fearless Girl (foto rápida; está de camino en Bowling Green)", emoji: "🐂", cat: "joyas", time: "14:35", dur: 15 },
-    { id: "s13", name: "Memorial 9/11 al aire libre + Oculus (~45 min; el museo completo no alcanza hoy)", emoji: "🕊️", cat: "cultura", time: "14:55", dur: 45 },
+    { id: "s13", name: "Wall Street a fondo: fachada del NYSE, Federal Hall y Stone Street (el 9/11 ya quedó ✅ el miércoles)", emoji: "🏛️", cat: "joyas", time: "14:55", dur: 45 },
     { id: "e4", name: "Traslado a MetLife Stadium, NJ (tren/bus ~1 h 15 + margen)", emoji: "🚌", cat: "noche", time: "16:15", dur: 105 },
     { id: "e5", name: "NFL — MetLife (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "🏈", cat: "noche", time: "19:30", dur: 195 },
     { id: "e5b", name: "Traslado de regreso a Manhattan (fila del tren post-juego)", emoji: "🚆", cat: "noche", time: "22:45", dur: 90 },
   ]},
-  { id: "d5", label: "Sáb 29", full: "Sábado 29 Ago", theme: "Brooklyn + Yankees vs Red Sox", acts: [
-    { id: "s15", name: "Cruzar el Puente de Brooklyn (salir 10:00; entrada a 15 min del depa; a pie ~1 h)", emoji: "🌉", cat: "aire", time: "10:20", dur: 75 },
-    { id: "s16", name: "DUMBO (foto del puente + vueltita)", emoji: "📸", cat: "joyas", time: "11:45", dur: 90 },
-    { id: "s17", name: "Smorgasburg (comer entre puestos)", emoji: "🍕", cat: "comida", time: "13:15", dur: 105 },
-    { id: "e6a", name: "Traslado de vuelta al depa + descanso", emoji: "🚇", cat: "noche", time: "15:15", dur: 60 },
+  { id: "d5", label: "Sáb 29", full: "Sábado 29 Ago", theme: "US Open Fan Week (gratis) + Yankees vs Red Sox", acts: [
+    { id: "u0", name: "Registrar Fan Access Pass GRATIS si aún no lo tienen (fanpass.usopen.org · 18+)", emoji: "🎟️", cat: "cultura", time: "09:30", dur: 15 },
+    { id: "u1", name: "Traslado a Flushing (metro a Grand Central + tren 7, ~1 h)", emoji: "🚇", cat: "noche", time: "10:00", dur: 65 },
+    { id: "u2", name: "US Open Fan Week · último día GRATIS: prácticas de estrellas + canchas exteriores (coman allá)", emoji: "🎾", cat: "aire", time: "11:15", dur: 180 },
+    { id: "e6a", name: "Traslado de regreso al depa (tren 7, ~1 h) + descanso", emoji: "🚇", cat: "noche", time: "14:30", dur: 90 },
     { id: "e6b", name: "Traslado a Yankee Stadium (metro 4/D, ~45 min)", emoji: "🚇", cat: "noche", time: "17:45", dur: 60 },
     { id: "e6", name: "Yankees vs Red Sox — Yankee Stadium (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "⚾", cat: "noche", time: "19:05", dur: 190 },
   ]},
@@ -241,22 +241,22 @@ const MEALS = {
       { tier: "fancy", name: "Crown Shy (FiDi)", note: "Moderno con estrella, reserva" },
     ],
   },
-  // Sáb 29 — Brooklyn
+  // Sáb 29 — US Open (Flushing) + Yankees
   d5: {
     desayuno: [
-      { tier: "callejera", name: "Café en DUMBO con vista", note: "Junto al puente" },
-      { tier: "estandar", name: "Brooklyn Bagel", note: "Antes de cruzar" },
-      { tier: "fancy", name: "Celestine (DUMBO)", note: "Brunch con skyline, reserva" },
+      { tier: "callejera", name: "Bagel para llevar (LES)", note: "Antes de tomar el tren 7" },
+      { tier: "estandar", name: "Kossar's Bialys (LES)", note: "Clásico a pasos del depa" },
+      { tier: "fancy", name: "Russ & Daughters Café", note: "Ícono del LES; lleguen temprano" },
     ],
     comida: [
-      { tier: "callejera", name: "Smorgasburg", note: "Decenas de puestos (sábado)" },
-      { tier: "estandar", name: "Juliana's Pizza", note: "Pizza de horno de carbón" },
-      { tier: "fancy", name: "The River Café", note: "Bajo el puente, reserva" },
+      { tier: "callejera", name: "Food village del US Open", note: "Coman entre canchas" },
+      { tier: "estandar", name: "New World Mall (Flushing Chinatown)", note: "Food court asiático top, a 10 min" },
+      { tier: "fancy", name: "Restaurantes dentro del US Open", note: "Si consiguen mesa ese día" },
     ],
     cena: [
-      { tier: "callejera", name: "L'industrie Pizza (Williamsburg)", note: "Rebanada top de Brooklyn" },
-      { tier: "estandar", name: "Olea (Fort Greene)", note: "Mediterráneo rico y animado" },
-      { tier: "fancy", name: "Lilia (Williamsburg)", note: "Pasta de culto, reserva difícil" },
+      { tier: "callejera", name: "Clásicos del Yankee Stadium", note: "Hot dog + nachos en el juego" },
+      { tier: "estandar", name: "Mighty Quinn's BBQ (en el estadio)", note: "BBQ premiado dentro del parque" },
+      { tier: "fancy", name: "Katz's Deli al regreso", note: "Abre 24 h el fin de semana; junto al depa" },
     ],
   },
   // Dom 30 — Central Park / High Line / Chelsea (día de salida)
@@ -583,9 +583,10 @@ const ALT = {
     { name: "Staten Island Ferry al atardecer (gratis)", emoji: "⛴️", cat: "aire" },
   ],
   d5: [
+    { name: "Top of the Rock (si prefieren vista clásica en vez del US Open)", emoji: "🏙️", cat: "cultura" },
+    { name: "Smorgasburg + Williamsburg (si quieren más Brooklyn)", emoji: "🍕", cat: "comida" },
     { name: "Harry Styles — MSG (toca hoy; cambiar vs Yankees)", emoji: "🎤", cat: "noche" },
     { name: "Brooklyn Heights Promenade (skyline de noche)", emoji: "🌆", cat: "noche" },
-    { name: "L'industrie Pizza + paseo por Williamsburg", emoji: "🍕", cat: "comida" },
   ],
   default: [
     { name: "Levain Bakery (galletas famosas)", emoji: "🍪", cat: "comida" },
