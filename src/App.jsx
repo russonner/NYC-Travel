@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 15;
+const DAYS_VERSION = 16;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -86,7 +86,7 @@ const DAYS_SEED = [
     { id: "e6", name: "Yankees vs Red Sox — Yankee Stadium (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "⚾", cat: "noche", time: "19:05", dur: 190 },
   ]},
   { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "☀️ Estatua de la Libertad + orilla del Hudson + salida a JFK", acts: [
-    { id: "g1", name: "Salir 9:15 · foto al Toro de Wall Street camino a Battery Park", emoji: "🐂", cat: "joyas", time: "09:40", dur: 15 },
+    { id: "g1", name: "Salir 9:00 · Wall Street: fachada del NYSE, Federal Hall y foto al Toro + Fearless Girl, camino a Battery Park (si ya fueron de noche, pasen de largo)", emoji: "🐂", cat: "joyas", time: "09:20", dur: 30 },
     { id: "g2", name: "Ferry a Estatua de la Libertad + Ellis Island (compren boletos YA para ~10:00; ~4 h)", emoji: "🗽", cat: "cultura", time: "10:00", dur: 240 },
     { id: "g3", name: "Traslado + comida tardía en Chelsea Market (food hall)", emoji: "🥡", cat: "comida", time: "14:20", dur: 70 },
     { id: "g4", name: "Little Island + paseo por la orilla del Hudson", emoji: "🌊", cat: "joyas", time: "15:40", dur: 35 },
