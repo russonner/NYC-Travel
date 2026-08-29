@@ -37,7 +37,7 @@ const wxEmoji = (code) => {
 
 // Versión del plan oficial. Al publicar un itinerario nuevo se sube este número
 // y la app de cada quien se actualiza sola (reemplaza el plan guardado).
-const DAYS_VERSION = 16;
+const DAYS_VERSION = 17;
 
 const DAYS_SEED = [
   { id: "d0", label: "Lun 24", full: "Lunes 24 Ago", theme: "Vuelo a NYC + llegada nocturna", acts: [
@@ -70,13 +70,10 @@ const DAYS_SEED = [
     { id: "s10", name: "Tarde de lluvia fuerte — plan tranquilo bajo techo", emoji: "🌧️", cat: "cultura", time: "13:30", dur: 240 },
     { id: "s11b", name: "Cena con amigos", emoji: "🍽️", cat: "noche", time: "19:30", dur: 120, booked: true },
   ]},
-  { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "☔ SoHo de tiendas (bajo techo) + NFL en NJ", acts: [
-    { id: "f1", name: "SoHo de tiendas (a 10 min a pie del depa; ☔ 70% de lluvia hoy — día de tiendas techadas)", emoji: "🛍️", cat: "ninas", time: "10:15", dur: 150 },
-    { id: "f2", name: "Comida en SoHo / Nolita bajo techo", emoji: "🍕", cat: "comida", time: "12:45", dur: 75 },
-    { id: "f3", name: "Regreso al depa + descanso y cambio de ropa", emoji: "🏠", cat: "noche", time: "14:15", dur: 105 },
-    { id: "e4", name: "Traslado a MetLife Stadium, NJ (tren/bus ~1 h 15 + margen; lleven impermeables — el estadio es descubierto)", emoji: "🚌", cat: "noche", time: "16:15", dur: 105 },
-    { id: "e5", name: "NFL — MetLife (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "🏈", cat: "noche", time: "19:30", dur: 195 },
-    { id: "e5b", name: "Traslado de regreso a Manhattan (fila del tren post-juego)", emoji: "🚆", cat: "noche", time: "22:45", dur: 90 },
+  { id: "d4", label: "Vie 28", full: "Viernes 28 Ago", theme: "✅ Hecho: Staten Island Ferry, Toro de Wall St y Central Park", acts: [
+    { id: "f1", name: "Staten Island Ferry GRATIS — la Estatua de la Libertad vista desde el agua", emoji: "⛴️", cat: "aire", time: "11:00", dur: 75 },
+    { id: "f2", name: "Wall Street: tocar al Toro + zona del NYSE", emoji: "🐂", cat: "joyas", time: "13:30", dur: 60 },
+    { id: "f3", name: "Caminata por Central Park", emoji: "🌳", cat: "aire", time: "16:00", dur: 90 },
   ]},
   { id: "d5", label: "Sáb 29", full: "Sábado 29 Ago", theme: "☀️ Museo de Historia Natural ✓ + Central Park + Yankees", acts: [
     { id: "m1", name: "Museo de Historia Natural — RESERVADO (salir 10:00; metro D a Columbus Circle + C a 81 St, ~45 min; ajusten a la hora de su boleto)", emoji: "🦕", cat: "cultura", time: "10:45", dur: 150, booked: true },
@@ -85,14 +82,13 @@ const DAYS_SEED = [
     { id: "m4", name: "Traslado directo del parque a Yankee Stadium (metro C + D vía 125 St, ~40 min)", emoji: "🚇", cat: "noche", time: "17:30", dur: 45 },
     { id: "e6", name: "Yankees vs Red Sox — Yankee Stadium (llegar 6:45 pm; juego ~3 h; confirma hora)", emoji: "⚾", cat: "noche", time: "19:05", dur: 190 },
   ]},
-  { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "☀️ Estatua de la Libertad + orilla del Hudson + salida a JFK", acts: [
-    { id: "g1", name: "Salir 9:00 · Wall Street: fachada del NYSE, Federal Hall y foto al Toro + Fearless Girl, camino a Battery Park (si ya fueron de noche, pasen de largo)", emoji: "🐂", cat: "joyas", time: "09:20", dur: 30 },
-    { id: "g2", name: "Ferry a Estatua de la Libertad + Ellis Island (compren boletos YA para ~10:00; ~4 h)", emoji: "🗽", cat: "cultura", time: "10:00", dur: 240 },
-    { id: "g3", name: "Traslado + comida tardía en Chelsea Market (food hall)", emoji: "🥡", cat: "comida", time: "14:20", dur: 70 },
-    { id: "g4", name: "Little Island + paseo por la orilla del Hudson", emoji: "🌊", cat: "joyas", time: "15:40", dur: 35 },
-    { id: "g5", name: "The High Line (de sur a norte, en paralelo al Hudson)", emoji: "🌳", cat: "aire", time: "16:20", dur: 80 },
-    { id: "g6", name: "The Vessel + Hudson Yards (fotos)", emoji: "🐝", cat: "joyas", time: "17:45", dur: 20 },
-    { id: "g7", name: "Traslado de regreso + cena de despedida cerca del depa", emoji: "🍝", cat: "comida", time: "18:45", dur: 105 },
+  { id: "d6", label: "Dom 30", full: "Domingo 30 Ago", theme: "☀️ Orilla del Hudson + SoHo + salida a JFK", acts: [
+    { id: "g4", name: "Little Island + paseo por la orilla del Hudson (salir 10:00; metro a la calle 14, ~25 min)", emoji: "🌊", cat: "joyas", time: "10:45", dur: 40 },
+    { id: "g3", name: "Comida en Chelsea Market (food hall, a 2 cuadras)", emoji: "🥡", cat: "comida", time: "11:45", dur: 75 },
+    { id: "g5", name: "The High Line (de sur a norte, en paralelo al Hudson)", emoji: "🌳", cat: "aire", time: "13:15", dur: 90 },
+    { id: "g6", name: "The Vessel + Hudson Yards (fotos)", emoji: "🐝", cat: "joyas", time: "14:50", dur: 25 },
+    { id: "g8", name: "SoHo de tiendas + últimas compras (metro 7 + R a Prince St, ~30 min)", emoji: "🛍️", cat: "ninas", time: "16:00", dur: 135 },
+    { id: "g7", name: "Cena de despedida cerca del depa", emoji: "🍝", cat: "comida", time: "18:30", dur: 90 },
     { id: "v4", name: "Recoger maletas + taxi a JFK (~50 min; estar 10:45 pm en el aeropuerto)", emoji: "🚕", cat: "noche", time: "21:45", dur: 75 },
   ]},
   { id: "d7", label: "Lun 31", full: "Lunes 31 Ago", theme: "Vuelo de regreso (madrugada)", acts: [
@@ -260,9 +256,9 @@ const MEALS = {
   // Dom 30 — Estatua / orilla del Hudson (día de salida)
   d6: {
     desayuno: [
-      { tier: "callejera", name: "Bagel + café para llevar (LES)", note: "Rumbo a Battery Park" },
-      { tier: "estandar", name: "Leo's Bagels (FiDi)", note: "De camino al ferry" },
-      { tier: "fancy", name: "Le District (Brookfield Place)", note: "Mercado francés junto al río" },
+      { tier: "callejera", name: "Bagel + café para llevar (LES)", note: "Antes del metro a la 14" },
+      { tier: "estandar", name: "Kossar's Bialys (LES)", note: "Clásico a pasos del depa" },
+      { tier: "fancy", name: "Sadelle's (SoHo)", note: "Brunch famoso; reserva" },
     ],
     comida: [
       { tier: "callejera", name: "Los Tacos No.1 (Chelsea Market)", note: "Tacos top" },
@@ -585,7 +581,7 @@ const ALT = {
     { name: "Harry Styles — MSG (toca hoy; cambiar vs Yankees)", emoji: "🎤", cat: "noche" },
   ],
   d6: [
-    { name: "Staten Island Ferry GRATIS (pasa frente a la Estatua; 50 min ida y vuelta, sin boleto)", emoji: "⛴️", cat: "aire" },
+    { name: "Ferry a la isla de la Estatua + Ellis (solo si quieren pisar la isla — ya la vieron desde el agua)", emoji: "🗽", cat: "cultura" },
     { name: "Central Park en bici (si quieren repetir parque)", emoji: "🚲", cat: "aire" },
     { name: "Chinatown última vuelta (a pasos del depa)", emoji: "🥟", cat: "ninas" },
   ],
@@ -728,7 +724,7 @@ const RESERVAR = [
     items: [
       { id: "r_pass", name: "Explorer Pass — recalcular si aún conviene", urg: "opcional", url: "https://gocity.com/en/new-york/passes/explorer", note: "Con Summit fuera y el museo 9/11 recortado quedan ~3 en pase (ferry, MoMA, Met): compara vs comprarlas sueltas" },
       { id: "r_totr", name: "SUMMIT ✓ COMPRADO — mar 25, 1:00 PM (Tiqets)", urg: "opcional", url: "https://summitov.com", note: "4 adultos · confirmado" },
-      { id: "r_statue", name: "Estatua + Ellis Island · ferry (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Reserva horario del ferry" },
+      { id: "r_statue", name: "Estatua de la Libertad ✓ VISTA — Staten Island Ferry gratis (vie 28)", urg: "opcional", url: "https://www.statueoflibertytickets.com", note: "El ferry de paga solo si quisieran pisar la isla" },
       { id: "r_911", name: "9/11 Memorial & Museum (vie)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Boleto con horario" },
       { id: "r_moma", name: "MoMA ✓ COMPRADO — jue 27 (Tiqets)", urg: "opcional", url: "https://www.moma.org", note: "4 adultos · confirmado" },
       { id: "r_met", name: "The Met (jue)", urg: "opcional", url: "https://gocity.com/en/new-york", note: "Cierra 5 pm los jueves" },
